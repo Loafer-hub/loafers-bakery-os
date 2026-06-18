@@ -1,0 +1,29 @@
+import type { CapacitorConfig } from "@capacitor/cli";
+
+const config: CapacitorConfig = {
+  appId: "com.loafers.bakery",
+  appName: "Loafers",
+  webDir: "dist",
+  backgroundColor: "#FBFAF7",
+  ios: {
+    backgroundColor: "#FBFAF7",
+    contentInset: "automatic",
+    preferredContentMode: "mobile",
+    scrollEnabled: true,
+  },
+  plugins: {
+    SplashScreen: {
+      launchAutoHide: true,
+      launchShowDuration: 1200,
+      backgroundColor: "#FBFAF7",
+      showSpinner: false,
+    },
+    StatusBar: {
+      style: "DARK",
+      overlaysWebView: false,
+      backgroundColor: "#FBFAF7",
+    },
+  },
+};
+
+export default config;
