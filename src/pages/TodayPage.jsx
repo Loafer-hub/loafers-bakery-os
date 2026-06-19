@@ -59,7 +59,8 @@ export default function TodayPage({
   const today = new Date();
   const todayKey = pickupDateKey(today);
   const todayOrders = orders.filter((order) => (
-    order.status !== "Completed"
+    order.isSample !== true
+    && order.status !== "Completed"
     && (pickupDateKey(order.pickupAt) === todayKey || (!order.pickupAt && order.due === "Today"))
   ));
   const totalLoaves = todayOrders.reduce((sum, order) => sum + order.quantity, 0);
