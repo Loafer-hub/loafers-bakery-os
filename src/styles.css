@@ -915,13 +915,13 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   background: var(--sage-soft);
 }
 
-.baker-progress-grid input {
-  width: 16px;
+.baker-progress-grid label > input[type="checkbox"] {
+  width: 16px !important;
   min-width: 16px;
-  height: 16px;
-  min-height: 0;
+  height: 16px !important;
+  min-height: 0 !important;
   margin: 2px 0 0;
-  padding: 0;
+  padding: 0 !important;
   flex: 0 0 auto;
   accent-color: var(--sage);
 }
