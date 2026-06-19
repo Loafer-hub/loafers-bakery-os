@@ -11,6 +11,7 @@ import {
 } from "./data/seed";
 import { usePersistentState } from "./hooks/usePersistentState";
 import { useCloudAccount } from "./hooks/useCloudAccount";
+import { syncBakerCapacityReservations } from "./lib/cloud";
 import BakePage from "./pages/BakePage";
 import CustomerOrderPortal from "./pages/CustomerOrderPortal";
 import MorePage from "./pages/MorePage";
@@ -61,6 +62,15 @@ export default function App() {
     return () => window.clearTimeout(timeout);
   }, [toast]);
 
+  useEffect(() => {
+    const bakeryId = cloudAccount.workspace?.bakeryId;
+    if (!bakeryId) return undefined;
+    const timeout = window.setTimeout(() => {
+      syncBakerCapacityReservations(bakeryId, orders).catch(() => {});
+    }, 700);
+    return () => window.clearTimeout(timeout);
+  }, [cloudAccount.workspace?.bakeryId, orders]);
+
   function addOrder(form) {
     const initials = form.customer
       .split(" ")
@@ -106,6 +116,7 @@ export default function App() {
       request.payment_method ? `Payment: ${request.payment_method}` : "",
       request.pickup_location ? `Pickup: ${request.pickup_location}` : "",
       request.allergies ? `ALLERGIES: ${request.allergies}` : "",
+      request.baker_notes ? `Baker comment: ${request.baker_notes}` : "",
       `Online request: ${request.request_code}`,
     ].filter(Boolean).join("\n\n");
     const initials = request.customer_name

@@ -775,6 +775,21 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   gap: 3px;
 }
 
+.order-calendar-events {
+  max-height: 61px;
+  padding-right: 1px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: var(--line) transparent;
+  scrollbar-width: thin;
+  touch-action: pan-y;
+}
+
+.order-calendar-events:focus {
+  outline: 2px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  outline-offset: 1px;
+}
+
 .order-calendar-event {
   min-width: 0;
   display: flex;
@@ -788,7 +803,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   border-radius: 3px;
   background: color-mix(in srgb, currentColor 10%, white);
   text-align: left;
-  cursor: pointer;
+  cursor: default;
 }
 
 .order-calendar-event strong,
@@ -828,6 +843,29 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   color: var(--muted);
   font-size: 8px;
   line-height: 1.45;
+}
+
+.order-capacity-note {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 9px 10px;
+  color: #485a40;
+  border: 1px solid #c7d3bf;
+  border-radius: 7px;
+  background: var(--sage-soft);
+  font-size: 8px;
+}
+
+.order-capacity-note.locked {
+  color: #8d342f;
+  border-color: #e4b9b3;
+  background: #fff0ed;
+}
+
+.order-capacity-note span {
+  color: currentColor;
+  opacity: .78;
 }
 
 .order-row {
@@ -3193,6 +3231,73 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   font-size: 8px;
 }
 
+.cloud-comment-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.cloud-comment-field textarea {
+  min-height: 68px;
+}
+
+.cloud-request-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 6px;
+}
+
+.cloud-request-actions button {
+  min-height: 38px;
+  padding: 7px;
+  font-size: 8px;
+}
+
+.secondary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: white;
+  font-weight: 700;
+}
+
+.reject-request-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  color: #a13f38;
+  border: 1px solid #e2b6b0;
+  border-radius: 7px;
+  background: #fff6f4;
+  font-weight: 700;
+}
+
+.reject-request-confirmation {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 9px;
+  color: #7e332e;
+  border: 1px solid #e2b6b0;
+  border-radius: 7px;
+  background: #fff6f4;
+  font-size: 8px;
+}
+
+.reject-request-confirmation > div {
+  display: flex;
+  justify-content: flex-end;
+  gap: 7px;
+}
+
 .cloud-request-card dl {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -3411,6 +3516,199 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   width: 1px;
   height: 1px;
   opacity: 0;
+}
+
+.payment-instructions,
+.success-payment-detail {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 11px 12px;
+  color: #485a40;
+  border: 1px solid #c7d3bf;
+  border-radius: 9px;
+  background: var(--sage-soft);
+}
+
+.payment-instructions > span,
+.success-payment-detail {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+}
+
+.payment-instructions small,
+.success-payment-detail small {
+  color: var(--accent);
+  font-size: 7px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .09em;
+}
+
+.payment-instructions strong,
+.success-payment-detail strong {
+  font-size: 11px;
+}
+
+.customer-pickup-calendar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 11px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(255,255,255,.72);
+}
+
+.customer-calendar-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.customer-calendar-heading > button {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: white;
+}
+
+.customer-calendar-heading > span {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+.customer-calendar-heading strong {
+  font-family: "Newsreader", Georgia, serif;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.customer-calendar-heading small {
+  color: var(--muted);
+  font-size: 7px;
+}
+
+.customer-calendar-weekdays,
+.customer-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.customer-calendar-weekdays span {
+  padding: 4px;
+  color: var(--muted);
+  text-align: center;
+  font-size: 7px;
+  font-weight: 700;
+}
+
+.customer-calendar-day,
+.customer-calendar-blank {
+  min-width: 0;
+  min-height: 49px;
+}
+
+.customer-calendar-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 4px 1px;
+  color: var(--ink);
+  border: 1px solid #e8ded4;
+  background: white;
+}
+
+.customer-calendar-day strong {
+  font-size: 10px;
+}
+
+.customer-calendar-day small {
+  min-height: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  color: #56724f;
+  font-size: 5px;
+  line-height: 1.1;
+  text-align: center;
+}
+
+.customer-calendar-day.selected {
+  position: relative;
+  z-index: 1;
+  color: white;
+  border-color: var(--accent);
+  background: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 24%, transparent);
+}
+
+.customer-calendar-day.selected small {
+  color: white;
+}
+
+.customer-calendar-day.disabled {
+  color: #aaa09a;
+  background: #f2efeb;
+}
+
+.customer-calendar-day.full {
+  color: #8f342d;
+  background: #fbe5e1;
+}
+
+.customer-calendar-day.feed-reserved {
+  color: #8f342d;
+  background: #fff0ed;
+}
+
+.customer-calendar-day.full small,
+.customer-calendar-day.feed-reserved small {
+  color: currentColor;
+}
+
+.customer-capacity-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 10px;
+  color: var(--muted);
+  font-size: 6px;
+}
+
+.customer-capacity-legend span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.customer-capacity-legend i {
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  background: white;
+  border: 1px solid var(--line);
+}
+
+.customer-capacity-legend i.full {
+  background: #f2b7af;
+  border-color: #d98b82;
+}
+
+.customer-capacity-legend i.feed {
+  background: #fff0ed;
+  border-color: #e2b6b0;
 }
 
 .pickup-location-card {

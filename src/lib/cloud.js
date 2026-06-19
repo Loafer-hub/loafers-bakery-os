@@ -191,6 +191,16 @@ export async function loadPublicStorefront(slug) {
   return { bakery, products: products || [] };
 }
 
+export async function loadPublicOrderCapacity(slug, from, to) {
+  const { data, error } = await requireClient().rpc("get_public_order_capacity", {
+    p_slug: slug,
+    p_from: from,
+    p_to: to,
+  });
+  throwIfError(error);
+  return data || [];
+}
+
 export async function submitPublicOrder({
   slug,
   customer,
@@ -229,6 +239,7 @@ export async function listCustomerOrderRequests(bakeryId) {
       pickup_location,
       allergies,
       customer_notes,
+      baker_notes,
       created_at,
       customer_order_items(id, product_name, unit_price_cents, quantity)
     `)
@@ -239,11 +250,61 @@ export async function listCustomerOrderRequests(bakeryId) {
   return data || [];
 }
 
-export async function acceptCustomerOrderRequest(orderId) {
+export async function acceptCustomerOrderRequest(orderId, bakerNotes = "") {
   const { error } = await requireClient()
     .from("customer_orders")
-    .update({ status: "accepted", updated_at: new Date().toISOString() })
+    .update({
+      status: "accepted",
+      baker_notes: bakerNotes.trim(),
+      updated_at: new Date().toISOString(),
+    })
     .eq("id", orderId);
+  throwIfError(error);
+}
+
+export async function commentCustomerOrderRequest(orderId, bakerNotes) {
+  const { error } = await requireClient()
+    .from("customer_orders")
+    .update({
+      baker_notes: bakerNotes.trim(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", orderId);
+  throwIfError(error);
+}
+
+export async function rejectCustomerOrderRequest(orderId, bakerNotes) {
+  const { error } = await requireClient()
+    .from("customer_orders")
+    .update({
+      status: "declined",
+      baker_notes: bakerNotes.trim(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", orderId);
+  throwIfError(error);
+}
+
+export async function syncBakerCapacityReservations(bakeryId, orders) {
+  const reservations = orders.flatMap((order) => {
+    if (order.cloudOrderId || order.isSample || !order.pickupAt) return [];
+    const date = new Date(order.pickupAt);
+    if (Number.isNaN(date.getTime())) return [];
+    const pickupDate = [
+      date.getFullYear(),
+      String(date.getMonth() + 1).padStart(2, "0"),
+      String(date.getDate()).padStart(2, "0"),
+    ].join("-");
+    return [{
+      source_key: String(order.id),
+      pickup_date: pickupDate,
+      loaf_count: Math.max(1, Math.min(6, Number(order.quantity || 1))),
+    }];
+  });
+  const { error } = await requireClient().rpc("sync_bakery_capacity_reservations", {
+    p_bakery_id: bakeryId,
+    p_reservations: reservations,
+  });
   throwIfError(error);
 }
 

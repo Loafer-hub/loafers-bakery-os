@@ -11,6 +11,7 @@ import {
   Wheat,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { CustomerPickupCalendar } from "../components/CustomerPickupCalendar";
 import {
   loadPublicStorefront,
   signInWithEmail,
@@ -21,6 +22,11 @@ import {
 
 const DEFAULT_PICKUP_LOCATION = "Three Bears, Delta Junction, AK";
 const DEFAULT_PAYMENT_METHODS = ["Venmo", "Zelle", "Cash"];
+const PAYMENT_DETAILS = {
+  Venmo: "@Joshua-Ellis-162",
+  Zelle: "9076161025",
+  Cash: "Pay at pickup",
+};
 
 function dollars(cents) {
   return `$${(Number(cents || 0) / 100).toFixed(2)}`;
@@ -35,11 +41,13 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
   const [accountOpen, setAccountOpen] = useState(false);
   const [accountMode, setAccountMode] = useState("signin");
   const [accountForm, setAccountForm] = useState({ name: "", email: "", password: "" });
+  const [selectedCapacity, setSelectedCapacity] = useState(null);
   const [form, setForm] = useState({
     name: "",
     email: "",
     phone: "",
-    pickupAt: "",
+    pickupDate: "",
+    pickupTime: "10:00",
     paymentMethod: "Venmo",
     allergies: "",
     notes: "",
@@ -98,9 +106,15 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
   const loafCount = selectedItems.reduce((sum, item) => sum + item.quantity, 0);
 
   function changeQuantity(productId, change) {
+    const currentProduct = Number(quantities[productId] || 0);
+    if (change > 0 && loafCount >= 6) {
+      setError("A pickup request can include no more than six loaves.");
+      return;
+    }
+    setError("");
     setQuantities((current) => ({
       ...current,
-      [productId]: Math.max(0, Math.min(24, Number(current[productId] || 0) + change)),
+      [productId]: Math.max(0, Math.min(6, currentProduct + change)),
     }));
   }
 
@@ -142,7 +156,16 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
       setError("Choose at least one loaf.");
       return;
     }
+    if (!form.pickupDate) {
+      setError("Choose an available pickup date.");
+      return;
+    }
+    if (selectedCapacity && loafCount > selectedCapacity.remaining) {
+      setError(`Only ${selectedCapacity.remaining} loaf${selectedCapacity.remaining === 1 ? "" : "s"} remain for that pickup day.`);
+      return;
+    }
     try {
+      const pickupAt = new Date(`${form.pickupDate}T${form.pickupTime || "10:00"}`);
       const result = await submitPublicOrder({
         slug,
         customer: {
@@ -154,7 +177,7 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
           product_id: item.id,
           quantity: item.quantity,
         })),
-        pickupAt: form.pickupAt ? new Date(form.pickupAt).toISOString() : null,
+        pickupAt: pickupAt.toISOString(),
         paymentMethod: form.paymentMethod,
         allergies: form.allergies.trim(),
         notes: form.notes.trim(),
@@ -189,6 +212,7 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
         <h1>Thank you, {form.name.split(" ")[0]}.</h1>
         <p>{storefront.bakery.name} received your bread request. The baker will confirm availability and pickup details for {storefront.bakery.pickup_location || DEFAULT_PICKUP_LOCATION}.</p>
         <div><small>Request code</small><strong>{success.request_code}</strong><span>{dollars(success.subtotal_cents)}</span></div>
+        <aside className="success-payment-detail"><small>{form.paymentMethod}</small><strong>{PAYMENT_DETAILS[form.paymentMethod]}</strong></aside>
         <button className="primary-button" type="button" onClick={() => setSuccess(null)}>Make another request</button>
       </main>
     );
@@ -258,7 +282,18 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
               <label>Email<input type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} placeholder="you@example.com" /></label>
               <label>Phone<input value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} placeholder="Optional if email entered" /></label>
             </div>
-            <label>Preferred pickup<input type="datetime-local" value={form.pickupAt} onChange={(event) => setForm({ ...form, pickupAt: event.target.value })} /></label>
+            <CustomerPickupCalendar
+              configured={cloudAccount.configured}
+              loafCount={loafCount}
+              selectedDate={form.pickupDate}
+              slug={slug}
+              onSelectDate={(pickupDate, capacity) => {
+                setSelectedCapacity(capacity);
+                setForm((current) => ({ ...current, pickupDate }));
+                setError("");
+              }}
+            />
+            <label>Preferred pickup time<input required type="time" value={form.pickupTime} onChange={(event) => setForm({ ...form, pickupTime: event.target.value })} /></label>
             <fieldset className="payment-choice">
               <legend>How would you like to pay?</legend>
               <div>
@@ -276,6 +311,10 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
                 ))}
               </div>
             </fieldset>
+            <aside className="payment-instructions">
+              <Banknote size={18} />
+              <span><small>{form.paymentMethod} payment</small><strong>{PAYMENT_DETAILS[form.paymentMethod]}</strong></span>
+            </aside>
             <aside className="pickup-location-card"><Store size={18} /><span><small>Pickup location</small><strong>{storefront.bakery.pickup_location || DEFAULT_PICKUP_LOCATION}</strong></span></aside>
             <label>Allergies or food sensitivities<textarea value={form.allergies} onChange={(event) => setForm({ ...form, allergies: event.target.value })} placeholder="List allergies, sensitivities, or write “None.” The baker will confirm before accepting." /></label>
             <aside className="allergy-warning"><strong>Home bakery notice</strong><span>Loafers handles wheat and may handle dairy, seeds, and other allergens. An allergy note is a request for review, not a guarantee against cross-contact.</span></aside>

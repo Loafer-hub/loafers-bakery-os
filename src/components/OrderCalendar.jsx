@@ -155,7 +155,6 @@ export function OrderCalendar({
   recipes,
   starters,
   starterLogs,
-  onOpenOrder,
 }) {
   const [month, setMonth] = useState(() => new Date());
   const events = useMemo(
@@ -206,28 +205,22 @@ export function OrderCalendar({
           const key = `${year}-${String(monthIndex + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
           const dayEvents = (eventsByDate.get(key) || [])
             .sort((a, b) => a.time - b.time);
-          const groupedEvents = Object.keys(eventTypes).flatMap((type) => {
-            const matching = dayEvents.filter((event) => event.type === type);
-            return matching.length ? [{ type, events: matching }] : [];
-          });
           return (
             <div className={dayEvents.length ? "order-calendar-day has-events" : "order-calendar-day"} key={key}>
               <span>{day}</span>
-              <div>
-                {groupedEvents.map((group) => {
-                  const config = eventTypes[group.type];
-                  const firstEvent = group.events[0];
+              <div className="order-calendar-events" role="list" tabIndex={dayEvents.length > 1 ? 0 : undefined} aria-label={`${dayEvents.length} production events on ${key}`}>
+                {dayEvents.map((event) => {
+                  const config = eventTypes[event.type];
                   return (
-                    <button
+                    <div
                       className={`order-calendar-event order-event-${config.className}`}
-                      key={`${key}-${group.type}`}
-                      type="button"
-                      title={`${config.label}: ${group.events.map((event) => event.customer).join(", ")}`}
-                      onClick={() => onOpenOrder(firstEvent.orderId)}
+                      key={event.id}
+                      role="listitem"
+                      title={`${config.label}: ${event.customer}`}
                     >
-                      <strong>{config.label}{group.events.length > 1 ? ` · ${group.events.length}` : ""}</strong>
-                      <small>{group.events.length === 1 ? firstEvent.customer.split(" ")[0] : "orders"}</small>
-                    </button>
+                      <strong>{config.label}</strong>
+                      <small>{event.customer.split(" ")[0]}</small>
+                    </div>
                   );
                 })}
               </div>
@@ -236,7 +229,7 @@ export function OrderCalendar({
         })}
       </div>
 
-      <p className="order-calendar-note">Feed and start times work backward from pickup using the recipe, starter, 76°F dough, a 12-hour cold proof, and two hours to cool.</p>
+      <p className="order-calendar-note">Scroll inside a busy day to see every order. Calendar entries are read-only; open an order from List view to edit it. Feed and start times work backward from pickup.</p>
     </section>
   );
 }

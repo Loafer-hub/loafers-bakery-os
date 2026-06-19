@@ -1,8 +1,10 @@
-import { Cloud, Download, RefreshCw, ShoppingBag } from "lucide-react";
+import { Cloud, Download, MessageSquareText, RefreshCw, ShoppingBag, XCircle } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import {
   acceptCustomerOrderRequest,
+  commentCustomerOrderRequest,
   listCustomerOrderRequests,
+  rejectCustomerOrderRequest,
 } from "../lib/cloud";
 import { Modal } from "./Primitives";
 
@@ -22,6 +24,8 @@ export function CloudOrderInbox({ cloudAccount, orders, onImportOrder }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [comments, setComments] = useState({});
+  const [rejectingId, setRejectingId] = useState(null);
   const bakeryId = cloudAccount.workspace?.bakeryId;
 
   const refresh = useCallback(async () => {
@@ -31,7 +35,12 @@ export function CloudOrderInbox({ cloudAccount, orders, onImportOrder }) {
     try {
       const nextRequests = await listCustomerOrderRequests(bakeryId);
       const imported = new Set(orders.map((order) => order.cloudOrderId).filter(Boolean));
-      setRequests(nextRequests.filter((request) => !imported.has(request.id)));
+      const pending = nextRequests.filter((request) => !imported.has(request.id));
+      setRequests(pending);
+      setComments((current) => Object.fromEntries(pending.map((request) => [
+        request.id,
+        current[request.id] ?? request.baker_notes ?? "",
+      ])));
     } catch (nextError) {
       setError(nextError.message);
     } finally {
@@ -49,9 +58,39 @@ export function CloudOrderInbox({ cloudAccount, orders, onImportOrder }) {
     setLoading(true);
     setError("");
     try {
-      onImportOrder(request);
-      await acceptCustomerOrderRequest(request.id);
+      const requestWithComment = { ...request, baker_notes: comments[request.id] || "" };
+      await acceptCustomerOrderRequest(request.id, comments[request.id] || "");
+      onImportOrder(requestWithComment);
       setRequests((current) => current.filter((item) => item.id !== request.id));
+    } catch (nextError) {
+      setError(nextError.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function saveComment(request) {
+    setLoading(true);
+    setError("");
+    try {
+      await commentCustomerOrderRequest(request.id, comments[request.id] || "");
+      setRequests((current) => current.map((item) => (
+        item.id === request.id ? { ...item, baker_notes: comments[request.id] || "" } : item
+      )));
+    } catch (nextError) {
+      setError(nextError.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function rejectRequest(request) {
+    setLoading(true);
+    setError("");
+    try {
+      await rejectCustomerOrderRequest(request.id, comments[request.id] || "");
+      setRequests((current) => current.filter((item) => item.id !== request.id));
+      setRejectingId(null);
     } catch (nextError) {
       setError(nextError.message);
     } finally {
@@ -89,9 +128,34 @@ export function CloudOrderInbox({ cloudAccount, orders, onImportOrder }) {
                   </dl>
                   {request.customer_notes ? <blockquote>{request.customer_notes}</blockquote> : null}
                   {request.allergies ? <div className="cloud-allergy-alert"><strong>Allergies</strong><span>{request.allergies}</span></div> : null}
-                  <button className="primary-button" type="button" disabled={loading} onClick={() => importRequest(request)}>
-                    <Download size={15} /> Accept into Orders
-                  </button>
+                  <label className="cloud-comment-field">
+                    Baker comment
+                    <textarea
+                      value={comments[request.id] || ""}
+                      onChange={(event) => setComments((current) => ({ ...current, [request.id]: event.target.value }))}
+                      placeholder="Availability, pickup details, payment reminder…"
+                    />
+                  </label>
+                  <div className="cloud-request-actions">
+                    <button className="primary-button" type="button" disabled={loading} onClick={() => importRequest(request)}>
+                      <Download size={15} /> Accept
+                    </button>
+                    <button className="secondary-button" type="button" disabled={loading} onClick={() => saveComment(request)}>
+                      <MessageSquareText size={15} /> Comment
+                    </button>
+                    <button className="reject-request-button" type="button" disabled={loading} onClick={() => setRejectingId(request.id)}>
+                      <XCircle size={15} /> Reject
+                    </button>
+                  </div>
+                  {rejectingId === request.id ? (
+                    <div className="reject-request-confirmation">
+                      <span>Reject this request? The comment above will be saved with it.</span>
+                      <div>
+                        <button type="button" className="text-button" onClick={() => setRejectingId(null)}>Keep pending</button>
+                        <button type="button" className="danger-button" disabled={loading} onClick={() => rejectRequest(request)}>Reject request</button>
+                      </div>
+                    </div>
+                  ) : null}
                 </article>
               );
             })}

@@ -5,6 +5,7 @@ import { CloudOrderInbox } from "../components/CloudOrderInbox";
 import { OrderCalendar, orderPickupDate } from "../components/OrderCalendar";
 import { EmptyState, Modal, Status } from "../components/Primitives";
 import { downloadOrderCalendar } from "../lib/orderCalendarExport";
+import { MAX_DAILY_LOAVES, orderCapacityForDate } from "../lib/orderCapacity";
 
 const filters = ["All", "New", "Paid"];
 
@@ -48,6 +49,14 @@ function localInputValue(value) {
   return new Date(date.getTime() - date.getTimezoneOffset() * 60 * 1000).toISOString().slice(0, 16);
 }
 
+function capacityError(status, requestedLoaves) {
+  if (!status.key) return "Choose a pickup date and time.";
+  if (status.feedReserved) return "That day is locked for feeding starter for the next full bake day.";
+  if (status.full) return "That pickup day already has six loaves booked.";
+  if (requestedLoaves > status.remaining) return `Only ${status.remaining} loaf${status.remaining === 1 ? "" : "s"} remain for that day.`;
+  return "";
+}
+
 export default function OrdersPage({
   cloudAccount,
   orders,
@@ -68,6 +77,8 @@ export default function OrdersPage({
   const [showAdd, setShowAdd] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [calendarMessage, setCalendarMessage] = useState("");
+  const [addError, setAddError] = useState("");
+  const [detailError, setDetailError] = useState("");
   const [detailForm, setDetailForm] = useState({ status: "New", notes: "", pickupAt: "" });
   const [form, setForm] = useState({
     customer: "",
@@ -91,6 +102,10 @@ export default function OrdersPage({
   const bookedRevenue = orders.reduce((sum, order) => sum + order.total, 0);
   const sampleOrderCount = orders.filter(isSampleOrder).length;
   const selectedOrder = orders.find((order) => order.id === selectedOrderId);
+  const addCapacity = orderCapacityForDate(orders, form.pickupAt, form.quantity);
+  const detailCapacity = selectedOrder
+    ? orderCapacityForDate(orders, detailForm.pickupAt, selectedOrder.quantity, selectedOrder.id)
+    : null;
 
   useEffect(() => {
     if (!selectedOrder) return;
@@ -100,17 +115,25 @@ export default function OrdersPage({
       pickupAt: localInputValue(selectedOrder.pickupAt || orderPickupDate(selectedOrder)),
     });
     setConfirmDelete(false);
+    setDetailError("");
   }, [selectedOrder]);
 
   function submitOrder(event) {
     event.preventDefault();
     if (!form.customer.trim()) return;
+    const nextCapacity = orderCapacityForDate(orders, form.pickupAt, form.quantity);
+    const nextError = capacityError(nextCapacity, form.quantity);
+    if (nextError) {
+      setAddError(nextError);
+      return;
+    }
     onAddOrder({
       ...form,
       due: pickupDueLabel(form.pickupAt),
       pickupAt: form.pickupAt ? new Date(form.pickupAt).toISOString() : null,
     });
     setShowAdd(false);
+    setAddError("");
     setForm({
       customer: "",
       product: "Country Sourdough",
@@ -123,6 +146,12 @@ export default function OrdersPage({
 
   function saveDetails(event) {
     event.preventDefault();
+    const nextCapacity = orderCapacityForDate(orders, detailForm.pickupAt, selectedOrder.quantity, selectedOrder.id);
+    const nextError = capacityError(nextCapacity, selectedOrder.quantity);
+    if (nextError) {
+      setDetailError(nextError);
+      return;
+    }
     onUpdateOrder(selectedOrder.id, {
       status: detailForm.status,
       notes: detailForm.notes.trim(),
@@ -178,7 +207,10 @@ export default function OrdersPage({
       <div className="orders-view-row">
         <div className="view-switch" aria-label="Order view">
           <button type="button" className={view === "list" ? "selected" : ""} onClick={() => setView("list")}><List size={14} /> List</button>
-          <button type="button" className={view === "calendar" ? "selected" : ""} onClick={() => setView("calendar")}><CalendarDays size={14} /> Calendar</button>
+          <button type="button" className={view === "calendar" ? "selected" : ""} onClick={() => {
+            onOpenOrder(null);
+            setView("calendar");
+          }}><CalendarDays size={14} /> Calendar</button>
         </div>
       </div>
 
@@ -212,7 +244,6 @@ export default function OrdersPage({
           recipes={recipes}
           starters={starters}
           starterLogs={starterLogs}
-          onOpenOrder={onOpenOrder}
         />
       ) : <section className="order-list">
         {filteredOrders.length ? filteredOrders.map((order) => (
@@ -272,6 +303,7 @@ export default function OrdersPage({
                 <input
                   type="number"
                   min="1"
+                  max={MAX_DAILY_LOAVES}
                   value={form.quantity}
                   onChange={(event) => setForm({ ...form, quantity: Number(event.target.value) })}
                 />
@@ -287,7 +319,10 @@ export default function OrdersPage({
               </label>
             </div>
             <div className="form-grid">
-              <label>Pickup<input type="datetime-local" value={form.pickupAt} onChange={(event) => setForm({ ...form, pickupAt: event.target.value })} /></label>
+              <label>Pickup<input type="datetime-local" value={form.pickupAt} onChange={(event) => {
+                setAddError("");
+                setForm({ ...form, pickupAt: event.target.value });
+              }} /></label>
               <label>
                 Payment
                 <select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}>
@@ -297,6 +332,11 @@ export default function OrdersPage({
                 </select>
               </label>
             </div>
+            <div className={`order-capacity-note ${addCapacity.full || addCapacity.feedReserved ? "locked" : ""}`}>
+              <strong>{addCapacity.feedReserved ? "Starter-feed day locked" : `${addCapacity.booked} of ${MAX_DAILY_LOAVES} loaves booked`}</strong>
+              <span>{addCapacity.feedReserved ? "Choose another pickup day." : `${addCapacity.remaining} remaining before this day closes.`}</span>
+            </div>
+            {addError ? <p className="form-error" role="alert">{addError}</p> : null}
             <button className="primary-button" type="submit">Add order</button>
           </form>
         </Modal>
@@ -313,8 +353,17 @@ export default function OrdersPage({
             </div>
             <label>
               Pickup date and time
-              <input type="datetime-local" value={detailForm.pickupAt} onChange={(event) => setDetailForm({ ...detailForm, pickupAt: event.target.value })} />
+              <input type="datetime-local" value={detailForm.pickupAt} onChange={(event) => {
+                setDetailError("");
+                setDetailForm({ ...detailForm, pickupAt: event.target.value });
+              }} />
             </label>
+            {detailCapacity ? (
+              <div className={`order-capacity-note ${detailCapacity.full || detailCapacity.feedReserved ? "locked" : ""}`}>
+                <strong>{detailCapacity.feedReserved ? "Starter-feed day locked" : `${detailCapacity.booked} of ${MAX_DAILY_LOAVES} other loaves booked`}</strong>
+                <span>{detailCapacity.feedReserved ? "Keep this order on a different pickup day." : `${detailCapacity.remaining} spaces available for this order.`}</span>
+              </div>
+            ) : null}
             <label>
               Payment status
               <select
@@ -326,6 +375,7 @@ export default function OrdersPage({
                 <option>Paid</option>
               </select>
             </label>
+            {detailError ? <p className="form-error" role="alert">{detailError}</p> : null}
             <label>
               Baker notes
               <textarea
