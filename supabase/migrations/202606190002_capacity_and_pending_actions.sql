@@ -263,7 +263,9 @@ begin
     raise exception 'That day is reserved for feeding starter for the next full bake day.';
   end if;
   if booked_loaves + requested_loaves > 6 then
-    raise exception 'Only % loaf or loaves remain for that pickup day.', greatest(0, 6 - booked_loaves);
+    raise exception 'Only % % remain for that pickup day.',
+      greatest(0, 6 - booked_loaves),
+      case when greatest(0, 6 - booked_loaves) = 1 then 'loaf' else 'loaves' end;
   end if;
 
   insert into public.customers (bakery_id, user_id, name, email, phone)
