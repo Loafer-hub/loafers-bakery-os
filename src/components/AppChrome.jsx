@@ -3,8 +3,8 @@ import {
   CalendarDays,
   ClipboardList,
   Croissant,
-  Ellipsis,
   House,
+  LineChart,
   UserRound,
   Wheat,
 } from "lucide-react";
@@ -14,7 +14,7 @@ const navItems = [
   { id: "orders", label: "Orders", icon: ClipboardList },
   { id: "bake", label: "Bake", icon: Croissant },
   { id: "recipes", label: "Recipes", icon: BookOpen },
-  { id: "more", label: "More", icon: Ellipsis },
+  { id: "more", label: "Trends", icon: LineChart },
 ];
 
 export function BrandHeader({ compact = false }) {

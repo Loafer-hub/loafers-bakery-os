@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { BottomNav } from "./components/AppChrome";
 import { Modal, Toast } from "./components/Primitives";
-import { recipes, scheduleSeed, seedInventory, seedOrders } from "./data/seed";
+import { recipes as seedRecipes, scheduleSeed, seedInventory, seedOrders } from "./data/seed";
 import { usePersistentState } from "./hooks/usePersistentState";
 import BakePage from "./pages/BakePage";
 import MorePage from "./pages/MorePage";
@@ -21,6 +21,8 @@ export default function App() {
   const [active, setActive] = useState("today");
   const [selectedOrderId, setSelectedOrderId] = useState(null);
   const [orders, setOrders] = usePersistentState("loafers-orders-v1", seedOrders);
+  const [recipes, setRecipes] = usePersistentState("loafers-recipes-v1", seedRecipes);
+  const [bakePlans, setBakePlans] = usePersistentState("loafers-bake-plans-v1", []);
   const [schedule, setSchedule] = usePersistentState("loafers-schedule-v1", scheduleSeed);
   const [starterLogs, setStarterLogs] = usePersistentState("loafers-starter-v1", []);
   const [toast, setToast] = useState("");
@@ -99,9 +101,36 @@ export default function App() {
     setToast("Starter feed logged");
   }
 
+  function addRecipe(recipe) {
+    setRecipes((current) => [recipe, ...current]);
+    setToast("Recipe added");
+  }
+
+  function deleteRecipe(id) {
+    setRecipes((current) => current.filter((recipe) => recipe.id !== id));
+    setToast("Recipe deleted");
+  }
+
+  function saveBakePlan(plan) {
+    const { isNew, ...savedPlan } = plan;
+    setBakePlans((current) => {
+      const exists = current.some((item) => item.id === savedPlan.id);
+      return exists
+        ? current.map((item) => item.id === savedPlan.id ? savedPlan : item)
+        : [...current, savedPlan];
+    });
+    setToast(isNew ? "Bake added to calendar" : "Bake plan updated");
+  }
+
+  function deleteBakePlan(id) {
+    setBakePlans((current) => current.filter((plan) => plan.id !== id));
+    setToast("Planned bake deleted");
+  }
+
   const sharedProps = {
     orders,
     recipes,
+    bakePlans,
     inventory: seedInventory,
     setActive: navigate,
     schedule,
@@ -109,11 +138,15 @@ export default function App() {
     onAddOrder: addOrder,
     onClearSampleOrders: clearSampleOrders,
     onDeleteOrder: deleteOrder,
+    onDeleteBakePlan: deleteBakePlan,
+    onDeleteRecipe: deleteRecipe,
     onOpenOrder: openOrder,
+    onAddRecipe: addRecipe,
     onPlanCreated: setToast,
     onStarterLogged: logStarter,
     onLogStarter: () => setQuickStarter(true),
     onUpdateOrder: updateOrder,
+    onSaveBakePlan: saveBakePlan,
     selectedOrderId,
     starterLogs,
   };
@@ -121,7 +154,6 @@ export default function App() {
   return (
     <div className="app-stage">
       <div className="app-shell">
-        <div className="ios-status" aria-hidden="true"><b>9:41</b><span>● ●● ▰</span></div>
         <div className="scroll-view">
           <Page {...sharedProps} />
         </div>

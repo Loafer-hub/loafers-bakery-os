@@ -1,11 +1,8 @@
 import {
-  Bell,
   Box,
-  ChevronRight,
   CircleDollarSign,
   LineChart,
   Package,
-  Settings2,
   UsersRound,
 } from "lucide-react";
 import { PageHeading } from "../components/AppChrome";
@@ -14,7 +11,7 @@ export default function MorePage({ inventory, orders }) {
   const repeatCustomers = new Set(orders.map((order) => order.customer)).size;
   return (
     <main className="page">
-      <PageHeading title="Bakery" subtitle="The quiet back office behind every good bake." />
+      <PageHeading title="Trends" subtitle="A simple pulse check on your one-person bakery." />
 
       <section className="trend-card">
         <div className="section-title-line">
@@ -36,7 +33,7 @@ export default function MorePage({ inventory, orders }) {
       </section>
 
       <section className="inventory-section">
-        <div className="section-title-line"><h2>Inventory</h2><button>Manage</button></div>
+        <div className="section-title-line"><h2>Inventory snapshot</h2></div>
         <div className="inventory-list">
           {inventory.map((item) => (
             <div className="inventory-row" key={item.id}>
@@ -46,21 +43,6 @@ export default function MorePage({ inventory, orders }) {
             </div>
           ))}
         </div>
-      </section>
-
-      <section className="menu-list">
-        {[
-          [UsersRound, "Customers", "Notes, favorites, order history"],
-          [Bell, "Bake requests", "Customer requests and waitlist"],
-          [CircleDollarSign, "Costs & pricing", "Margins, ingredient costs, taxes"],
-          [Settings2, "Bakery settings", "Capacity, reminders, units"],
-        ].map(([Icon, label, note]) => (
-          <button key={label}>
-            <Icon size={20} />
-            <span><strong>{label}</strong><small>{note}</small></span>
-            <ChevronRight size={18} />
-          </button>
-        ))}
       </section>
     </main>
   );
