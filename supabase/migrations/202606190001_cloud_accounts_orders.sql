@@ -150,6 +150,25 @@ alter table public.customers enable row level security;
 alter table public.customer_orders enable row level security;
 alter table public.customer_order_items enable row level security;
 
+revoke all on public.profiles from anon, authenticated;
+revoke all on public.bakeries from anon, authenticated;
+revoke all on public.bakery_members from anon, authenticated;
+revoke all on public.bakery_snapshots from anon, authenticated;
+revoke all on public.products from anon, authenticated;
+revoke all on public.customers from anon, authenticated;
+revoke all on public.customer_orders from anon, authenticated;
+revoke all on public.customer_order_items from anon, authenticated;
+
+grant select on public.bakeries, public.products to anon;
+grant select, update on public.profiles to authenticated;
+grant select, update on public.bakeries to authenticated;
+grant select on public.bakery_members to authenticated;
+grant select, insert, update on public.bakery_snapshots to authenticated;
+grant select, insert, update, delete on public.products to authenticated;
+grant select, update on public.customers to authenticated;
+grant select, update on public.customer_orders to authenticated;
+grant select on public.customer_order_items to authenticated;
+
 create policy "profiles_select_own"
 on public.profiles for select to authenticated
 using ((select auth.uid()) = user_id);
