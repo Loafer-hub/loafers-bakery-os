@@ -35,6 +35,7 @@ export function useCloudAccount() {
     }
 
     let active = true;
+    const pendingTimers = new Set();
     getCloudSession()
       .then(async (nextSession) => {
         if (!active) return;
@@ -51,23 +52,34 @@ export function useCloudAccount() {
         if (active) setLoading(false);
       });
 
-    const unsubscribe = onCloudAuthChange(async (nextSession) => {
+    const unsubscribe = onCloudAuthChange((nextSession) => {
       if (!active) return;
       setSession(nextSession);
       setWorkspace(null);
-      if (nextSession?.user) {
-        try {
-          const nextWorkspace = await loadBakerWorkspace(nextSession.user.id);
-          if (active) setWorkspace(nextWorkspace);
-        } catch (nextError) {
-          if (active) setError(nextError.message);
-        }
-      }
       setLoading(false);
+
+      if (!nextSession?.user) return;
+
+      const timer = window.setTimeout(() => {
+        pendingTimers.delete(timer);
+        if (!active) return;
+        loadBakerWorkspace(nextSession.user.id)
+          .then((nextWorkspace) => {
+            if (active) {
+              setWorkspace(nextWorkspace);
+              setError("");
+            }
+          })
+          .catch((nextError) => {
+            if (active) setError(nextError.message);
+          });
+      }, 0);
+      pendingTimers.add(timer);
     });
 
     return () => {
       active = false;
+      pendingTimers.forEach((timer) => window.clearTimeout(timer));
       unsubscribe();
     };
   }, []);
