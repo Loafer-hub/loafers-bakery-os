@@ -70,7 +70,7 @@ export function buildOrderSchedule({ order, pickupAt, recipes, starters, starter
   };
 }
 
-export function downloadOrderCalendar({
+export function createOrderCalendar({
   order,
   pickupAt,
   recipes,
@@ -126,11 +126,19 @@ export function downloadOrderCalendar({
     "END:VCALENDAR",
   ].map(foldLine);
 
-  const file = new Blob([`${eventLines.join("\r\n")}\r\n`], { type: "text/calendar;charset=utf-8" });
+  return {
+    content: `${eventLines.join("\r\n")}\r\n`,
+    filename: `loafers-${String(order.customer).toLowerCase().replace(/[^a-z0-9]+/g, "-")}-bake.ics`,
+  };
+}
+
+export function downloadOrderCalendar(options) {
+  const calendar = createOrderCalendar(options);
+  const file = new Blob([calendar.content], { type: "text/calendar;charset=utf-8" });
   const url = URL.createObjectURL(file);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `loafers-${String(order.customer).toLowerCase().replace(/[^a-z0-9]+/g, "-")}-bake.ics`;
+  link.download = calendar.filename;
   document.body.appendChild(link);
   link.click();
   link.remove();
