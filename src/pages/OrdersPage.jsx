@@ -1,14 +1,37 @@
-import { CheckCircle2, Plus, Search, ShoppingBag } from "lucide-react";
-import { useMemo, useState } from "react";
+import { CheckCircle2, MessageSquareText, Plus, Search, ShoppingBag, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { PageHeading } from "../components/AppChrome";
 import { EmptyState, Modal, Status } from "../components/Primitives";
 
 const filters = ["All", "New", "Paid"];
 
-export default function OrdersPage({ orders, onAddOrder }) {
+const sampleCustomers = new Set([
+  "Emily Morgan",
+  "James Walker",
+  "Sophie Lee",
+  "Maya Patel",
+  "Avery Brooks",
+]);
+
+function isSampleOrder(order) {
+  return order.isSample === true
+    || (Number(order.id) >= 1 && Number(order.id) <= 5 && sampleCustomers.has(order.customer));
+}
+
+export default function OrdersPage({
+  orders,
+  onAddOrder,
+  onClearSampleOrders,
+  onDeleteOrder,
+  onOpenOrder,
+  onUpdateOrder,
+  selectedOrderId,
+}) {
   const [filter, setFilter] = useState("All");
   const [query, setQuery] = useState("");
   const [showAdd, setShowAdd] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [detailForm, setDetailForm] = useState({ status: "New", notes: "" });
   const [form, setForm] = useState({
     customer: "",
     product: "Country Sourdough",
@@ -29,6 +52,17 @@ export default function OrdersPage({ orders, onAddOrder }) {
 
   const openOrders = orders.filter((order) => order.status !== "Paid").length;
   const bookedRevenue = orders.reduce((sum, order) => sum + order.total, 0);
+  const sampleOrderCount = orders.filter(isSampleOrder).length;
+  const selectedOrder = orders.find((order) => order.id === selectedOrderId);
+
+  useEffect(() => {
+    if (!selectedOrder) return;
+    setDetailForm({
+      status: selectedOrder.status,
+      notes: selectedOrder.notes || "",
+    });
+    setConfirmDelete(false);
+  }, [selectedOrder]);
 
   function submitOrder(event) {
     event.preventDefault();
@@ -43,6 +77,15 @@ export default function OrdersPage({ orders, onAddOrder }) {
       due: "Saturday",
       status: "New",
     });
+  }
+
+  function saveDetails(event) {
+    event.preventDefault();
+    onUpdateOrder(selectedOrder.id, {
+      status: detailForm.status,
+      notes: detailForm.notes.trim(),
+    });
+    onOpenOrder(null);
   }
 
   return (
@@ -63,6 +106,16 @@ export default function OrdersPage({ orders, onAddOrder }) {
         <div><strong>${bookedRevenue}</strong><span>booked revenue</span></div>
       </section>
 
+      {sampleOrderCount ? (
+        <aside className="sample-record-banner">
+          <span><strong>Demo records</strong><small>{sampleOrderCount} sample orders can be safely removed.</small></span>
+          <button type="button" onClick={onClearSampleOrders}>
+            <Trash2 size={14} />
+            Erase samples
+          </button>
+        </aside>
+      ) : null}
+
       <div className="search-row">
         <label className="search-field">
           <Search size={17} />
@@ -79,7 +132,13 @@ export default function OrdersPage({ orders, onAddOrder }) {
 
       <section className="order-list">
         {filteredOrders.length ? filteredOrders.map((order) => (
-          <article className="order-row" key={order.id}>
+          <button
+            className="order-row"
+            key={order.id}
+            onClick={() => onOpenOrder(order.id)}
+            type="button"
+            aria-label={`Open order for ${order.customer}`}
+          >
             <span className={`avatar avatar-${order.accent}`}>{order.initials}</span>
             <div className="order-main">
               <div className="order-title-line">
@@ -88,15 +147,18 @@ export default function OrdersPage({ orders, onAddOrder }) {
               </div>
               <p>{order.quantity} × {order.product}</p>
               <div className="order-meta">
-                <span>{order.due}</span>
+                <span className="order-due">
+                  {order.due}
+                  {order.notes ? <MessageSquareText size={13} aria-label="Has notes" /> : null}
+                </span>
                 <Status tone={order.status === "Paid" ? "success" : order.status === "New" ? "accent" : "neutral"}>
                   {order.status === "Paid" ? <CheckCircle2 size={13} /> : <ShoppingBag size={13} />}
                   {order.status}
                 </Status>
               </div>
             </div>
-          </article>
-        )) : <EmptyState title="No matching orders" body="Try a different status or customer name." />}
+          </button>
+        )) : <EmptyState title="No matching orders" body={orders.length ? "Try a different status or customer name." : "Add your first real order with the plus button."} />}
       </section>
 
       {showAdd ? (
@@ -159,6 +221,53 @@ export default function OrdersPage({ orders, onAddOrder }) {
               </label>
             </div>
             <button className="primary-button" type="submit">Add order</button>
+          </form>
+        </Modal>
+      ) : null}
+
+      {selectedOrder ? (
+        <Modal title={selectedOrder.customer} onClose={() => onOpenOrder(null)}>
+          <form className="form-stack" onSubmit={saveDetails}>
+            <div className="order-detail-summary">
+              <div><span>Bread</span><strong>{selectedOrder.product}</strong></div>
+              <div><span>Loaves</span><strong>{selectedOrder.quantity}</strong></div>
+              <div><span>Total</span><strong>${selectedOrder.total}</strong></div>
+              <div><span>Due</span><strong>{selectedOrder.due}</strong></div>
+            </div>
+            <label>
+              Payment status
+              <select
+                value={detailForm.status}
+                onChange={(event) => setDetailForm({ ...detailForm, status: event.target.value })}
+              >
+                <option>New</option>
+                <option>Deposit</option>
+                <option>Paid</option>
+              </select>
+            </label>
+            <label>
+              Baker notes
+              <textarea
+                value={detailForm.notes}
+                onChange={(event) => setDetailForm({ ...detailForm, notes: event.target.value })}
+                placeholder="Pickup details, scoring request, allergies, payment reminder…"
+              />
+            </label>
+            <button className="primary-button" type="submit">Save order details</button>
+            {confirmDelete ? (
+              <div className="delete-confirmation">
+                <span>Delete this order permanently?</span>
+                <div>
+                  <button type="button" className="text-button" onClick={() => setConfirmDelete(false)}>Keep it</button>
+                  <button type="button" className="danger-button" onClick={() => onDeleteOrder(selectedOrder.id)}>Delete order</button>
+                </div>
+              </div>
+            ) : (
+              <button className="delete-order-button" type="button" onClick={() => setConfirmDelete(true)}>
+                <Trash2 size={15} />
+                Delete this order
+              </button>
+            )}
           </form>
         </Modal>
       ) : null}

@@ -19,6 +19,7 @@ const pages = {
 
 export default function App() {
   const [active, setActive] = useState("today");
+  const [selectedOrderId, setSelectedOrderId] = useState(null);
   const [orders, setOrders] = usePersistentState("loafers-orders-v1", seedOrders);
   const [schedule, setSchedule] = usePersistentState("loafers-schedule-v1", scheduleSeed);
   const [starterLogs, setStarterLogs] = usePersistentState("loafers-starter-v1", []);
@@ -46,10 +47,51 @@ export default function App() {
         id: Date.now(),
         initials,
         accent: "terracotta",
+        notes: "",
+        isSample: false,
       },
       ...current,
     ]);
     setToast("Order added to the bake queue");
+  }
+
+  function updateOrder(id, changes) {
+    setOrders((current) => current.map((order) => (
+      order.id === id ? { ...order, ...changes } : order
+    )));
+    setToast("Order details saved");
+  }
+
+  function deleteOrder(id) {
+    setOrders((current) => current.filter((order) => order.id !== id));
+    setSelectedOrderId(null);
+    setToast("Order deleted");
+  }
+
+  function clearSampleOrders() {
+    const sampleCustomers = new Set([
+      "Emily Morgan",
+      "James Walker",
+      "Sophie Lee",
+      "Maya Patel",
+      "Avery Brooks",
+    ]);
+    setOrders((current) => current.filter((order) => (
+      order.isSample !== true
+      && !(Number(order.id) >= 1 && Number(order.id) <= 5 && sampleCustomers.has(order.customer))
+    )));
+    setSelectedOrderId(null);
+    setToast("Sample orders erased");
+  }
+
+  function navigate(page) {
+    if (page !== "orders") setSelectedOrderId(null);
+    setActive(page);
+  }
+
+  function openOrder(id) {
+    setSelectedOrderId(id);
+    setActive("orders");
   }
 
   function logStarter(entry) {
@@ -61,13 +103,18 @@ export default function App() {
     orders,
     recipes,
     inventory: seedInventory,
-    setActive,
+    setActive: navigate,
     schedule,
     setSchedule,
     onAddOrder: addOrder,
+    onClearSampleOrders: clearSampleOrders,
+    onDeleteOrder: deleteOrder,
+    onOpenOrder: openOrder,
     onPlanCreated: setToast,
     onStarterLogged: logStarter,
     onLogStarter: () => setQuickStarter(true),
+    onUpdateOrder: updateOrder,
+    selectedOrderId,
     starterLogs,
   };
 
@@ -78,7 +125,7 @@ export default function App() {
         <div className="scroll-view">
           <Page {...sharedProps} />
         </div>
-        <BottomNav active={active} onChange={setActive} />
+        <BottomNav active={active} onChange={navigate} />
         <Toast message={toast} />
       </div>
 

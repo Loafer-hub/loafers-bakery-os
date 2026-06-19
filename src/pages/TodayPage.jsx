@@ -33,7 +33,7 @@ function BakeTimeline() {
   );
 }
 
-export default function TodayPage({ orders, setActive, onLogStarter }) {
+export default function TodayPage({ orders, setActive, onLogStarter, onOpenOrder }) {
   const todayOrders = orders.filter((order) => order.due === "Today");
   const totalLoaves = todayOrders.reduce((sum, order) => sum + order.quantity, 0);
   const revenue = todayOrders.reduce((sum, order) => sum + order.total, 0);
@@ -74,7 +74,7 @@ export default function TodayPage({ orders, setActive, onLogStarter }) {
         </div>
         <div className="order-preview-list">
           {todayOrders.map((order) => (
-            <button className="order-preview" key={order.id} onClick={() => setActive("orders")}>
+            <button className="order-preview" key={order.id} onClick={() => onOpenOrder(order.id)}>
               <span className={`avatar avatar-${order.accent}`}>{order.initials}</span>
               <span className="order-preview-copy">
                 <strong>{order.customer}</strong>

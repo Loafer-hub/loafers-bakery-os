@@ -9,6 +9,8 @@ export const seedOrders = [
     status: "Paid",
     due: "Today",
     accent: "sage",
+    notes: "",
+    isSample: true,
   },
   {
     id: 2,
@@ -20,6 +22,8 @@ export const seedOrders = [
     status: "Paid",
     due: "Today",
     accent: "sand",
+    notes: "",
+    isSample: true,
   },
   {
     id: 3,
@@ -31,6 +35,8 @@ export const seedOrders = [
     status: "Paid",
     due: "Today",
     accent: "terracotta",
+    notes: "",
+    isSample: true,
   },
   {
     id: 4,
@@ -42,6 +48,8 @@ export const seedOrders = [
     status: "New",
     due: "Tomorrow",
     accent: "plum",
+    notes: "",
+    isSample: true,
   },
   {
     id: 5,
@@ -53,6 +61,8 @@ export const seedOrders = [
     status: "Deposit",
     due: "Saturday",
     accent: "ink",
+    notes: "",
+    isSample: true,
   },
 ];
 

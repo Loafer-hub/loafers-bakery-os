@@ -581,6 +581,49 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .metric-strip strong { font-family: "Newsreader", Georgia, serif; font-size: 26px; font-weight: 500; }
 .metric-strip span { color: var(--muted); font-size: 9px; line-height: 1.25; }
 
+.sample-record-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin: -5px 0 18px;
+  padding: 11px 12px;
+  border: 1px solid #dfcfc0;
+  border-radius: 9px;
+  background: #f7efe8;
+}
+
+.sample-record-banner span {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sample-record-banner strong {
+  font-size: 11px;
+}
+
+.sample-record-banner small {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.sample-record-banner button {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 9px;
+  color: #8d3e2b;
+  border: 1px solid #d9b3a7;
+  border-radius: 7px;
+  background: white;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 .search-row {
   display: flex;
   align-items: center;
@@ -648,11 +691,25 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 }
 
 .order-row {
+  width: 100%;
   display: grid;
   grid-template-columns: 44px 1fr;
   gap: 12px;
   padding: 16px 0;
+  text-align: left;
+  border: 0;
   border-bottom: 1px solid var(--line);
+  background: transparent;
+  cursor: pointer;
+  transition: background-color .15s ease, transform .15s ease;
+}
+
+.order-row:hover {
+  background: rgba(255, 255, 255, .56);
+}
+
+.order-row:active {
+  transform: scale(.99);
 }
 
 .order-main {
@@ -689,6 +746,16 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   justify-content: space-between;
   color: var(--muted);
   font-size: 10px;
+}
+
+.order-due {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.order-due svg {
+  color: var(--accent);
 }
 
 .status {
@@ -784,6 +851,100 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 10px;
+}
+
+.order-detail-summary {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: white;
+}
+
+.order-detail-summary div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+  padding: 12px;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.order-detail-summary div:nth-child(2n) {
+  border-right: 0;
+}
+
+.order-detail-summary div:nth-last-child(-n + 2) {
+  border-bottom: 0;
+}
+
+.order-detail-summary span {
+  color: var(--muted);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.order-detail-summary strong {
+  overflow: hidden;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.delete-order-button {
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+  gap: 6px;
+  padding: 8px;
+  color: #9a4633;
+  border: 0;
+  background: transparent;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.delete-confirmation {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 12px;
+  border: 1px solid #dfb7ab;
+  border-radius: 9px;
+  background: #fbefeb;
+  color: #7f3928;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.delete-confirmation div {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.text-button,
+.danger-button {
+  padding: 8px 10px;
+  border-radius: 7px;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.text-button {
+  border: 1px solid var(--line);
+  background: white;
+}
+
+.danger-button {
+  color: white;
+  border: 1px solid #963f2b;
+  background: #963f2b;
 }
 
 .toast {
@@ -1714,6 +1875,11 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 
   .segmented-control button {
     flex: 1;
+  }
+
+  .sample-record-banner {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 
