@@ -694,6 +694,142 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   border-top: 1px solid var(--line);
 }
 
+.orders-view-row {
+  display: flex;
+  justify-content: flex-end;
+  margin: 12px 0;
+}
+
+.orders-view-row .view-switch {
+  width: auto;
+}
+
+.orders-view-row .view-switch button {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.order-calendar {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  margin-top: 5px;
+}
+
+.order-calendar-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px 12px;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: white;
+}
+
+.order-calendar-legend span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 8px;
+  font-weight: 700;
+}
+
+.order-calendar-legend i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.order-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  overflow: hidden;
+  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+  border-radius: 9px;
+}
+
+.order-calendar-day,
+.order-calendar-grid .calendar-blank {
+  min-width: 0;
+  min-height: 82px;
+  padding: 5px;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: rgba(255,255,255,.45);
+}
+
+.order-calendar-day > span {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 700;
+}
+
+.order-calendar-day > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.order-calendar-event {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+  padding: 3px 4px;
+  overflow: hidden;
+  border: 0;
+  border-left: 3px solid currentColor;
+  border-radius: 3px;
+  background: color-mix(in srgb, currentColor 10%, white);
+  text-align: left;
+  cursor: pointer;
+}
+
+.order-calendar-event strong,
+.order-calendar-event small {
+  max-width: 100%;
+  overflow: hidden;
+  color: currentColor;
+  font-size: 6px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.order-calendar-event small {
+  opacity: .78;
+}
+
+.order-calendar-day em {
+  color: var(--muted);
+  font-size: 7px;
+  font-style: normal;
+}
+
+.order-event-placed { color: #427a4b; }
+.order-event-feed { color: #b83f35; }
+.order-event-start { color: #171412; }
+.order-event-pickup { color: #7a492d; }
+
+.order-calendar-event.order-event-pickup {
+  border-left-width: 4px;
+  background: #f1e4d8;
+  font-weight: 800;
+}
+
+.order-calendar-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 8px;
+  line-height: 1.45;
+}
+
 .order-row {
   width: 100%;
   display: grid;
@@ -3179,6 +3315,95 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   line-height: 1.45;
 }
 
+.customer-fulfillment-strip {
+  display: grid;
+  grid-template-columns: 1.35fr 1fr;
+  gap: 8px;
+  margin-top: 22px;
+}
+
+.customer-fulfillment-strip > span,
+.pickup-location-card {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 11px 12px;
+  color: #5d4b40;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: rgba(255,255,255,.72);
+}
+
+.customer-fulfillment-strip > span > span,
+.pickup-location-card > span {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.customer-fulfillment-strip small,
+.pickup-location-card small {
+  color: var(--accent);
+  font-size: 7px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .09em;
+}
+
+.customer-fulfillment-strip strong,
+.pickup-location-card strong {
+  font-size: 9px;
+}
+
+.payment-choice {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.payment-choice legend {
+  margin-bottom: 7px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.payment-choice > div {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7px;
+}
+
+.payment-choice label {
+  min-height: 42px;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: white;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.payment-choice label.selected {
+  color: #485a40;
+  border-color: #98ab8d;
+  background: var(--sage-soft);
+}
+
+.payment-choice input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.pickup-location-card {
+  background: #fbf3ea;
+}
+
 .customer-menu,
 .customer-details {
   padding: 28px 0;
@@ -4000,6 +4225,10 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
     grid-template-columns: 1fr;
   }
 
+  .customer-fulfillment-strip {
+    grid-template-columns: 1fr;
+  }
+
   .customer-product {
     min-height: 125px;
   }
@@ -4015,6 +4244,25 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 
   .customer-details .form-grid {
     grid-template-columns: 1fr;
+  }
+
+  .order-calendar-day,
+  .order-calendar-grid .calendar-blank {
+    min-height: 67px;
+    padding: 3px;
+  }
+
+  .order-calendar-event {
+    padding: 3px;
+    border-left-width: 2px;
+  }
+
+  .order-calendar-event strong {
+    font-size: 5px;
+  }
+
+  .order-calendar-event small {
+    display: none;
   }
 
   .customer-order-footer {

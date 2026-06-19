@@ -84,6 +84,8 @@ export function CloudOrderInbox({ cloudAccount, orders, onImportOrder }) {
                   <dl>
                     <div><dt>Pickup</dt><dd>{pickupLabel(request.pickup_at)}</dd></div>
                     <div><dt>Contact</dt><dd>{request.customer_email || request.customer_phone}</dd></div>
+                    <div><dt>Payment</dt><dd>{request.payment_method || "Arrange later"}</dd></div>
+                    <div><dt>Location</dt><dd>{request.pickup_location || "Three Bears, Delta Junction, AK"}</dd></div>
                   </dl>
                   {request.customer_notes ? <blockquote>{request.customer_notes}</blockquote> : null}
                   <button className="primary-button" type="button" disabled={loading} onClick={() => importRequest(request)}>

@@ -72,6 +72,7 @@ export default function App() {
       {
         ...form,
         id: Date.now(),
+        createdAt: new Date().toISOString(),
         initials,
         accent: "terracotta",
         notes: "",
@@ -102,6 +103,8 @@ export default function App() {
     const notes = [
       request.customer_notes,
       contact ? `Customer contact: ${contact}` : "",
+      request.payment_method ? `Payment: ${request.payment_method}` : "",
+      request.pickup_location ? `Pickup: ${request.pickup_location}` : "",
       `Online request: ${request.request_code}`,
     ].filter(Boolean).join("\n\n");
     const initials = request.customer_name
@@ -114,6 +117,7 @@ export default function App() {
     setOrders((current) => [{
       id: `${Date.now()}-${request.id.slice(0, 6)}`,
       cloudOrderId: request.id,
+      createdAt: request.created_at,
       customer: request.customer_name,
       initials,
       product: product || "Online bread request",
@@ -121,6 +125,9 @@ export default function App() {
       total: Number(request.subtotal_cents || 0) / 100,
       status: "New",
       due,
+      pickupAt: request.pickup_at,
+      paymentMethod: request.payment_method,
+      pickupLocation: request.pickup_location,
       accent: "sage",
       notes,
       isSample: false,

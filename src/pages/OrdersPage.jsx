@@ -1,7 +1,8 @@
-import { CheckCircle2, MessageSquareText, Plus, Search, ShoppingBag, Trash2 } from "lucide-react";
+import { CalendarDays, CheckCircle2, List, MessageSquareText, Plus, Search, ShoppingBag, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { PageHeading } from "../components/AppChrome";
 import { CloudOrderInbox } from "../components/CloudOrderInbox";
+import { OrderCalendar } from "../components/OrderCalendar";
 import { EmptyState, Modal, Status } from "../components/Primitives";
 
 const filters = ["All", "New", "Paid"];
@@ -19,9 +20,32 @@ function isSampleOrder(order) {
     || (Number(order.id) >= 1 && Number(order.id) <= 5 && sampleCustomers.has(order.customer));
 }
 
+function defaultPickupInput() {
+  const date = new Date();
+  const daysUntilSaturday = (6 - date.getDay() + 7) % 7 || 7;
+  date.setDate(date.getDate() + daysUntilSaturday);
+  date.setHours(10, 0, 0, 0);
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60 * 1000);
+  return local.toISOString().slice(0, 16);
+}
+
+function pickupDueLabel(value) {
+  if (!value) return "Arrange pickup";
+  return new Date(value).toLocaleString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 export default function OrdersPage({
   cloudAccount,
   orders,
+  recipes,
+  starters,
+  starterLogs,
   onAddOrder,
   onClearSampleOrders,
   onDeleteOrder,
@@ -31,16 +55,17 @@ export default function OrdersPage({
   selectedOrderId,
 }) {
   const [filter, setFilter] = useState("All");
+  const [view, setView] = useState("list");
   const [query, setQuery] = useState("");
   const [showAdd, setShowAdd] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [detailForm, setDetailForm] = useState({ status: "New", notes: "" });
+  const [detailForm, setDetailForm] = useState({ status: "New", notes: "", pickupAt: "" });
   const [form, setForm] = useState({
     customer: "",
     product: "Country Sourdough",
     quantity: 1,
     total: 13,
-    due: "Saturday",
+    pickupAt: defaultPickupInput(),
     status: "New",
   });
 
@@ -63,6 +88,9 @@ export default function OrdersPage({
     setDetailForm({
       status: selectedOrder.status,
       notes: selectedOrder.notes || "",
+      pickupAt: selectedOrder.pickupAt
+        ? new Date(new Date(selectedOrder.pickupAt).getTime() - new Date(selectedOrder.pickupAt).getTimezoneOffset() * 60 * 1000).toISOString().slice(0, 16)
+        : "",
     });
     setConfirmDelete(false);
   }, [selectedOrder]);
@@ -70,14 +98,18 @@ export default function OrdersPage({
   function submitOrder(event) {
     event.preventDefault();
     if (!form.customer.trim()) return;
-    onAddOrder(form);
+    onAddOrder({
+      ...form,
+      due: pickupDueLabel(form.pickupAt),
+      pickupAt: form.pickupAt ? new Date(form.pickupAt).toISOString() : null,
+    });
     setShowAdd(false);
     setForm({
       customer: "",
       product: "Country Sourdough",
       quantity: 1,
       total: 13,
-      due: "Saturday",
+      pickupAt: defaultPickupInput(),
       status: "New",
     });
   }
@@ -87,6 +119,8 @@ export default function OrdersPage({
     onUpdateOrder(selectedOrder.id, {
       status: detailForm.status,
       notes: detailForm.notes.trim(),
+      pickupAt: detailForm.pickupAt ? new Date(detailForm.pickupAt).toISOString() : null,
+      due: pickupDueLabel(detailForm.pickupAt),
     });
     onOpenOrder(null);
   }
@@ -115,6 +149,13 @@ export default function OrdersPage({
         onImportOrder={onImportCloudOrder}
       />
 
+      <div className="orders-view-row">
+        <div className="view-switch" aria-label="Order view">
+          <button type="button" className={view === "list" ? "selected" : ""} onClick={() => setView("list")}><List size={14} /> List</button>
+          <button type="button" className={view === "calendar" ? "selected" : ""} onClick={() => setView("calendar")}><CalendarDays size={14} /> Calendar</button>
+        </div>
+      </div>
+
       {sampleOrderCount ? (
         <aside className="sample-record-banner">
           <span><strong>Demo records</strong><small>{sampleOrderCount} sample orders can be safely removed.</small></span>
@@ -125,7 +166,7 @@ export default function OrdersPage({
         </aside>
       ) : null}
 
-      <div className="search-row">
+      {view === "list" ? <div className="search-row">
         <label className="search-field">
           <Search size={17} />
           <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search orders" />
@@ -137,9 +178,17 @@ export default function OrdersPage({
             </button>
           ))}
         </div>
-      </div>
+      </div> : null}
 
-      <section className="order-list">
+      {view === "calendar" ? (
+        <OrderCalendar
+          orders={orders}
+          recipes={recipes}
+          starters={starters}
+          starterLogs={starterLogs}
+          onOpenOrder={onOpenOrder}
+        />
+      ) : <section className="order-list">
         {filteredOrders.length ? filteredOrders.map((order) => (
           <button
             className="order-row"
@@ -168,7 +217,7 @@ export default function OrdersPage({
             </div>
           </button>
         )) : <EmptyState title="No matching orders" body={orders.length ? "Try a different status or customer name." : "Add your first real order with the plus button."} />}
-      </section>
+      </section>}
 
       {showAdd ? (
         <Modal title="New bread order" onClose={() => setShowAdd(false)}>
@@ -212,14 +261,7 @@ export default function OrdersPage({
               </label>
             </div>
             <div className="form-grid">
-              <label>
-                Due
-                <select value={form.due} onChange={(event) => setForm({ ...form, due: event.target.value })}>
-                  <option>Tomorrow</option>
-                  <option>Saturday</option>
-                  <option>Sunday</option>
-                </select>
-              </label>
+              <label>Pickup<input type="datetime-local" value={form.pickupAt} onChange={(event) => setForm({ ...form, pickupAt: event.target.value })} /></label>
               <label>
                 Payment
                 <select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}>
@@ -243,6 +285,10 @@ export default function OrdersPage({
               <div><span>Total</span><strong>${selectedOrder.total}</strong></div>
               <div><span>Due</span><strong>{selectedOrder.due}</strong></div>
             </div>
+            <label>
+              Pickup date and time
+              <input type="datetime-local" value={detailForm.pickupAt} onChange={(event) => setDetailForm({ ...detailForm, pickupAt: event.target.value })} />
+            </label>
             <label>
               Payment status
               <select

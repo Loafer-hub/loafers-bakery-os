@@ -1,10 +1,12 @@
 import {
+  Banknote,
   CheckCircle2,
   ChevronLeft,
   LockKeyhole,
   Minus,
   Plus,
   ShoppingBag,
+  Store,
   UserRound,
   Wheat,
 } from "lucide-react";
@@ -16,6 +18,9 @@ import {
   signUpCustomer,
   submitPublicOrder,
 } from "../lib/cloud";
+
+const DEFAULT_PICKUP_LOCATION = "Three Bears, Delta Junction, AK";
+const DEFAULT_PAYMENT_METHODS = ["Venmo", "Zelle", "Cash"];
 
 function dollars(cents) {
   return `$${(Number(cents || 0) / 100).toFixed(2)}`;
@@ -35,6 +40,7 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
     email: "",
     phone: "",
     pickupAt: "",
+    paymentMethod: "Venmo",
     notes: "",
   });
 
@@ -45,6 +51,8 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
           name: "Loafers",
           slug,
           ordering_intro: "Fresh sourdough, made in small batches. Choose a loaf and preview the customer request flow.",
+          pickup_location: DEFAULT_PICKUP_LOCATION,
+          payment_methods: DEFAULT_PAYMENT_METHODS,
         },
         products: fallbackRecipes.map((recipe, index) => ({
           id: `preview-${recipe.id}`,
@@ -146,6 +154,7 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
           quantity: item.quantity,
         })),
         pickupAt: form.pickupAt ? new Date(form.pickupAt).toISOString() : null,
+        paymentMethod: form.paymentMethod,
         notes: form.notes.trim(),
       });
       setSuccess(result);
@@ -176,7 +185,7 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
         <span><CheckCircle2 size={36} /></span>
         <span className="eyebrow-label dark">Request received</span>
         <h1>Thank you, {form.name.split(" ")[0]}.</h1>
-        <p>{storefront.bakery.name} received your bread request. The baker will confirm availability and pickup details.</p>
+        <p>{storefront.bakery.name} received your bread request. The baker will confirm availability and pickup details for {storefront.bakery.pickup_location || DEFAULT_PICKUP_LOCATION}.</p>
         <div><small>Request code</small><strong>{success.request_code}</strong><span>{dollars(success.subtotal_cents)}</span></div>
         <button className="primary-button" type="button" onClick={() => setSuccess(null)}>Make another request</button>
       </main>
@@ -216,6 +225,10 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
         <span className="eyebrow-label dark">Small-batch sourdough</span>
         <h1>Bread worth planning for.</h1>
         <p>{storefront.bakery.ordering_intro}</p>
+        <div className="customer-fulfillment-strip">
+          <span><Store size={17} /><span><small>Pickup</small><strong>{storefront.bakery.pickup_location || DEFAULT_PICKUP_LOCATION}</strong></span></span>
+          <span><Banknote size={17} /><span><small>Payment</small><strong>{(storefront.bakery.payment_methods || DEFAULT_PAYMENT_METHODS).join(", ")}</strong></span></span>
+        </div>
       </section>
 
       <form onSubmit={submitOrder}>
@@ -244,6 +257,24 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
               <label>Phone<input value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} placeholder="Optional if email entered" /></label>
             </div>
             <label>Preferred pickup<input type="datetime-local" value={form.pickupAt} onChange={(event) => setForm({ ...form, pickupAt: event.target.value })} /></label>
+            <fieldset className="payment-choice">
+              <legend>How would you like to pay?</legend>
+              <div>
+                {(storefront.bakery.payment_methods || DEFAULT_PAYMENT_METHODS).map((method) => (
+                  <label className={form.paymentMethod === method ? "selected" : ""} key={method}>
+                    <input
+                      type="radio"
+                      name="payment-method"
+                      value={method}
+                      checked={form.paymentMethod === method}
+                      onChange={(event) => setForm({ ...form, paymentMethod: event.target.value })}
+                    />
+                    <span>{method}</span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            <aside className="pickup-location-card"><Store size={18} /><span><small>Pickup location</small><strong>{storefront.bakery.pickup_location || DEFAULT_PICKUP_LOCATION}</strong></span></aside>
             <label>Request notes<textarea value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} placeholder="Scoring preference, timing, or anything the baker should know. Please discuss allergies directly." /></label>
           </div>
         </section>

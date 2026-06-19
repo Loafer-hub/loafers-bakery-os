@@ -174,7 +174,7 @@ export async function publishRecipeCatalog(bakeryId, recipes) {
 export async function loadPublicStorefront(slug) {
   const { data: bakery, error: bakeryError } = await requireClient()
     .from("bakeries")
-    .select("id, name, slug, ordering_intro")
+    .select("id, name, slug, ordering_intro, pickup_location, payment_methods")
     .eq("slug", slug)
     .eq("public_ordering", true)
     .maybeSingle();
@@ -196,6 +196,7 @@ export async function submitPublicOrder({
   customer,
   items,
   pickupAt,
+  paymentMethod,
   notes,
 }) {
   const { data, error } = await requireClient().rpc("submit_public_order", {
@@ -203,6 +204,7 @@ export async function submitPublicOrder({
     p_customer: customer,
     p_items: items,
     p_pickup_at: pickupAt || null,
+    p_payment_method: paymentMethod || "Cash",
     p_notes: notes || "",
   });
   throwIfError(error);
@@ -221,6 +223,8 @@ export async function listCustomerOrderRequests(bakeryId) {
       customer_name,
       customer_email,
       customer_phone,
+      payment_method,
+      pickup_location,
       customer_notes,
       created_at,
       customer_order_items(id, product_name, unit_price_cents, quantity)

@@ -18,6 +18,8 @@ create table if not exists public.bakeries (
     check (slug ~ '^[a-z0-9]+(?:-[a-z0-9]+)*$'),
   public_ordering boolean not null default true,
   ordering_intro text not null default 'Fresh sourdough, made in small batches. Request a pickup below.',
+  pickup_location text not null default 'Three Bears, Delta Junction, AK',
+  payment_methods text[] not null default array['Venmo', 'Zelle', 'Cash']::text[],
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -79,6 +81,9 @@ create table if not exists public.customer_orders (
   customer_name text not null,
   customer_email text not null default '',
   customer_phone text not null default '',
+  payment_method text not null default 'Cash'
+    check (payment_method in ('Venmo', 'Zelle', 'Cash')),
+  pickup_location text not null default 'Three Bears, Delta Junction, AK',
   customer_notes text not null default '',
   baker_notes text not null default '',
   created_at timestamptz not null default now(),
@@ -327,11 +332,14 @@ create trigger on_auth_user_created
 after insert on auth.users
 for each row execute procedure public.handle_new_user();
 
+drop function if exists public.submit_public_order(text, jsonb, jsonb, timestamptz, text);
+
 create or replace function public.submit_public_order(
   p_slug text,
   p_customer jsonb,
   p_items jsonb,
   p_pickup_at timestamptz default null,
+  p_payment_method text default 'Cash',
   p_notes text default ''
 )
 returns jsonb
@@ -377,6 +385,9 @@ begin
     or jsonb_array_length(p_items) = 0 then
     raise exception 'Choose at least one loaf.';
   end if;
+  if not (p_payment_method = any(target_bakery.payment_methods)) then
+    raise exception 'That payment method is not available.';
+  end if;
 
   insert into public.customers (bakery_id, user_id, name, email, phone)
   values (
@@ -399,6 +410,8 @@ begin
     customer_name,
     customer_email,
     customer_phone,
+    payment_method,
+    pickup_location,
     customer_notes
   )
   values (
@@ -410,6 +423,8 @@ begin
     customer_name_value,
     customer_email_value,
     customer_phone_value,
+    p_payment_method,
+    target_bakery.pickup_location,
     left(coalesce(p_notes, ''), 1200)
   )
   returning id into order_uuid;
@@ -458,5 +473,5 @@ begin
 end;
 $$;
 
-revoke all on function public.submit_public_order(text, jsonb, jsonb, timestamptz, text) from public;
-grant execute on function public.submit_public_order(text, jsonb, jsonb, timestamptz, text) to anon, authenticated;
+revoke all on function public.submit_public_order(text, jsonb, jsonb, timestamptz, text, text) from public;
+grant execute on function public.submit_public_order(text, jsonb, jsonb, timestamptz, text, text) to anon, authenticated;
