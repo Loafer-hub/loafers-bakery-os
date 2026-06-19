@@ -249,7 +249,7 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
         </section>
 
         <footer className="customer-order-footer">
-          <div><ShoppingBag size={18} /><span><strong>{loafCount} loaf{loafCount === 1 ? "" : "s"}</strong><small>Estimated total {dollars(total)}</small></span></div>
+          <div><ShoppingBag size={18} /><span><strong>{loafCount} {loafCount === 1 ? "loaf" : "loaves"}</strong><small>Estimated total {dollars(total)}</small></span></div>
           <button className="primary-button" type="submit">Send request</button>
         </footer>
         {error ? <p className="form-error customer-form-error" role="alert">{error}</p> : null}
