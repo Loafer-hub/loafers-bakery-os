@@ -10,7 +10,9 @@ import {
   seedStarters,
 } from "./data/seed";
 import { usePersistentState } from "./hooks/usePersistentState";
+import { useCloudAccount } from "./hooks/useCloudAccount";
 import BakePage from "./pages/BakePage";
+import CustomerOrderPortal from "./pages/CustomerOrderPortal";
 import MorePage from "./pages/MorePage";
 import OrdersPage from "./pages/OrdersPage";
 import RecipesPage from "./pages/RecipesPage";
@@ -36,6 +38,7 @@ export default function App() {
   const [starterLogs, setStarterLogs] = usePersistentState("loafers-starter-v1", []);
   const [storageMeta, setStorageMeta] = usePersistentState("loafers-storage-meta-v1", {
     lastBackupAt: null,
+    lastCloudBackupAt: null,
   });
   const [recoveryBackup, setRecoveryBackup] = usePersistentState("loafers-recovery-v1", null);
   const [toast, setToast] = useState("");
@@ -49,6 +52,8 @@ export default function App() {
     note: "",
   });
   const Page = pages[active];
+  const cloudAccount = useCloudAccount();
+  const orderSlug = new URLSearchParams(window.location.search).get("order");
 
   useEffect(() => {
     if (!toast) return undefined;
@@ -75,6 +80,52 @@ export default function App() {
       ...current,
     ]);
     setToast("Order added to the bake queue");
+  }
+
+  function importCloudOrder(request) {
+    const items = request.customer_order_items || [];
+    const quantity = items.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+    const product = items.map((item) => (
+      item.quantity > 1 ? `${item.product_name} × ${item.quantity}` : item.product_name
+    )).join(", ");
+    const pickup = request.pickup_at ? new Date(request.pickup_at) : null;
+    const due = pickup && !Number.isNaN(pickup.getTime())
+      ? pickup.toLocaleString("en-US", {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      })
+      : "Arrange pickup";
+    const contact = [request.customer_email, request.customer_phone].filter(Boolean).join(" · ");
+    const notes = [
+      request.customer_notes,
+      contact ? `Customer contact: ${contact}` : "",
+      `Online request: ${request.request_code}`,
+    ].filter(Boolean).join("\n\n");
+    const initials = request.customer_name
+      .split(" ")
+      .map((part) => part[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase();
+
+    setOrders((current) => [{
+      id: `${Date.now()}-${request.id.slice(0, 6)}`,
+      cloudOrderId: request.id,
+      customer: request.customer_name,
+      initials,
+      product: product || "Online bread request",
+      quantity,
+      total: Number(request.subtotal_cents || 0) / 100,
+      status: "New",
+      due,
+      accent: "sage",
+      notes,
+      isSample: false,
+    }, ...current]);
+    setToast("Customer request accepted into Orders");
   }
 
   function updateOrder(id, changes) {
@@ -244,6 +295,7 @@ export default function App() {
   }
 
   const sharedProps = {
+    cloudAccount,
     orders,
     recipes,
     bakePlans,
@@ -260,6 +312,7 @@ export default function App() {
     onDeleteRecipe: deleteRecipe,
     onDeleteStarter: deleteStarter,
     onOpenOrder: openOrder,
+    onImportCloudOrder: importCloudOrder,
     onLogExpense: logExpense,
     onPlanCreated: setToast,
     onStarterLogged: logStarter,
@@ -276,6 +329,16 @@ export default function App() {
     selectedOrderId,
     starterLogs,
   };
+
+  if (orderSlug) {
+    return (
+      <CustomerOrderPortal
+        cloudAccount={cloudAccount}
+        fallbackRecipes={recipes}
+        slug={orderSlug}
+      />
+    );
+  }
 
   return (
     <div className="app-stage">
@@ -323,11 +386,14 @@ export default function App() {
             starters,
             starterLogs,
           }}
+          cloudAccount={cloudAccount}
           lastBackupAt={storageMeta.lastBackupAt}
+          lastCloudBackupAt={storageMeta.lastCloudBackupAt}
           recoveryBackup={recoveryBackup}
           onClose={() => setStorageOpen(false)}
           onRestore={restoreStorage}
-          onSetLastBackupAt={(lastBackupAt) => setStorageMeta({ lastBackupAt })}
+          onSetLastBackupAt={(lastBackupAt) => setStorageMeta((current) => ({ ...current, lastBackupAt }))}
+          onSetLastCloudBackupAt={(lastCloudBackupAt) => setStorageMeta((current) => ({ ...current, lastCloudBackupAt }))}
           onUndoRestore={undoStorageRestore}
         />
       ) : null}

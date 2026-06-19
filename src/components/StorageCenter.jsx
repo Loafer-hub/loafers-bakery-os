@@ -1,6 +1,7 @@
 import { Capacitor } from "@capacitor/core";
 import {
   CheckCircle2,
+  Cloud,
   CloudOff,
   Database,
   Download,
@@ -17,6 +18,7 @@ import {
   parseBackup,
   STORAGE_DATASETS,
 } from "../lib/storage";
+import { BakerCloudPanel } from "./BakerCloudPanel";
 import { Modal } from "./Primitives";
 
 function formatBytes(bytes) {
@@ -54,11 +56,14 @@ function downloadJson(backup) {
 
 export function StorageCenter({
   data,
+  cloudAccount,
   lastBackupAt,
+  lastCloudBackupAt,
   recoveryBackup,
   onClose,
   onRestore,
   onSetLastBackupAt,
+  onSetLastCloudBackupAt,
   onUndoRestore,
 }) {
   const [quota, setQuota] = useState(null);
@@ -71,6 +76,7 @@ export function StorageCenter({
   const size = backupSizeBytes(backup);
   const totalRecords = STORAGE_DATASETS.reduce((sum, { id }) => sum + data[id].length, 0);
   const native = Capacitor.isNativePlatform();
+  const cloudConnected = Boolean(cloudAccount.configured && cloudAccount.workspace);
 
   useEffect(() => {
     let active = true;
@@ -129,15 +135,24 @@ export function StorageCenter({
           <span><HardDrive size={23} /></span>
           <div>
             <strong>{native ? "Saved on this iPhone" : "Saved in this browser"}</strong>
-            <p>Your bakery records stay on this device. Cloud sync is not enabled.</p>
+            <p>{cloudConnected ? "Your device records can now be copied to your private bakery cloud." : "Your bakery records stay on this device until cloud is connected."}</p>
           </div>
         </section>
 
         <div className="storage-status-grid">
           <div><Database /><strong>{totalRecords}</strong><span>total records</span></div>
           <div><FileJson /><strong>{formatBytes(size)}</strong><span>backup size</span></div>
-          <div><CloudOff /><strong>Off</strong><span>cloud sync</span></div>
+          <div>{cloudConnected ? <Cloud /> : <CloudOff />}<strong>{cloudConnected ? "Ready" : "Off"}</strong><span>cloud storage</span></div>
         </div>
+
+        <BakerCloudPanel
+          cloudAccount={cloudAccount}
+          data={data}
+          recipes={data.recipes}
+          lastCloudBackupAt={lastCloudBackupAt}
+          onRestore={onRestore}
+          onSetLastCloudBackupAt={onSetLastCloudBackupAt}
+        />
 
         <section className="storage-section">
           <div className="section-title-line">

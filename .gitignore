@@ -4,6 +4,9 @@ work/
 outputs/
 .DS_Store
 *.log
+.env
+.env.local
+.env.*.local
 
 # Xcode user-specific files
 ios/App/App.xcodeproj/xcuserdata/

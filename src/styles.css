@@ -3,7 +3,7 @@
   font-style: normal;
   font-weight: 400 700;
   font-display: swap;
-  src: url("./fonts/dm-sans-latin.woff2") format("woff2");
+  src: url("./assets/fonts/dm-sans-latin.woff2") format("woff2");
 }
 
 @font-face {
@@ -11,7 +11,7 @@
   font-style: normal;
   font-weight: 400 500;
   font-display: swap;
-  src: url("./fonts/newsreader-latin.woff2") format("woff2");
+  src: url("./assets/fonts/newsreader-latin.woff2") format("woff2");
 }
 
 :root {
@@ -2719,6 +2719,699 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   color: var(--accent);
 }
 
+.cloud-section {
+  border-color: #bac9b4;
+  background: linear-gradient(145deg, #f7faf5, #eef4eb);
+}
+
+.cloud-ready-card,
+.cloud-account-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px;
+  border-radius: 8px;
+  background: rgba(255,255,255,.74);
+}
+
+.cloud-ready-card > svg {
+  flex: 0 0 auto;
+  color: var(--sage);
+}
+
+.cloud-ready-card div,
+.cloud-account-line > span {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cloud-ready-card strong,
+.cloud-account-line strong {
+  font-size: 11px;
+}
+
+.cloud-ready-card p,
+.cloud-footnote,
+.customer-account-card > small {
+  margin: 0;
+  color: var(--muted);
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+.cloud-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: #485a40;
+  font-size: 9px;
+}
+
+.cloud-checklist li {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.cloud-checklist svg {
+  width: 14px;
+  flex: 0 0 auto;
+}
+
+.cloud-footnote {
+  text-align: center;
+}
+
+.cloud-mode-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: white;
+}
+
+.cloud-mode-switch button {
+  min-height: 32px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cloud-mode-switch button.selected {
+  color: white;
+  background: var(--sage);
+}
+
+.slug-field {
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: white;
+}
+
+.slug-field span {
+  padding-left: 9px;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 400;
+}
+
+.slug-field input {
+  border: 0 !important;
+}
+
+.cloud-loading {
+  align-items: center;
+  flex-direction: row;
+  justify-content: center;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.spin {
+  animation: cloud-spin 1s linear infinite;
+}
+
+@keyframes cloud-spin {
+  to { transform: rotate(360deg); }
+}
+
+.cloud-account-line {
+  justify-content: space-between;
+}
+
+.cloud-account-line small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 8px;
+  text-overflow: ellipsis;
+}
+
+.cloud-account-line button {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: white;
+  cursor: pointer;
+}
+
+.cloud-action-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.cloud-action-grid > button {
+  min-height: 66px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  text-align: left;
+  color: #485a40;
+  border: 1px solid #c4d0be;
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+}
+
+.cloud-action-grid > button:disabled {
+  cursor: default;
+  opacity: .5;
+}
+
+.cloud-action-grid span {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.cloud-action-grid strong {
+  font-size: 9px;
+}
+
+.cloud-action-grid small {
+  color: var(--muted);
+  font-size: 7px;
+}
+
+.customer-link-card {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 12px;
+  border: 1px solid #d8bdad;
+  border-radius: 9px;
+  background: #fffaf6;
+}
+
+.customer-link-card > div:first-child {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
+.customer-link-card > div:first-child strong {
+  font-family: "Newsreader", Georgia, serif;
+  font-size: 19px;
+  font-weight: 500;
+}
+
+.customer-link-card > p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.customer-link-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.customer-link-actions button,
+.customer-link-actions a {
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--accent);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: white;
+  font-size: 9px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.cloud-inbox-banner {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 12px 0;
+  padding: 11px 12px;
+  color: #485a40;
+  border: 1px solid #c4d0be;
+  border-radius: 9px;
+  background: var(--sage-soft);
+  text-align: left;
+  cursor: pointer;
+}
+
+.cloud-inbox-banner.has-orders {
+  color: #8b3f2b;
+  border-color: #dfb6a8;
+  background: #fbede7;
+}
+
+.cloud-inbox-banner > span,
+.cloud-inbox-banner > span > span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cloud-inbox-banner > span > span {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.cloud-inbox-banner strong {
+  font-size: 10px;
+}
+
+.cloud-inbox-banner small {
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.cloud-request-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cloud-empty-copy {
+  margin: 18px 0;
+  color: var(--muted);
+  text-align: center;
+  font-size: 10px;
+}
+
+.cloud-request-card {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 13px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: white;
+}
+
+.cloud-request-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.cloud-request-heading > span {
+  display: flex;
+  flex-direction: column;
+}
+
+.cloud-request-heading strong {
+  font-family: "Newsreader", Georgia, serif;
+  font-size: 17px;
+  font-weight: 500;
+}
+
+.cloud-request-heading small,
+.cloud-request-card p,
+.cloud-request-card dl,
+.cloud-request-card blockquote {
+  margin: 0;
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.cloud-request-card dl {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+}
+
+.cloud-request-card dl div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 7px;
+  border-radius: 6px;
+  background: var(--paper-deep);
+}
+
+.cloud-request-card dt {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.cloud-request-card dd {
+  margin: 0;
+}
+
+.cloud-request-card blockquote {
+  padding: 8px;
+  border-left: 2px solid var(--accent);
+  background: #fbf6f1;
+}
+
+.customer-portal {
+  width: min(100%, 760px);
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 0 28px 110px;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 90% 5%, rgba(199,85,53,.08), transparent 24%),
+    var(--paper);
+}
+
+.customer-header {
+  min-height: 82px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  border-bottom: 1px solid var(--line);
+}
+
+.customer-header > button {
+  max-width: 48%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  overflow: hidden;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: white;
+  font-size: 9px;
+  cursor: pointer;
+}
+
+.customer-header > button span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.portal-preview-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin: 12px 0;
+  padding: 8px;
+  color: #80503f;
+  border: 1px solid #e2c5b9;
+  border-radius: 7px;
+  background: #fcf0ea;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.customer-account-card {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  margin: 13px 0;
+  padding: 15px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: white;
+  box-shadow: 0 12px 30px rgba(56,39,24,.07);
+}
+
+.customer-hero {
+  max-width: 590px;
+  padding: 58px 0 45px;
+}
+
+.customer-hero h1,
+.customer-success-page h1 {
+  margin: 7px 0 12px;
+  font-family: "Newsreader", Georgia, serif;
+  font-size: clamp(45px, 9vw, 74px);
+  font-weight: 400;
+  letter-spacing: -.045em;
+  line-height: .94;
+}
+
+.customer-hero p,
+.customer-success-page > p {
+  max-width: 490px;
+  margin: 0;
+  color: var(--muted);
+  font-family: "Newsreader", Georgia, serif;
+  font-size: 18px;
+  line-height: 1.45;
+}
+
+.customer-menu,
+.customer-details {
+  padding: 28px 0;
+  border-top: 1px solid var(--line);
+}
+
+.customer-section-heading {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  gap: 13px;
+  margin-bottom: 20px;
+}
+
+.customer-section-heading > span {
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.customer-section-heading h2 {
+  margin: -5px 0 2px;
+  font-family: "Newsreader", Georgia, serif;
+  font-size: 30px;
+  font-weight: 500;
+}
+
+.customer-section-heading p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.customer-product-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.customer-product {
+  min-height: 150px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: white;
+  transition: border-color .2s ease, transform .2s ease, box-shadow .2s ease;
+}
+
+.customer-product.selected {
+  border-color: #d08a72;
+  box-shadow: 0 10px 28px rgba(114,66,43,.08);
+  transform: translateY(-2px);
+}
+
+.customer-product > div:first-child {
+  display: flex;
+  align-self: stretch;
+  flex-direction: column;
+}
+
+.customer-product h3 {
+  margin: 0;
+  font-family: "Newsreader", Georgia, serif;
+  font-size: 23px;
+  font-weight: 500;
+}
+
+.customer-product p {
+  margin: 4px 0 12px;
+  color: var(--muted);
+  font-size: 8px;
+  line-height: 1.4;
+}
+
+.customer-product > div:first-child > strong {
+  margin-top: auto;
+  color: var(--accent);
+  font-size: 11px;
+}
+
+.customer-quantity {
+  display: flex;
+  align-items: center;
+  flex-direction: column-reverse;
+  gap: 6px;
+}
+
+.customer-quantity button {
+  width: 31px;
+  height: 31px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--paper);
+  cursor: pointer;
+}
+
+.customer-quantity span {
+  min-width: 20px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.customer-details .form-stack {
+  max-width: 570px;
+  margin-left: 47px;
+}
+
+.customer-order-footer {
+  position: fixed;
+  z-index: 10;
+  bottom: 18px;
+  left: 50%;
+  width: min(calc(100% - 36px), 704px);
+  min-height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 14px 12px 18px;
+  color: white;
+  border-radius: 14px;
+  background: #29201b;
+  box-shadow: 0 17px 45px rgba(42,29,20,.26);
+  transform: translateX(-50%);
+}
+
+.customer-order-footer > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.customer-order-footer > div span {
+  display: flex;
+  flex-direction: column;
+}
+
+.customer-order-footer strong {
+  font-size: 11px;
+}
+
+.customer-order-footer small {
+  color: #cfc4ba;
+  font-size: 8px;
+}
+
+.customer-order-footer .primary-button {
+  width: auto;
+  min-width: 145px;
+}
+
+.customer-form-error {
+  margin: 12px 0 0 47px;
+}
+
+.customer-loading,
+.customer-success-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 0;
+  text-align: center;
+}
+
+.customer-loading > svg,
+.customer-success-page > span:first-child {
+  color: var(--accent);
+}
+
+.customer-loading h1 {
+  margin: 0;
+  font-family: "Newsreader", Georgia, serif;
+  font-weight: 500;
+}
+
+.customer-loading p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.customer-loading a {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--accent);
+}
+
+.customer-success-page > p {
+  font-size: 16px;
+}
+
+.customer-success-page > div {
+  min-width: 230px;
+  display: grid;
+  gap: 4px;
+  margin: 14px 0;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: white;
+}
+
+.customer-success-page > div small {
+  color: var(--muted);
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: .12em;
+}
+
+.customer-success-page > div strong {
+  font-family: "Newsreader", Georgia, serif;
+  font-size: 30px;
+  font-weight: 500;
+}
+
+.customer-success-page > div span {
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.customer-success-page > button {
+  width: min(100%, 280px);
+}
+
 .recipe-flour-science,
 .starter-flour-science,
 .starter-profile-science,
@@ -3278,6 +3971,64 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   }
 }
 
+@media (max-width: 620px) {
+  .customer-portal {
+    padding-inline: 18px;
+  }
+
+  .customer-header {
+    min-height: 70px;
+  }
+
+  .customer-header .brand-name {
+    font-size: 21px;
+  }
+
+  .customer-header > button span {
+    display: none;
+  }
+
+  .customer-hero {
+    padding: 42px 0 34px;
+  }
+
+  .customer-hero h1 {
+    font-size: 49px;
+  }
+
+  .customer-product-list {
+    grid-template-columns: 1fr;
+  }
+
+  .customer-product {
+    min-height: 125px;
+  }
+
+  .customer-quantity {
+    flex-direction: row;
+  }
+
+  .customer-details .form-stack,
+  .customer-form-error {
+    margin-left: 0;
+  }
+
+  .customer-details .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .customer-order-footer {
+    bottom: 8px;
+    width: calc(100% - 16px);
+    min-height: 66px;
+  }
+
+  .customer-order-footer .primary-button {
+    min-width: 118px;
+    padding-inline: 12px;
+  }
+}
+
 @media (max-width: 370px) {
   .page {
     padding-inline: 17px;
@@ -3330,6 +4081,15 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   .sample-record-banner {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .cloud-action-grid,
+  .customer-link-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .customer-order-footer > div > svg {
+    display: none;
   }
 }
 

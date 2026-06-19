@@ -1,6 +1,7 @@
 import { CheckCircle2, MessageSquareText, Plus, Search, ShoppingBag, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { PageHeading } from "../components/AppChrome";
+import { CloudOrderInbox } from "../components/CloudOrderInbox";
 import { EmptyState, Modal, Status } from "../components/Primitives";
 
 const filters = ["All", "New", "Paid"];
@@ -19,10 +20,12 @@ function isSampleOrder(order) {
 }
 
 export default function OrdersPage({
+  cloudAccount,
   orders,
   onAddOrder,
   onClearSampleOrders,
   onDeleteOrder,
+  onImportCloudOrder,
   onOpenOrder,
   onUpdateOrder,
   selectedOrderId,
@@ -105,6 +108,12 @@ export default function OrdersPage({
         <div><strong>{openOrders}</strong><span>need attention</span></div>
         <div><strong>${bookedRevenue}</strong><span>booked revenue</span></div>
       </section>
+
+      <CloudOrderInbox
+        cloudAccount={cloudAccount}
+        orders={orders}
+        onImportOrder={onImportCloudOrder}
+      />
 
       {sampleOrderCount ? (
         <aside className="sample-record-banner">
