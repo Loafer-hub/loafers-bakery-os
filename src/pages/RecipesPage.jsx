@@ -1,52 +1,160 @@
-import { ChevronRight, Droplets, Plus, Search, Trash2, Wheat } from "lucide-react";
+import {
+  ChevronRight,
+  CircleDollarSign,
+  Droplets,
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
+  Wheat,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 import { PageHeading } from "../components/AppChrome";
 import { EmptyState, Modal } from "../components/Primitives";
 
-const emptyRecipe = {
-  name: "",
-  note: "",
-  yield: 4,
-  hydration: 75,
-  price: 13,
-};
+const INGREDIENT_CATEGORIES = [
+  { value: "flour", label: "Flour" },
+  { value: "liquid", label: "Liquid" },
+  { value: "starter", label: "Starter / preferment" },
+  { value: "salt", label: "Salt" },
+  { value: "inclusion", label: "Inclusion" },
+  { value: "other", label: "Other" },
+];
 
-export default function RecipesPage({ recipes, onAddRecipe, onDeleteRecipe }) {
+const DEFAULT_INGREDIENTS = [
+  { key: "flour", name: "Bread flour", category: "flour", percent: 100 },
+  { key: "water", name: "Water", category: "liquid", percent: 75 },
+  { key: "starter", name: "Starter", category: "starter", percent: 20 },
+  { key: "salt", name: "Salt", category: "salt", percent: 2 },
+];
+
+function ingredientCategory(ingredient) {
+  if (ingredient.category) return ingredient.category;
+  const name = ingredient.name.toLowerCase();
+  if (name.includes("flour") || name.includes("wheat") || name.includes("rye") || name.includes("spelt") || name.includes("einkorn")) return "flour";
+  if (name.includes("water") || name.includes("milk") || name.includes("juice")) return "liquid";
+  if (name.includes("starter") || name.includes("levain")) return "starter";
+  if (name.includes("salt")) return "salt";
+  return "inclusion";
+}
+
+function flourWeightFor(recipe) {
+  const flourWeight = recipe.ingredients.reduce((sum, ingredient) => (
+    ingredientCategory(ingredient) === "flour" ? sum + Number(ingredient.weight || 0) : sum
+  ), 0);
+  return flourWeight || Number(recipe.flourWeight) || Number(recipe.yield || 1) * 600;
+}
+
+function recipeForm(recipe) {
+  const stamp = Date.now();
+  if (!recipe) {
+    return {
+      id: `recipe-${stamp}`,
+      name: "",
+      note: "",
+      yield: 4,
+      price: 13,
+      flourWeight: 2400,
+      isNew: true,
+      ingredients: DEFAULT_INGREDIENTS.map((ingredient) => ({
+        ...ingredient,
+        id: `ingredient-${ingredient.key}-${stamp}`,
+      })),
+    };
+  }
+  return {
+    ...recipe,
+    isNew: false,
+    flourWeight: flourWeightFor(recipe),
+    ingredients: recipe.ingredients.map((ingredient, index) => ({
+      ...ingredient,
+      id: ingredient.id || `ingredient-${index}-${stamp}`,
+      category: ingredientCategory(ingredient),
+      percent: Number(ingredient.percent || 0),
+    })),
+  };
+}
+
+function inventoryCostForIngredient(ingredient, weight, inventory) {
+  const matched = inventory.find((item) => item.name.trim().toLowerCase() === ingredient.name.trim().toLowerCase());
+  if (!matched || !Number(matched.unitCost)) return 0;
+  const unit = String(matched.unit || "").toLowerCase();
+  if (["kg", "kilogram", "kilograms"].includes(unit)) return weight / 1000 * Number(matched.unitCost);
+  if (["g", "gram", "grams"].includes(unit)) return weight * Number(matched.unitCost);
+  if (["lb", "pound", "pounds"].includes(unit)) return weight / 453.592 * Number(matched.unitCost);
+  if (["oz", "ounce", "ounces"].includes(unit)) return weight / 28.3495 * Number(matched.unitCost);
+  return 0;
+}
+
+export default function RecipesPage({ inventory, recipes, onDeleteRecipe, onSaveRecipe }) {
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState(null);
   const [loaves, setLoaves] = useState(1);
-  const [showAdd, setShowAdd] = useState(false);
+  const [showEditor, setShowEditor] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [form, setForm] = useState(emptyRecipe);
+  const [form, setForm] = useState(() => recipeForm());
+  const [formError, setFormError] = useState("");
   const selected = recipes.find((recipe) => recipe.id === selectedId);
-  const filtered = useMemo(() => recipes.filter((recipe) => recipe.name.toLowerCase().includes(query.toLowerCase())), [query, recipes]);
+  const filtered = useMemo(
+    () => recipes.filter((recipe) => recipe.name.toLowerCase().includes(query.toLowerCase())),
+    [query, recipes],
+  );
+
+  function openEditor(recipe) {
+    setForm(recipeForm(recipe));
+    setFormError("");
+    setShowEditor(true);
+  }
+
+  function updateIngredient(id, changes) {
+    setForm((current) => ({
+      ...current,
+      ingredients: current.ingredients.map((ingredient) => (
+        ingredient.id === id ? { ...ingredient, ...changes } : ingredient
+      )),
+    }));
+  }
 
   function submitRecipe(event) {
     event.preventDefault();
     if (!form.name.trim()) return;
-    const flourWeight = form.yield * 500;
-    onAddRecipe({
+    const flourTotal = form.ingredients.reduce((sum, ingredient) => (
+      ingredient.category === "flour" ? sum + Number(ingredient.percent || 0) : sum
+    ), 0);
+    if (Math.abs(flourTotal - 100) > 0.1) {
+      setFormError(`Flour percentages must total 100%. They currently total ${flourTotal.toFixed(1)}%.`);
+      return;
+    }
+    const liquidTotal = form.ingredients.reduce((sum, ingredient) => (
+      ingredient.category === "liquid" ? sum + Number(ingredient.percent || 0) : sum
+    ), 0);
+    const flourWeight = Number(form.flourWeight);
+    onSaveRecipe({
       ...form,
-      id: `${form.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}-${Date.now()}`,
       name: form.name.trim(),
       note: form.note.trim() || "Your custom house formula",
       yield: Number(form.yield),
-      hydration: Number(form.hydration),
+      hydration: liquidTotal,
       price: Number(form.price),
-      ingredients: [
-        { name: "Bread flour", weight: flourWeight, percent: 100 },
-        { name: "Water", weight: Math.round(flourWeight * Number(form.hydration) / 100), percent: Number(form.hydration) },
-        { name: "Starter", weight: Math.round(flourWeight * .2), percent: 20 },
-        { name: "Salt", weight: Math.round(flourWeight * .02), percent: 2 },
-      ],
+      flourWeight,
+      ingredients: form.ingredients.map(({ id, key, ...ingredient }) => ({
+        ...ingredient,
+        name: ingredient.name.trim(),
+        percent: Number(ingredient.percent),
+        weight: Math.round(flourWeight * Number(ingredient.percent) / 100),
+      })),
     });
-    setForm(emptyRecipe);
-    setShowAdd(false);
+    setShowEditor(false);
   }
 
   if (selected) {
     const factor = loaves / selected.yield;
     const total = selected.ingredients.reduce((sum, item) => sum + Math.round(item.weight * factor), 0);
+    const batchCost = selected.ingredients.reduce((sum, ingredient) => (
+      sum + inventoryCostForIngredient(ingredient, Number(ingredient.weight) * factor, inventory)
+    ), 0);
+    const price = Number(selected.price || 0);
+    const ingredientCostPerLoaf = batchCost / Math.max(1, loaves);
     return (
       <main className="page recipe-detail">
         <button className="text-back" onClick={() => setSelectedId(null)}>← Recipes</button>
@@ -56,20 +164,21 @@ export default function RecipesPage({ recipes, onAddRecipe, onDeleteRecipe }) {
         </div>
         <div className="recipe-facts">
           <span><Droplets size={17} /> {selected.hydration}% hydration</span>
-          <span>${selected.price.toFixed(2)} per loaf</span>
+          <span>${price.toFixed(2)} per loaf</span>
+          <button className="inline-edit-button" type="button" onClick={() => openEditor(selected)}><Pencil size={14} /> Edit recipe</button>
         </div>
         <div className="section-title-line">
           <h2>Formula</h2>
           <div className="compact-stepper">
             <button onClick={() => setLoaves((value) => Math.max(1, value - 1))}>−</button>
             <span>{loaves} {loaves === 1 ? "loaf" : "loaves"}</span>
-            <button onClick={() => setLoaves((value) => Math.min(24, value + 1))}>+</button>
+            <button onClick={() => setLoaves((value) => Math.min(40, value + 1))}>+</button>
           </div>
         </div>
         <div className="formula-table large">
           <div className="formula-head"><span>Ingredient</span><span>Weight</span><span>Baker’s %</span></div>
-          {selected.ingredients.map((item) => (
-            <div className="formula-row" key={item.name}>
+          {selected.ingredients.map((item, index) => (
+            <div className="formula-row" key={`${item.name}-${index}`}>
               <span>{item.name}</span>
               <span>{Math.round(item.weight * factor).toLocaleString()} g</span>
               <span>{item.percent}%</span>
@@ -77,6 +186,14 @@ export default function RecipesPage({ recipes, onAddRecipe, onDeleteRecipe }) {
           ))}
           <div className="formula-row total"><span>Total dough</span><span>{total.toLocaleString()} g</span><span /></div>
         </div>
+        <section className="recipe-cost-card">
+          <CircleDollarSign size={20} />
+          <div>
+            <span>Matched inventory cost</span>
+            <strong>${batchCost.toFixed(2)} batch · ${ingredientCostPerLoaf.toFixed(2)} / loaf</strong>
+            <small>Estimated gross margin ${(price - ingredientCostPerLoaf).toFixed(2)} per loaf. Ingredients match inventory by name.</small>
+          </div>
+        </section>
         <section className="method-notes">
           <h2>Method notes</h2>
           <ol>
@@ -104,6 +221,16 @@ export default function RecipesPage({ recipes, onAddRecipe, onDeleteRecipe }) {
             Delete this recipe
           </button>
         )}
+        {showEditor ? (
+          <RecipeEditor
+            form={form}
+            formError={formError}
+            onClose={() => setShowEditor(false)}
+            onSubmit={submitRecipe}
+            setForm={setForm}
+            updateIngredient={updateIngredient}
+          />
+        ) : null}
       </main>
     );
   }
@@ -112,8 +239,8 @@ export default function RecipesPage({ recipes, onAddRecipe, onDeleteRecipe }) {
     <main className="page">
       <PageHeading
         title="Recipes"
-        subtitle="Every formula scales itself. Your flour is always 100%."
-        action={<button className="round-action" onClick={() => setShowAdd(true)} aria-label="Add recipe"><Plus size={21} /></button>}
+        subtitle="Every ingredient is editable. Your flour total stays at 100%."
+        action={<button className="round-action" onClick={() => openEditor()} aria-label="Add recipe"><Plus size={21} /></button>}
       />
       <label className="search-field full">
         <Search size={17} />
@@ -139,40 +266,77 @@ export default function RecipesPage({ recipes, onAddRecipe, onDeleteRecipe }) {
         <Droplets size={21} />
         <div>
           <h3>Baker’s percentage, without the math headache</h3>
-          <p>Change the loaf count and Loafers recalculates every ingredient while preserving your formula.</p>
+          <p>Add flours, liquids, inclusions, salt, or preferments. Loafers recalculates every gram when you change the loaf count.</p>
         </div>
       </aside>
-
-      {showAdd ? (
-        <Modal title="Add a recipe" onClose={() => setShowAdd(false)}>
-          <form className="form-stack" onSubmit={submitRecipe}>
-            <label>
-              Recipe name
-              <input autoFocus value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="Rosemary sea salt" />
-            </label>
-            <label>
-              Short note
-              <input value={form.note} onChange={(event) => setForm({ ...form, note: event.target.value })} placeholder="Fragrant · savory · weekend loaf" />
-            </label>
-            <div className="form-grid">
-              <label>
-                Base yield
-                <input type="number" min="1" max="24" value={form.yield} onChange={(event) => setForm({ ...form, yield: Number(event.target.value) })} />
-              </label>
-              <label>
-                Hydration %
-                <input type="number" min="50" max="120" value={form.hydration} onChange={(event) => setForm({ ...form, hydration: Number(event.target.value) })} />
-              </label>
-            </div>
-            <label>
-              Price per loaf
-              <input type="number" min="0" step="0.5" value={form.price} onChange={(event) => setForm({ ...form, price: Number(event.target.value) })} />
-            </label>
-            <p className="form-help">The starter formula begins with flour, water, starter, and salt. You can scale it immediately with baker’s percentages.</p>
-            <button className="primary-button" type="submit">Add recipe</button>
-          </form>
-        </Modal>
+      {showEditor ? (
+        <RecipeEditor
+          form={form}
+          formError={formError}
+          onClose={() => setShowEditor(false)}
+          onSubmit={submitRecipe}
+          setForm={setForm}
+          updateIngredient={updateIngredient}
+        />
       ) : null}
     </main>
+  );
+}
+
+function RecipeEditor({ form, formError, onClose, onSubmit, setForm, updateIngredient }) {
+  const flourTotal = form.ingredients.reduce((sum, ingredient) => (
+    ingredient.category === "flour" ? sum + Number(ingredient.percent || 0) : sum
+  ), 0);
+  const hydration = form.ingredients.reduce((sum, ingredient) => (
+    ingredient.category === "liquid" ? sum + Number(ingredient.percent || 0) : sum
+  ), 0);
+  return (
+    <Modal title={form.isNew ? "Add a recipe" : `Edit ${form.name}`} onClose={onClose}>
+      <form className="form-stack recipe-editor-form" onSubmit={onSubmit}>
+        <label>
+          Recipe name
+          <input autoFocus value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="Rosemary sea salt" />
+        </label>
+        <label>
+          Short note
+          <input value={form.note} onChange={(event) => setForm({ ...form, note: event.target.value })} placeholder="Fragrant · savory · weekend loaf" />
+        </label>
+        <div className="form-grid">
+          <label>Base yield<input type="number" min="1" max="40" value={form.yield} onChange={(event) => setForm({ ...form, yield: Number(event.target.value) })} /></label>
+          <label>Price per loaf<input type="number" min="0" step="0.25" value={form.price} onChange={(event) => setForm({ ...form, price: Number(event.target.value) })} /></label>
+        </div>
+        <label>Total flour in base batch (g)<input type="number" min="100" step="50" value={form.flourWeight} onChange={(event) => setForm({ ...form, flourWeight: Number(event.target.value) })} /></label>
+        <div className="ingredient-editor-heading">
+          <div><strong>Ingredients</strong><small>Flours total {flourTotal.toFixed(1)}% · hydration {hydration.toFixed(1)}%</small></div>
+          <button type="button" onClick={() => setForm((current) => ({
+            ...current,
+            ingredients: [...current.ingredients, {
+              id: `ingredient-${Date.now()}`,
+              name: "",
+              category: "inclusion",
+              percent: 5,
+            }],
+          }))}><Plus size={15} /> Add</button>
+        </div>
+        <div className="ingredient-editor-list">
+          {form.ingredients.map((ingredient) => (
+            <div className="ingredient-editor-row" key={ingredient.id}>
+              <input aria-label="Ingredient name" value={ingredient.name} onChange={(event) => updateIngredient(ingredient.id, { name: event.target.value })} placeholder="Ingredient" required />
+              <select aria-label={`${ingredient.name || "Ingredient"} category`} value={ingredient.category} onChange={(event) => updateIngredient(ingredient.id, { category: event.target.value })}>
+                {INGREDIENT_CATEGORIES.map((category) => <option key={category.value} value={category.value}>{category.label}</option>)}
+              </select>
+              <label><span>Baker’s %</span><input aria-label={`${ingredient.name || "Ingredient"} baker's percent`} type="number" min="0" step="0.1" value={ingredient.percent} onChange={(event) => updateIngredient(ingredient.id, { percent: Number(event.target.value) })} /></label>
+              <button type="button" className="remove-ingredient-button" aria-label={`Remove ${ingredient.name || "ingredient"}`} disabled={form.ingredients.length <= 1} onClick={() => setForm((current) => ({
+                ...current,
+                ingredients: current.ingredients.filter((item) => item.id !== ingredient.id),
+              }))}><Trash2 size={15} /></button>
+            </div>
+          ))}
+        </div>
+        {formError ? <p className="form-error" role="alert">{formError}</p> : null}
+        <p className="form-help">Mark every flour as “Flour.” Those flour percentages must total 100%; all other ingredients use that flour weight as their baker’s-percentage base.</p>
+        <button className="primary-button" type="submit">{form.isNew ? "Add recipe" : "Save recipe changes"}</button>
+      </form>
+    </Modal>
   );
 }

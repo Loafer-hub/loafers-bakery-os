@@ -1,7 +1,13 @@
 import { useEffect, useState } from "react";
 import { BottomNav } from "./components/AppChrome";
 import { Modal, Toast } from "./components/Primitives";
-import { recipes as seedRecipes, seedInventory, seedOrders, seedStarters } from "./data/seed";
+import {
+  recipes as seedRecipes,
+  seedExpenses,
+  seedInventory,
+  seedOrders,
+  seedStarters,
+} from "./data/seed";
 import { usePersistentState } from "./hooks/usePersistentState";
 import BakePage from "./pages/BakePage";
 import MorePage from "./pages/MorePage";
@@ -22,6 +28,8 @@ export default function App() {
   const [selectedOrderId, setSelectedOrderId] = useState(null);
   const [orders, setOrders] = usePersistentState("loafers-orders-v1", seedOrders);
   const [recipes, setRecipes] = usePersistentState("loafers-recipes-v1", seedRecipes);
+  const [inventory, setInventory] = usePersistentState("loafers-inventory-v1", seedInventory);
+  const [expenses, setExpenses] = usePersistentState("loafers-expenses-v1", seedExpenses);
   const [bakePlans, setBakePlans] = usePersistentState("loafers-bake-plans-v1", []);
   const [starters, setStarters] = usePersistentState("loafers-starter-profiles-v1", seedStarters);
   const [starterLogs, setStarterLogs] = usePersistentState("loafers-starter-v1", []);
@@ -131,14 +139,62 @@ export default function App() {
     setToast("Starter deleted");
   }
 
-  function addRecipe(recipe) {
-    setRecipes((current) => [recipe, ...current]);
-    setToast("Recipe added");
+  function saveRecipe(recipe) {
+    const { isNew, ...savedRecipe } = recipe;
+    setRecipes((current) => {
+      const exists = current.some((item) => item.id === savedRecipe.id);
+      return exists
+        ? current.map((item) => item.id === savedRecipe.id ? savedRecipe : item)
+        : [savedRecipe, ...current];
+    });
+    setToast(isNew ? "Recipe added" : "Recipe updated");
   }
 
   function deleteRecipe(id) {
     setRecipes((current) => current.filter((recipe) => recipe.id !== id));
     setToast("Recipe deleted");
+  }
+
+  function saveInventoryItem(item) {
+    const { isNew, ...savedItem } = item;
+    setInventory((current) => {
+      const exists = current.some((entry) => entry.id === savedItem.id);
+      return exists
+        ? current.map((entry) => entry.id === savedItem.id ? savedItem : entry)
+        : [savedItem, ...current];
+    });
+    setToast(isNew ? "Inventory item added" : "Inventory item updated");
+  }
+
+  function deleteInventoryItem(id) {
+    setInventory((current) => current.filter((item) => item.id !== id));
+    setToast("Inventory item removed");
+  }
+
+  function logExpense(expense) {
+    const savedExpense = {
+      ...expense,
+      id: expense.id || `expense-${Date.now()}`,
+      date: expense.date || new Date().toISOString().slice(0, 10),
+    };
+    setExpenses((current) => [savedExpense, ...current]);
+    if (expense.inventoryId && Number(expense.quantity) > 0) {
+      setInventory((current) => current.map((item) => (
+        item.id === expense.inventoryId
+          ? {
+            ...item,
+            amount: Number(item.amount || 0) + Number(expense.quantity),
+            unitCost: Number(expense.totalCost || 0) / Number(expense.quantity),
+          }
+          : item
+      )));
+    }
+    setToast("Purchase logged and inventory updated");
+  }
+
+  function deleteExpense(id) {
+    setExpenses((current) => current.filter((expense) => expense.id !== id));
+    setToast("Expense removed");
   }
 
   function saveBakePlan(plan) {
@@ -162,16 +218,19 @@ export default function App() {
     recipes,
     bakePlans,
     starters,
-    inventory: seedInventory,
+    expenses,
+    inventory,
     setActive: navigate,
     onAddOrder: addOrder,
     onClearSampleOrders: clearSampleOrders,
     onDeleteOrder: deleteOrder,
     onDeleteBakePlan: deleteBakePlan,
+    onDeleteExpense: deleteExpense,
+    onDeleteInventoryItem: deleteInventoryItem,
     onDeleteRecipe: deleteRecipe,
     onDeleteStarter: deleteStarter,
     onOpenOrder: openOrder,
-    onAddRecipe: addRecipe,
+    onLogExpense: logExpense,
     onPlanCreated: setToast,
     onStarterLogged: logStarter,
     onLogStarter: () => {
@@ -180,6 +239,8 @@ export default function App() {
     },
     onUpdateOrder: updateOrder,
     onSaveBakePlan: saveBakePlan,
+    onSaveInventoryItem: saveInventoryItem,
+    onSaveRecipe: saveRecipe,
     onSaveStarter: saveStarter,
     selectedOrderId,
     starterLogs,

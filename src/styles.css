@@ -3,7 +3,7 @@
   font-style: normal;
   font-weight: 400 700;
   font-display: swap;
-  src: url("./assets/fonts/dm-sans-latin.woff2") format("woff2");
+  src: url("./fonts/dm-sans-latin.woff2") format("woff2");
 }
 
 @font-face {
@@ -11,7 +11,7 @@
   font-style: normal;
   font-weight: 400 500;
   font-display: swap;
-  src: url("./assets/fonts/newsreader-latin.woff2") format("woff2");
+  src: url("./fonts/newsreader-latin.woff2") format("woff2");
 }
 
 :root {
@@ -2302,6 +2302,336 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .inventory-low {
   color: var(--accent);
   font-weight: 700;
+}
+
+.recipe-facts .inline-edit-button {
+  margin-left: auto;
+}
+
+.inline-edit-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+  color: var(--accent);
+  border: 0;
+  background: transparent;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.recipe-cost-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  margin: 17px 0 24px;
+  padding: 14px;
+  color: #485a40;
+  border: 1px solid #c4d0be;
+  border-radius: 9px;
+  background: var(--sage-soft);
+}
+
+.recipe-cost-card > svg {
+  flex: 0 0 auto;
+}
+
+.recipe-cost-card div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.recipe-cost-card span,
+.recipe-cost-card small {
+  font-size: 9px;
+}
+
+.recipe-cost-card strong {
+  font-family: "Newsreader", Georgia, serif;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.recipe-editor-form {
+  padding-right: 3px;
+}
+
+.ingredient-editor-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 3px;
+}
+
+.ingredient-editor-heading > div {
+  display: flex;
+  flex-direction: column;
+}
+
+.ingredient-editor-heading strong {
+  font-family: "Newsreader", Georgia, serif;
+  font-size: 20px;
+  font-weight: 500;
+}
+
+.ingredient-editor-heading small {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.ingredient-editor-heading button,
+.small-action-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 7px 9px;
+  color: var(--accent);
+  border: 1px solid var(--line-strong);
+  border-radius: 7px;
+  background: white;
+  font-size: 9px;
+  cursor: pointer;
+}
+
+.small-action-button:disabled {
+  cursor: default;
+  opacity: .45;
+}
+
+.ingredient-editor-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ingredient-editor-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr) 82px 32px;
+  align-items: end;
+  gap: 6px;
+  padding: 9px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfaf6;
+}
+
+.ingredient-editor-row input,
+.ingredient-editor-row select {
+  min-width: 0;
+}
+
+.ingredient-editor-row label span {
+  font-size: 8px;
+}
+
+.remove-ingredient-button {
+  height: 34px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: #9b5145;
+  border: 1px solid #dec5bf;
+  border-radius: 6px;
+  background: #fff8f6;
+  cursor: pointer;
+}
+
+.remove-ingredient-button:disabled {
+  opacity: .35;
+}
+
+.form-error {
+  margin: 0;
+  padding: 9px 11px;
+  color: #8c3f35;
+  border: 1px solid #dfb8b1;
+  border-radius: 7px;
+  background: #fff4f1;
+  font-size: 10px;
+}
+
+.finance-summary-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 19px;
+  padding-top: 13px;
+  border-top: 1px solid rgba(255,255,255,.15);
+  font-size: 10px;
+}
+
+.finance-summary-line span {
+  color: #b9c4b0;
+}
+
+.finance-summary-line strong {
+  font-family: "Newsreader", Georgia, serif;
+  font-size: 20px;
+  font-weight: 500;
+}
+
+.spending-card {
+  margin-bottom: 22px;
+  padding: 17px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: #fbfaf6;
+}
+
+.eyebrow-label.dark {
+  color: var(--muted) !important;
+}
+
+.spending-card h2,
+.inventory-section h2,
+.expense-history h2 {
+  margin: 1px 0 0;
+  font-family: "Newsreader", Georgia, serif;
+  font-size: 25px;
+  font-weight: 500;
+}
+
+.spending-total {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 14px 0 8px;
+}
+
+.spending-total strong {
+  font-family: "Newsreader", Georgia, serif;
+  font-size: 31px;
+  font-weight: 500;
+}
+
+.spending-total span {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.spending-bars {
+  height: 132px;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  align-items: end;
+  gap: 7px;
+  padding-top: 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.spending-bars > div {
+  height: 100%;
+  display: grid;
+  grid-template-rows: 14px 1fr 22px;
+  align-items: end;
+  justify-items: center;
+}
+
+.spending-bars i {
+  width: 72%;
+  min-height: 4px;
+  display: block;
+  border-radius: 5px 5px 0 0;
+  background: linear-gradient(#d88a72, var(--accent));
+}
+
+.spending-bars small,
+.spending-bar-value {
+  color: var(--muted);
+  font-size: 7px;
+}
+
+.inventory-section .section-title-line > div {
+  display: flex;
+  flex-direction: column;
+}
+
+.inventory-section .section-title-line > div small {
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.inventory-list .inventory-row {
+  width: 100%;
+  grid-template-columns: 24px 1fr auto 17px;
+  text-align: left;
+  border-right: 0;
+  border-left: 0;
+  border-top: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.inventory-row > span:nth-child(3) {
+  display: flex;
+  align-items: flex-end;
+  flex-direction: column;
+}
+
+.inventory-row > svg:last-child {
+  color: var(--accent);
+}
+
+.expense-history {
+  padding-bottom: 20px;
+}
+
+.expense-row {
+  display: grid;
+  grid-template-columns: 1fr auto 29px;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.expense-row > span {
+  display: flex;
+  flex-direction: column;
+}
+
+.expense-row small {
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.expense-row > strong {
+  font-family: "Newsreader", Georgia, serif;
+  font-size: 17px;
+  font-weight: 500;
+}
+
+.expense-row button {
+  height: 29px;
+  display: grid;
+  place-items: center;
+  color: #9b5145;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+@media (max-width: 520px) {
+  .ingredient-editor-row {
+    grid-template-columns: minmax(0, 1fr) 96px 32px;
+  }
+
+  .ingredient-editor-row > select {
+    grid-column: 1 / 2;
+  }
+
+  .ingredient-editor-row > label {
+    grid-column: 2 / 3;
+    grid-row: 1 / 2;
+  }
+
+  .ingredient-editor-row > button {
+    grid-column: 3 / 4;
+    grid-row: 1 / 2;
+  }
 }
 
 .menu-list {

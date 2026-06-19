@@ -1,4 +1,4 @@
-const CACHE_NAME = "loafers-v4";
+const CACHE_NAME = "loafers-v6";
 const APP_SHELL = [
   "./",
   "./manifest.webmanifest",

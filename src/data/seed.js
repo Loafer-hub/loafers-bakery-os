@@ -132,11 +132,13 @@ export const recipes = [
 ];
 
 export const seedInventory = [
-  { id: 1, name: "Bread flour", amount: 18.4, unit: "kg", target: 12, status: "good" },
-  { id: 2, name: "Whole wheat", amount: 4.2, unit: "kg", target: 5, status: "low" },
-  { id: 3, name: "Sea salt", amount: 1.7, unit: "kg", target: 0.8, status: "good" },
-  { id: 4, name: "Paper bags", amount: 14, unit: "left", target: 24, status: "low" },
+  { id: "inventory-bread-flour", name: "Bread flour", amount: 18.4, unit: "kg", target: 12, unitCost: 1.65 },
+  { id: "inventory-whole-wheat", name: "Whole wheat", amount: 4.2, unit: "kg", target: 5, unitCost: 2.1 },
+  { id: "inventory-sea-salt", name: "Sea salt", amount: 1.7, unit: "kg", target: 0.8, unitCost: 3.25 },
+  { id: "inventory-paper-bags", name: "Paper bags", amount: 14, unit: "each", target: 24, unitCost: 0.32 },
 ];
+
+export const seedExpenses = [];
 
 export const seedStarters = [
   {
