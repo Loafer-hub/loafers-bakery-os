@@ -10,7 +10,9 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { PageHeading } from "../components/AppChrome";
+import { FlourBlendScience } from "../components/FlourScience";
 import { EmptyState, Modal } from "../components/Primitives";
+import { FLOUR_PROFILES, getFlourProfile } from "../data/flourProfiles";
 
 const INGREDIENT_CATEGORIES = [
   { value: "flour", label: "Flour" },
@@ -31,7 +33,9 @@ const DEFAULT_INGREDIENTS = [
 function ingredientCategory(ingredient) {
   if (ingredient.category) return ingredient.category;
   const name = ingredient.name.toLowerCase();
-  if (name.includes("flour") || name.includes("wheat") || name.includes("rye") || name.includes("spelt") || name.includes("einkorn")) return "flour";
+  if (name.includes("flour") || FLOUR_PROFILES.some((profile) => (
+    [profile.name, ...profile.aliases].some((alias) => name.includes(alias.toLowerCase()))
+  ))) return "flour";
   if (name.includes("water") || name.includes("milk") || name.includes("juice")) return "liquid";
   if (name.includes("starter") || name.includes("levain")) return "starter";
   if (name.includes("salt")) return "salt";
@@ -70,6 +74,9 @@ function recipeForm(recipe) {
       ...ingredient,
       id: ingredient.id || `ingredient-${index}-${stamp}`,
       category: ingredientCategory(ingredient),
+      flourType: ingredientCategory(ingredient) === "flour"
+        ? getFlourProfile(ingredient.flourType || ingredient.name).name
+        : undefined,
       percent: Number(ingredient.percent || 0),
     })),
   };
@@ -139,7 +146,12 @@ export default function RecipesPage({ inventory, recipes, onDeleteRecipe, onSave
       flourWeight,
       ingredients: form.ingredients.map(({ id, key, ...ingredient }) => ({
         ...ingredient,
-        name: ingredient.name.trim(),
+        name: ingredient.category === "flour"
+          ? getFlourProfile(ingredient.flourType || ingredient.name).name
+          : ingredient.name.trim(),
+        flourType: ingredient.category === "flour"
+          ? getFlourProfile(ingredient.flourType || ingredient.name).name
+          : undefined,
         percent: Number(ingredient.percent),
         weight: Math.round(flourWeight * Number(ingredient.percent) / 100),
       })),
@@ -193,6 +205,13 @@ export default function RecipesPage({ inventory, recipes, onDeleteRecipe, onSave
             <strong>${batchCost.toFixed(2)} batch · ${ingredientCostPerLoaf.toFixed(2)} / loaf</strong>
             <small>Estimated gross margin ${(price - ingredientCostPerLoaf).toFixed(2)} per loaf. Ingredients match inventory by name.</small>
           </div>
+        </section>
+        <section className="recipe-flour-science">
+          <div className="section-title-line">
+            <div><span className="eyebrow-label dark">Research-informed tendencies</span><h2>Flour behavior</h2></div>
+          </div>
+          <FlourBlendScience flours={selected.ingredients.filter((ingredient) => ingredientCategory(ingredient) === "flour").map((ingredient) => ingredient.flourType || ingredient.name)} />
+          <p className="model-note">The multipliers are planning heuristics. Your flour brand, extraction, crop, milling, temperature, and starter ecology can shift the result.</p>
         </section>
         <section className="method-notes">
           <h2>Method notes</h2>
@@ -308,21 +327,42 @@ function RecipeEditor({ form, formError, onClose, onSubmit, setForm, updateIngre
         <label>Total flour in base batch (g)<input type="number" min="100" step="50" value={form.flourWeight} onChange={(event) => setForm({ ...form, flourWeight: Number(event.target.value) })} /></label>
         <div className="ingredient-editor-heading">
           <div><strong>Ingredients</strong><small>Flours total {flourTotal.toFixed(1)}% · hydration {hydration.toFixed(1)}%</small></div>
-          <button type="button" onClick={() => setForm((current) => ({
-            ...current,
-            ingredients: [...current.ingredients, {
-              id: `ingredient-${Date.now()}`,
-              name: "",
-              category: "inclusion",
-              percent: 5,
-            }],
-          }))}><Plus size={15} /> Add</button>
+          <span className="ingredient-add-actions">
+            <button type="button" aria-label="Add flour" onClick={() => setForm((current) => ({
+              ...current,
+              ingredients: [...current.ingredients, {
+                id: `ingredient-flour-${Date.now()}`,
+                name: "Whole wheat",
+                flourType: "Whole wheat",
+                category: "flour",
+                percent: 10,
+              }],
+            }))}><Wheat size={14} /> Flour</button>
+            <button type="button" aria-label="Add other ingredient" onClick={() => setForm((current) => ({
+              ...current,
+              ingredients: [...current.ingredients, {
+                id: `ingredient-${Date.now()}`,
+                name: "",
+                category: "inclusion",
+                percent: 5,
+              }],
+            }))}><Plus size={15} /> Other</button>
+          </span>
         </div>
         <div className="ingredient-editor-list">
           {form.ingredients.map((ingredient) => (
             <div className="ingredient-editor-row" key={ingredient.id}>
-              <input aria-label="Ingredient name" value={ingredient.name} onChange={(event) => updateIngredient(ingredient.id, { name: event.target.value })} placeholder="Ingredient" required />
-              <select aria-label={`${ingredient.name || "Ingredient"} category`} value={ingredient.category} onChange={(event) => updateIngredient(ingredient.id, { category: event.target.value })}>
+              {ingredient.category === "flour" ? (
+                <select className="ingredient-name-control" aria-label={`${ingredient.flourType || ingredient.name} flour type`} value={ingredient.flourType || getFlourProfile(ingredient.name).name} onChange={(event) => updateIngredient(ingredient.id, { name: event.target.value, flourType: event.target.value })}>
+                  {FLOUR_PROFILES.map((profile) => <option value={profile.name} key={profile.name}>{profile.name}</option>)}
+                </select>
+              ) : (
+                <input className="ingredient-name-control" aria-label="Ingredient name" value={ingredient.name} onChange={(event) => updateIngredient(ingredient.id, { name: event.target.value })} placeholder="Ingredient" required />
+              )}
+              <select className="ingredient-category-control" aria-label={`${ingredient.name || "Ingredient"} category`} value={ingredient.category} onChange={(event) => updateIngredient(ingredient.id, {
+                category: event.target.value,
+                ...(event.target.value === "flour" ? { name: "Bread flour", flourType: "Bread flour" } : { flourType: undefined }),
+              })}>
                 {INGREDIENT_CATEGORIES.map((category) => <option key={category.value} value={category.value}>{category.label}</option>)}
               </select>
               <label><span>Baker’s %</span><input aria-label={`${ingredient.name || "Ingredient"} baker's percent`} type="number" min="0" step="0.1" value={ingredient.percent} onChange={(event) => updateIngredient(ingredient.id, { percent: Number(event.target.value) })} /></label>
@@ -332,6 +372,10 @@ function RecipeEditor({ form, formError, onClose, onSubmit, setForm, updateIngre
               }))}><Trash2 size={15} /></button>
             </div>
           ))}
+        </div>
+        <div className="recipe-builder-science">
+          <div className="section-title-line"><h3>What these flours change</h3><span>Dough + starter</span></div>
+          <FlourBlendScience compact flours={form.ingredients.filter((ingredient) => ingredient.category === "flour").map((ingredient) => ingredient.flourType || ingredient.name)} />
         </div>
         {formError ? <p className="form-error" role="alert">{formError}</p> : null}
         <p className="form-help">Mark every flour as “Flour.” Those flour percentages must total 100%; all other ingredients use that flour weight as their baker’s-percentage base.</p>

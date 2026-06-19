@@ -1,20 +1,10 @@
-export const FLOUR_TYPES = [
-  "Bread flour",
-  "All-purpose flour",
-  "Whole wheat",
-  "Rye",
-  "Spelt",
-  "Einkorn",
-];
+import {
+  FLOUR_TYPES,
+  getFlourProfile,
+  weightedFlourMetric,
+} from "../data/flourProfiles";
 
-const FLOUR_ACTIVITY = {
-  "Bread flour": 1,
-  "All-purpose flour": 0.98,
-  "Whole wheat": 1.12,
-  Rye: 1.18,
-  Spelt: 1.08,
-  Einkorn: 1.07,
-};
+export { FLOUR_TYPES };
 
 const clamp = (value, minimum, maximum) => Math.min(maximum, Math.max(minimum, value));
 
@@ -22,23 +12,20 @@ function fahrenheitToCelsius(value) {
   return (Number(value) - 32) * 5 / 9;
 }
 
-function weightedFlourActivity(blend = []) {
-  if (!blend.length) return 1;
-  const total = blend.reduce((sum, item) => sum + Number(item.percent || 0), 0) || 100;
-  return blend.reduce((sum, item) => (
-    sum + (FLOUR_ACTIVITY[item.type] || 1) * Number(item.percent || 0) / total
-  ), 0);
-}
-
 export function recipeFlourBlend(recipe) {
   if (!recipe) return [{ type: "Bread flour", percent: 100 }];
   const flourIngredients = recipe.ingredients.filter((item) => {
     const name = item.name.toLowerCase();
-    return name.includes("flour") || name.includes("wheat") || name.includes("rye") || name.includes("spelt") || name.includes("einkorn");
+    return item.category === "flour"
+      || name.includes("flour")
+      || FLOUR_TYPES.some((type) => {
+        const profile = getFlourProfile(type);
+        return [profile.name, ...profile.aliases].some((alias) => name.includes(alias.toLowerCase()));
+      });
   });
   const total = flourIngredients.reduce((sum, item) => sum + Number(item.percent || 0), 0) || 100;
   return flourIngredients.length ? flourIngredients.map((item) => ({
-    type: FLOUR_TYPES.find((type) => item.name.toLowerCase().includes(type.toLowerCase().replace(" flour", ""))) || item.name,
+    type: getFlourProfile(item.flourType || item.name).name,
     percent: Math.round(Number(item.percent || 0) / total * 100),
   })) : [{ type: "Bread flour", percent: 100 }];
 }
@@ -89,13 +76,17 @@ export function estimateStarterPeak({
     0.48,
     2.2,
   );
-  const flourRate = clamp(weightedFlourActivity(flourBlend), 0.9, 1.2);
+  const flourRate = clamp(weightedFlourMetric(flourBlend, "starterActivity"), 0.9, 1.22);
+  const visibleRiseRate = clamp(weightedFlourMetric(flourBlend, "starterLift"), 0.42, 1.15);
+  const waterDemandRate = clamp(weightedFlourMetric(flourBlend, "waterDemand"), 0.9, 1.22);
   const hydrationRate = clamp(1 + (Number(hydration) - 100) * 0.0025, 0.82, 1.18);
   const hours = clamp(ratioHours / (temperatureRate * flourRate * hydrationRate) * calibration, 2.5, 18);
   return {
     hours,
     temperatureRate,
     flourRate,
+    visibleRiseRate,
+    waterDemandRate,
     hydrationRate,
     ratioHours,
   };
@@ -115,7 +106,9 @@ export function estimateDoughFermentation({
     2.3,
   );
   const hydrationRate = clamp(1 + (hydration - 75) * 0.012, 0.8, 1.25);
-  const flourRate = clamp(weightedFlourActivity(blend), 0.9, 1.2);
+  const flourRate = clamp(weightedFlourMetric(blend, "activity"), 0.9, 1.2);
+  const structureRate = clamp(weightedFlourMetric(blend, "doughLift"), 0.18, 1.16);
+  const waterDemandRate = clamp(weightedFlourMetric(blend, "waterDemand"), 0.9, 1.22);
   const inoculationRate = clamp(Math.pow(inoculation / 20, 0.45), 0.58, 1.55);
   const activityRate = temperatureRate * hydrationRate * flourRate * inoculationRate * clamp(starterStrength, 0.75, 1.25);
   const bulkHours = clamp(4.75 / activityRate, 2.25, 11);
@@ -127,6 +120,8 @@ export function estimateDoughFermentation({
     temperatureRate,
     hydrationRate,
     flourRate,
+    structureRate,
+    waterDemandRate,
     inoculationRate,
     hydration,
     inoculation,

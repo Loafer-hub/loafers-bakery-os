@@ -294,10 +294,12 @@ export default function BakePage({
                 <span><Thermometer size={14} /><b>{model.dough.temperatureRate.toFixed(2)}×</b> temperature</span>
                 <span><b>{model.dough.hydrationRate.toFixed(2)}×</b> {recipe.hydration}% hydration</span>
                 <span><b>{model.dough.flourRate.toFixed(2)}×</b> flour activity</span>
+                <span><b>{model.dough.structureRate.toFixed(2)}×</b> gas retention</span>
+                <span><b>{model.dough.waterDemandRate.toFixed(2)}×</b> flour water demand</span>
                 <span><b>{model.dough.inoculationRate.toFixed(2)}×</b> {model.dough.inoculation}% starter</span>
               </div>
               <p className="model-note">
-                Planning estimate, not a guarantee. Watch dough rise and strength; your feed logs gradually calibrate the levain curve.
+                Planning estimate, not a guarantee. Fermentation speed and visible rise are different: low-gluten flour may ferment quickly while holding less gas. Watch dough rise and strength; your feed logs gradually calibrate the levain curve.
               </p>
             </section>
 

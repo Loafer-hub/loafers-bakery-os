@@ -11,7 +11,9 @@ import {
   Wheat,
 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { FlourBlendScience } from "./FlourScience";
 import { EmptyState, Modal } from "./Primitives";
+import { getFlourProfile, liftLabel, rateLabel } from "../data/flourProfiles";
 import {
   curvePath,
   estimateStarterPeak,
@@ -60,9 +62,9 @@ function emptyProfile() {
 function profileForm(starter) {
   return {
     ...starter,
-    primaryFlour: starter.flourBlend?.[0]?.type || "Bread flour",
+    primaryFlour: getFlourProfile(starter.flourBlend?.[0]?.type || "Bread flour").name,
     primaryPercent: starter.flourBlend?.[0]?.percent ?? 100,
-    secondaryFlour: starter.flourBlend?.[1]?.type || "Whole wheat",
+    secondaryFlour: getFlourProfile(starter.flourBlend?.[1]?.type || "Whole wheat").name,
     secondaryPercent: starter.flourBlend?.[1]?.percent ?? 0,
     isNew: false,
   };
@@ -209,8 +211,18 @@ export function StarterLab({
           <path className="chart-line" d={starterCurve.line} />
         </svg>
         <div className="chart-labels"><span>Feed</span><span>{(peak.hours / 2).toFixed(1)}h</span><span>Peak {peak.hours.toFixed(1)}h</span></div>
-        <p className="model-note">Estimate uses feed ratio, temperature, flour blend, and your logged peak history.</p>
+        <div className="starter-flour-signals">
+          <span><b>{peak.flourRate.toFixed(2)}×</b> {rateLabel(peak.flourRate)} flour-fed activity</span>
+          <span><b>{peak.visibleRiseRate.toFixed(2)}×</b> {liftLabel(peak.visibleRiseRate)} visible jar lift</span>
+          <span><b>{peak.waterDemandRate.toFixed(2)}×</b> water demand</span>
+        </div>
+        <p className="model-note">Estimate uses feed ratio, temperature, flour blend, and your logged peak history. Jar height reflects both gas production and the flour’s ability to hold that gas.</p>
       </div>
+
+      <section className="starter-flour-science">
+        <div className="section-title-line"><h3>Starter flour science</h3><span>Growth + rise</span></div>
+        <FlourBlendScience compact flours={selected.flourBlend.map((item) => item.type)} />
+      </section>
 
       <section className="feed-calendar" aria-label={`${selected.name} feed calendar`}>
         <div className="calendar-heading compact">
@@ -307,6 +319,10 @@ function StarterProfileModal({ form, setForm, onClose, onSubmit, children }) {
         <div className="form-grid">
           <label>Second flour<select value={form.secondaryFlour} onChange={(event) => setForm({ ...form, secondaryFlour: event.target.value })}>{FLOUR_TYPES.map((type) => <option key={type}>{type}</option>)}</select></label>
           <label>Percent<input type="number" min="0" max="100" value={form.secondaryPercent} onChange={(event) => setForm({ ...form, secondaryPercent: event.target.value })} /></label>
+        </div>
+        <div className="starter-profile-science">
+          <div className="section-title-line"><h3>How this feed behaves</h3><span>Research-informed</span></div>
+          <FlourBlendScience compact flours={[form.primaryFlour, Number(form.secondaryPercent) > 0 ? form.secondaryFlour : null]} />
         </div>
         <label>Starter hydration %<input type="number" min="50" max="200" value={form.hydration} onChange={(event) => setForm({ ...form, hydration: event.target.value })} /></label>
         <label>Profile notes<textarea value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} placeholder="Aroma, personality, maintenance routine…" /></label>
