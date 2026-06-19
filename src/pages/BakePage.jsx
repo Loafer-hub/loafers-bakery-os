@@ -1,35 +1,32 @@
 import {
   AlertTriangle,
-  Check,
-  Clock3,
+  Beaker,
   Minus,
-  Pencil,
   Plus,
   Thermometer,
   Trash2,
-  TrendingUp,
-  Wheat,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { PageHeading } from "../components/AppChrome";
 import { BakeCalendar } from "../components/BakeCalendar";
-import { EmptyState, Modal } from "../components/Primitives";
+import { StarterLab } from "../components/StarterLab";
+import { EmptyState } from "../components/Primitives";
+import {
+  buildBakeSchedule,
+  curvePath,
+  recipeFlourBlend,
+} from "../lib/fermentationModel";
 
-function formatTime(value) {
-  if (!value) return "";
-  const [hourString, minute] = value.split(":");
-  const hour = Number(hourString);
-  const suffix = hour >= 12 ? "PM" : "AM";
-  const displayHour = hour % 12 || 12;
-  return `${displayHour}:${minute} ${suffix}`;
+function localDateTimeValue(date = new Date()) {
+  const shifted = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return shifted.toISOString().slice(0, 16);
 }
 
-function formatPlanDate(value) {
-  return new Date(`${value}T12:00:00`).toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-  });
+function defaultAnchor() {
+  const date = new Date();
+  date.setDate(date.getDate() + 2);
+  date.setHours(6, 30, 0, 0);
+  return localDateTimeValue(date);
 }
 
 function localDateKey(date) {
@@ -40,209 +37,306 @@ function localDateKey(date) {
   ].join("-");
 }
 
-function initialPlanDate() {
-  const date = new Date();
-  date.setDate(date.getDate() + 2);
-  return localDateKey(date);
+function formatScheduleTime(date) {
+  return date.toLocaleString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function formatShortTime(date) {
+  return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+}
+
+function sameCalendarDay(a, b) {
+  return a.getFullYear() === b.getFullYear()
+    && a.getMonth() === b.getMonth()
+    && a.getDate() === b.getDate();
 }
 
 export default function BakePage({
   recipes,
-  schedule,
-  setSchedule,
   bakePlans,
+  starters,
+  starterLogs,
   onDeleteBakePlan,
+  onDeleteStarter,
   onSaveBakePlan,
+  onSaveStarter,
   onStarterLogged,
 }) {
   const [view, setView] = useState("plan");
+  const [editingPlanId, setEditingPlanId] = useState(null);
+  const [confirmPlanDelete, setConfirmPlanDelete] = useState(false);
   const [recipeId, setRecipeId] = useState(recipes[0]?.id || "");
   const [loaves, setLoaves] = useState(recipes[0]?.yield || 1);
-  const [planDate, setPlanDate] = useState(initialPlanDate);
+  const [starterId, setStarterId] = useState(starters[0]?.id || "");
+  const [ratio, setRatio] = useState("1:2:2");
+  const [doughTemperature, setDoughTemperature] = useState(76);
+  const [coldProofHours, setColdProofHours] = useState(12);
+  const [anchorMode, setAnchorMode] = useState("start");
+  const [anchorDateTime, setAnchorDateTime] = useState(defaultAnchor);
   const [calendarMonth, setCalendarMonth] = useState(() => {
-    const date = new Date(`${initialPlanDate()}T12:00:00`);
+    const date = new Date(defaultAnchor());
     return new Date(date.getFullYear(), date.getMonth(), 1);
   });
-  const [editing, setEditing] = useState(null);
-  const [planModal, setPlanModal] = useState(null);
-  const [confirmPlanDelete, setConfirmPlanDelete] = useState(false);
-  const [starterModal, setStarterModal] = useState(false);
-  const [starterForm, setStarterForm] = useState({ ratio: "1:2:2", temperature: 76, rise: 2.1, note: "" });
-  const recipe = recipes.find((item) => item.id === recipeId) ?? recipes[0];
+  const recipe = recipes.find((item) => item.id === recipeId) || recipes[0];
+  const starter = starters.find((item) => item.id === starterId) || starters[0];
 
   useEffect(() => {
-    if (!recipes.length) {
-      setRecipeId("");
-      return;
-    }
-    if (!recipes.some((item) => item.id === recipeId)) {
+    if (recipes.length && !recipes.some((item) => item.id === recipeId)) {
       setRecipeId(recipes[0].id);
       setLoaves(recipes[0].yield);
     }
   }, [recipeId, recipes]);
 
-  const scaledIngredients = useMemo(() => {
-    if (!recipe) return [];
-    const factor = loaves / recipe.yield;
-    return recipe.ingredients.map((item) => ({ ...item, scaledWeight: Math.round(item.weight * factor) }));
-  }, [loaves, recipe]);
+  useEffect(() => {
+    if (starters.length && !starters.some((item) => item.id === starterId)) {
+      setStarterId(starters[0].id);
+    }
+  }, [starterId, starters]);
 
-  const totalDough = scaledIngredients.reduce((sum, item) => sum + item.scaledWeight, 0);
+  const model = useMemo(() => {
+    if (!recipe || !starter || !anchorDateTime) return null;
+    return buildBakeSchedule({
+      recipe,
+      loaves,
+      doughTemperature,
+      coldProofHours,
+      anchorMode,
+      anchorDateTime,
+      starter,
+      ratio,
+      starterLogs,
+    });
+  }, [
+    anchorDateTime,
+    anchorMode,
+    coldProofHours,
+    doughTemperature,
+    loaves,
+    ratio,
+    recipe,
+    starter,
+    starterLogs,
+  ]);
 
-  function updateTime(id, time) {
-    setSchedule((current) => current.map((item) => item.id === id ? { ...item, time } : item));
-    setEditing(null);
+  const doughCurve = curvePath(model?.dough.bulkHours || 4.75, "dough");
+  const levainCurve = curvePath(model?.starterPeak.hours || 5, "starter");
+  const updateAnchorDateTime = (event) => setAnchorDateTime(event.currentTarget.value);
+
+  function resetForDate(date) {
+    setEditingPlanId(null);
+    setConfirmPlanDelete(false);
+    setAnchorMode("start");
+    setAnchorDateTime(`${date}T06:30`);
+    setView("plan");
   }
 
-  function submitStarter(event) {
-    event.preventDefault();
-    onStarterLogged(starterForm);
-    setStarterModal(false);
+  function loadPlan(plan) {
+    setEditingPlanId(plan.id);
+    setRecipeId(plan.recipeId);
+    setLoaves(plan.loaves);
+    setStarterId(plan.starterId || starters[0]?.id || "");
+    setRatio(plan.ratio || "1:2:2");
+    setDoughTemperature(plan.doughTemperature || 76);
+    setColdProofHours(plan.coldProofHours ?? 12);
+    setAnchorMode(plan.anchorMode || "start");
+    setAnchorDateTime(plan.anchorDateTime || `${plan.date}T06:30`);
+    setConfirmPlanDelete(false);
+    setView("plan");
   }
 
-  function savePlannerBake() {
-    if (!recipe) return;
+  function savePlan() {
+    if (!recipe || !starter || !model) return;
+    const planId = editingPlanId || Date.now();
+    const finishDate = localDateKey(model.bakeEnd);
     onSaveBakePlan({
-      id: Date.now(),
-      date: planDate,
+      id: planId,
+      date: finishDate,
       recipeId: recipe.id,
       recipeName: recipe.name,
       loaves,
-      isNew: true,
+      starterId: starter.id,
+      starterName: starter.name,
+      ratio,
+      doughTemperature,
+      coldProofHours,
+      anchorMode,
+      anchorDateTime,
+      bulkHours: Number(model.dough.bulkHours.toFixed(2)),
+      bakeEnd: model.bakeEnd.toISOString(),
+      isNew: !editingPlanId,
     });
-    const month = new Date(`${planDate}T12:00:00`);
-    setCalendarMonth(new Date(month.getFullYear(), month.getMonth(), 1));
+    setEditingPlanId(planId);
+    setCalendarMonth(new Date(model.bakeEnd.getFullYear(), model.bakeEnd.getMonth(), 1));
   }
 
-  function openNewPlan(date) {
-    const defaultRecipe = recipes[0];
-    if (!defaultRecipe) return;
-    setPlanModal({
-      id: Date.now(),
-      date,
-      recipeId: defaultRecipe.id,
-      recipeName: defaultRecipe.name,
-      loaves: defaultRecipe.yield,
-      isNew: true,
-    });
-    setConfirmPlanDelete(false);
-  }
-
-  function openExistingPlan(plan) {
-    setPlanModal({ ...plan, isNew: false });
-    setConfirmPlanDelete(false);
-  }
-
-  function submitCalendarPlan(event) {
-    event.preventDefault();
-    const chosenRecipe = recipes.find((item) => item.id === planModal.recipeId);
-    onSaveBakePlan({
-      ...planModal,
-      recipeName: chosenRecipe?.name || planModal.recipeName,
-      loaves: Number(planModal.loaves),
-    });
-    setPlanModal(null);
-  }
-
-  const headingTitle = view === "plan" ? "Plan a bake" : view === "calendar" ? "Bake calendar" : "Starter";
+  const headingTitle = view === "plan" ? (editingPlanId ? "Change bake plan" : "Dynamic bake plan") : view === "calendar" ? "Bake calendar" : "Starters";
   const headingSubtitle = view === "calendar"
     ? `${bakePlans.length} ${bakePlans.length === 1 ? "planned bake" : "planned bakes"}`
-    : view === "plan" ? formatPlanDate(planDate) : "Mabel’s activity and feed history";
+    : view === "starter"
+      ? `${starters.length} ${starters.length === 1 ? "starter profile" : "starter profiles"}`
+      : model
+        ? `Estimated finish ${formatScheduleTime(model.bakeEnd)}`
+        : "Temperature-aware fermentation timing";
 
   return (
     <main className="page bake-page">
-      <PageHeading
-        title={headingTitle}
-        subtitle={headingSubtitle}
-        action={view === "calendar" && recipes.length ? (
-          <button className="round-action" type="button" onClick={() => openNewPlan(localDateKey(new Date()))} aria-label="Add planned bake">
-            <Plus size={20} />
-          </button>
-        ) : null}
-      />
+      <PageHeading title={headingTitle} subtitle={headingSubtitle} />
       <div className="view-switch bake-view-switch">
         <button className={view === "plan" ? "selected" : ""} onClick={() => setView("plan")}>Planner</button>
-        <button className={view === "calendar" ? "selected" : ""} onClick={() => setView("calendar")}>Calendar</button>
-        <button className={view === "starter" ? "selected" : ""} onClick={() => setView("starter")}>Starter</button>
+        <button className={view === "calendar" ? "selected" : ""} onClick={() => setView("calendar")}>Bakes</button>
+        <button className={view === "starter" ? "selected" : ""} onClick={() => setView("starter")}>Starters</button>
       </div>
 
       {view === "plan" ? (
-        recipe ? (
+        recipe && starter && model ? (
           <>
-            <label className="plan-date-field">
-              Bake date
-              <input type="date" value={planDate} onChange={(event) => setPlanDate(event.target.value)} />
-            </label>
-            <section className="capacity-heading">
-              <span><b>10 loaf</b> oven capacity</span>
-              <span>{loaves} planned</span>
+            <section className="model-controls">
+              <div className="anchor-switch">
+                <button type="button" className={anchorMode === "start" ? "selected" : ""} onClick={() => setAnchorMode("start")}>Start from mix</button>
+                <button type="button" className={anchorMode === "finish" ? "selected" : ""} onClick={() => setAnchorMode("finish")}>Finish baking by</button>
+              </div>
+              <label className="anchor-time-field">
+                {anchorMode === "start" ? "Mix date and time" : "Desired finish"}
+                <input type="datetime-local" value={anchorDateTime} onChange={updateAnchorDateTime} onInput={updateAnchorDateTime} />
+              </label>
+              <div className="planner-input-grid">
+                <label>
+                  Recipe
+                  <select value={recipeId} onChange={(event) => {
+                    const next = recipes.find((item) => item.id === event.target.value);
+                    setRecipeId(event.target.value);
+                    if (next) setLoaves(next.yield);
+                  }}>
+                    {recipes.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                  </select>
+                </label>
+                <label>
+                  Starter
+                  <select value={starterId} onChange={(event) => setStarterId(event.target.value)}>
+                    {starters.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                  </select>
+                </label>
+                <label>
+                  Dough temp °F
+                  <input type="number" min="50" max="100" value={doughTemperature} onChange={(event) => setDoughTemperature(Number(event.target.value))} />
+                </label>
+                <label>
+                  Levain ratio
+                  <input value={ratio} onChange={(event) => setRatio(event.target.value)} placeholder="1:2:2" />
+                </label>
+                <label>
+                  Cold proof hours
+                  <input type="number" min="0" max="48" step="0.5" value={coldProofHours} onChange={(event) => setColdProofHours(Number(event.target.value))} />
+                </label>
+                <label>
+                  Loaves
+                  <span className="inline-stepper">
+                    <button type="button" onClick={() => setLoaves((current) => Math.max(1, current - 1))} aria-label="Decrease loaves"><Minus size={16} /></button>
+                    <b>{loaves}</b>
+                    <button type="button" onClick={() => setLoaves((current) => Math.min(40, current + 1))} aria-label="Increase loaves"><Plus size={16} /></button>
+                  </span>
+                </label>
+              </div>
             </section>
 
-            <section className="schedule-list" aria-label="Bake schedule">
-              {schedule.map((item) => (
-                <div className="schedule-row" key={item.id}>
+            <section className="dynamic-schedule" aria-label="Estimated bake schedule">
+              <div className="section-title-line">
+                <h2>Estimated schedule</h2>
+                <span>{model.dough.bulkHours.toFixed(1)}h bulk · {coldProofHours}h cold</span>
+              </div>
+              {model.steps.map((step) => (
+                <div className="dynamic-schedule-row" key={step.id}>
                   <span className="schedule-dot" />
-                  <strong>{item.label}</strong>
-                  <span>{formatTime(item.time)}{item.endTime ? `–${formatTime(item.endTime)}` : ""}</span>
-                  <small>{item.day}</small>
-                  <button className="edit-time" onClick={() => setEditing(item)} aria-label={`Edit ${item.label} time`}>
-                    <Pencil size={16} />
-                  </button>
+                  <span>
+                    <strong>{step.label}</strong>
+                    <small>{step.detail}</small>
+                  </span>
+                  <span>
+                    <strong>{formatScheduleTime(step.start)}</strong>
+                    {step.end ? <small>to {sameCalendarDay(step.start, step.end) ? formatShortTime(step.end) : formatScheduleTime(step.end)}</small> : null}
+                  </span>
                 </div>
               ))}
             </section>
 
-            <div className="warning-callout">
-              <AlertTriangle size={20} />
-              Starter peaks 45 min before mix
-            </div>
-
-            <section className="formula-panel">
-              <div className="formula-title-row">
-                <div>
-                  <select value={recipeId} onChange={(event) => {
-                    const nextRecipe = recipes.find((item) => item.id === event.target.value);
-                    setRecipeId(event.target.value);
-                    if (nextRecipe) setLoaves(nextRecipe.yield);
-                  }} aria-label="Recipe">
-                    {recipes.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-                  </select>
-                  <span>· {loaves} loaves</span>
-                </div>
-                <span>{recipe.hydration}% hydration</span>
+            <section className="science-curves">
+              <div className="section-title-line">
+                <div><span className="eyebrow-label">Fermentation model</span><h2>Activity curves</h2></div>
+                <Beaker size={22} />
               </div>
-              <div className="formula-table" role="table" aria-label="Baker's percentage formula">
-                <div className="formula-head" role="row">
-                  <span>Ingredient</span><span>Weight</span><span>Baker’s %</span>
+              <div className="curve-grid">
+                <div className="science-curve-card">
+                  <span>Levain rise</span>
+                  <strong>Peak ~{model.starterPeak.hours.toFixed(1)}h</strong>
+                  <svg viewBox="0 0 300 100" role="img" aria-label={`Levain rise estimated to peak in ${model.starterPeak.hours.toFixed(1)} hours`}>
+                    <path className="chart-fill levain-fill" d={levainCurve.fill} />
+                    <path className="chart-line" d={levainCurve.line} />
+                  </svg>
+                  <div className="chart-labels"><span>Feed</span><span>{(model.starterPeak.hours / 2).toFixed(1)}h</span><span>{model.starterPeak.hours.toFixed(1)}h</span></div>
                 </div>
-                {scaledIngredients.map((item) => (
-                  <div className="formula-row" role="row" key={item.name}>
-                    <span>{item.name}</span>
-                    <span>{item.scaledWeight.toLocaleString()} g</span>
-                    <span>{item.percent}%</span>
-                  </div>
-                ))}
-                <div className="formula-row total" role="row">
-                  <span>Total dough</span><span>{totalDough.toLocaleString()} g</span><span />
+                <div className="science-curve-card">
+                  <span>Bulk progress</span>
+                  <strong>Shape ~{model.dough.bulkHours.toFixed(1)}h</strong>
+                  <svg viewBox="0 0 300 100" role="img" aria-label={`Bulk fermentation estimated at ${model.dough.bulkHours.toFixed(1)} hours`}>
+                    <path className="chart-fill dough-fill" d={doughCurve.fill} />
+                    <path className="chart-line" d={doughCurve.line} />
+                  </svg>
+                  <div className="chart-labels"><span>Mix</span><span>Folds</span><span>Shape</span></div>
                 </div>
               </div>
+              <div className="factor-grid">
+                <span><Thermometer size={14} /><b>{model.dough.temperatureRate.toFixed(2)}×</b> temperature</span>
+                <span><b>{model.dough.hydrationRate.toFixed(2)}×</b> {recipe.hydration}% hydration</span>
+                <span><b>{model.dough.flourRate.toFixed(2)}×</b> flour activity</span>
+                <span><b>{model.dough.inoculationRate.toFixed(2)}×</b> {model.dough.inoculation}% starter</span>
+              </div>
+              <p className="model-note">
+                Planning estimate, not a guarantee. Watch dough rise and strength; your feed logs gradually calibrate the levain curve.
+              </p>
             </section>
 
-            <div className="stepper-row">
-              <strong>Loaves</strong>
-              <div className="stepper">
-                <button onClick={() => setLoaves((current) => Math.max(1, current - 1))} aria-label="Decrease loaves"><Minus /></button>
-                <span>{loaves}</span>
-                <button onClick={() => setLoaves((current) => Math.min(24, current + 1))} aria-label="Increase loaves"><Plus /></button>
+            <section className="formula-panel compact-formula">
+              <div className="formula-title-row">
+                <div><strong>{recipe.name}</strong><span>· {loaves} loaves</span></div>
+                <span>{recipe.hydration}% hydration</span>
               </div>
-            </div>
+              <p className="flour-summary">{recipeFlourBlend(recipe).map((item) => `${item.percent}% ${item.type}`).join(" · ")}</p>
+            </section>
 
-            <button className="primary-button" onClick={savePlannerBake}>
-              Add bake to calendar
+            <button className="primary-button" type="button" onClick={savePlan}>
+              {editingPlanId ? "Save bake changes" : "Add bake to calendar"}
             </button>
+            {editingPlanId ? confirmPlanDelete ? (
+              <div className="delete-confirmation">
+                <span>Delete this planned bake?</span>
+                <div>
+                  <button type="button" className="text-button" onClick={() => setConfirmPlanDelete(false)}>Keep it</button>
+                  <button type="button" className="danger-button" onClick={() => {
+                    onDeleteBakePlan(editingPlanId);
+                    setEditingPlanId(null);
+                    setConfirmPlanDelete(false);
+                    setView("calendar");
+                  }}>Delete bake</button>
+                </div>
+              </div>
+            ) : (
+              <button className="delete-order-button" type="button" onClick={() => setConfirmPlanDelete(true)}>
+                <Trash2 size={15} /> Delete planned bake
+              </button>
+            ) : null}
           </>
         ) : (
-          <EmptyState title="Add a recipe first" body="The planner needs at least one formula. Add one from the Recipes tab." />
+          <div className="planner-empty-stack">
+            {!recipes.length ? <EmptyState title="Add a recipe first" body="The science model needs a recipe’s hydration, flour blend, and starter percentage." /> : null}
+            {!starters.length ? <EmptyState title="Add a starter first" body="Create a starter profile so feed timing and flour blend can be included." /> : null}
+            <button className="primary-button" type="button" onClick={() => setView(!starters.length ? "starter" : "plan")}>Set up baking data</button>
+          </div>
         )
       ) : null}
 
@@ -251,121 +345,23 @@ export default function BakePage({
           month={calendarMonth}
           plans={bakePlans}
           onChangeMonth={(amount) => setCalendarMonth((current) => new Date(current.getFullYear(), current.getMonth() + amount, 1))}
-          onSelectDate={openNewPlan}
-          onOpenPlan={openExistingPlan}
+          onSelectDate={resetForDate}
+          onOpenPlan={loadPlan}
         />
       ) : null}
 
       {view === "starter" ? (
-        <section className="starter-lab">
-          <div className="starter-hero">
-            <span className="starter-jar"><Wheat size={46} /></span>
-            <div>
-              <p>Your starter</p>
-              <h2>Mabel</h2>
-              <span className="starter-live"><i /> Active · fed 3h ago</span>
-            </div>
-          </div>
-
-          <div className="starter-reading-grid">
-            <div><TrendingUp /><strong>2.1×</strong><span>current rise</span></div>
-            <div><Thermometer /><strong>76°F</strong><span>jar temp</span></div>
-            <div><Clock3 /><strong>1h 20m</strong><span>until peak</span></div>
-          </div>
-
-          <div className="starter-curve">
-            <div className="section-title-line">
-              <h3>Rise trend</h3>
-              <span>Last 12 hours</span>
-            </div>
-            <svg viewBox="0 0 320 110" role="img" aria-label="Starter rise trend increasing toward peak">
-              <path className="chart-fill" d="M0 100 C55 98,80 86,115 76 S175 50,205 35 S265 16,320 20 L320 110 L0 110 Z" />
-              <path className="chart-line" d="M0 100 C55 98,80 86,115 76 S175 50,205 35 S265 16,320 20" />
-              <circle cx="285" cy="18" r="5" />
-            </svg>
-            <div className="chart-labels"><span>6 AM</span><span>Noon</span><span>Now</span></div>
-          </div>
-
-          <div className="starter-history">
-            <div className="section-title-line"><h3>Recent feeds</h3><button onClick={() => setStarterModal(true)}>Log feed</button></div>
-            {[
-              ["Today · 7:30 AM", "1:2:2", "Peak in 4h 10m"],
-              ["Yesterday · 8:10 PM", "1:3:3", "Peak in 6h 05m"],
-              ["Tuesday · 6:45 AM", "1:2:2", "Peak in 4h 22m"],
-            ].map(([date, ratio, result]) => (
-              <div className="history-row" key={date}>
-                <Check size={16} />
-                <span><strong>{date}</strong><small>{ratio} feed</small></span>
-                <small>{result}</small>
-              </div>
-            ))}
-          </div>
-        </section>
+        <StarterLab
+          starters={starters}
+          starterLogs={starterLogs}
+          onSaveStarter={onSaveStarter}
+          onDeleteStarter={onDeleteStarter}
+          onStarterLogged={onStarterLogged}
+        />
       ) : null}
 
-      {editing ? (
-        <Modal title={`Edit ${editing.label}`} onClose={() => setEditing(null)}>
-          <form className="form-stack" onSubmit={(event) => {
-            event.preventDefault();
-            updateTime(editing.id, event.currentTarget.time.value);
-          }}>
-            <label>Start time<input name="time" type="time" defaultValue={editing.time} /></label>
-            <button className="primary-button" type="submit">Update schedule</button>
-          </form>
-        </Modal>
-      ) : null}
-
-      {planModal ? (
-        <Modal title={planModal.isNew ? "Plan a bake" : "Change planned bake"} onClose={() => setPlanModal(null)}>
-          <form className="form-stack" onSubmit={submitCalendarPlan}>
-            <label>
-              Bake date
-              <input type="date" value={planModal.date} onChange={(event) => setPlanModal({ ...planModal, date: event.target.value })} />
-            </label>
-            <label>
-              Recipe
-              <select value={planModal.recipeId} onChange={(event) => setPlanModal({ ...planModal, recipeId: event.target.value })}>
-                {recipes.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-              </select>
-            </label>
-            <label>
-              Loaves
-              <input type="number" min="1" max="24" value={planModal.loaves} onChange={(event) => setPlanModal({ ...planModal, loaves: Number(event.target.value) })} />
-            </label>
-            <button className="primary-button" type="submit">{planModal.isNew ? "Add to calendar" : "Save changes"}</button>
-            {!planModal.isNew ? confirmPlanDelete ? (
-              <div className="delete-confirmation">
-                <span>Delete this planned bake?</span>
-                <div>
-                  <button type="button" className="text-button" onClick={() => setConfirmPlanDelete(false)}>Keep it</button>
-                  <button type="button" className="danger-button" onClick={() => {
-                    onDeleteBakePlan(planModal.id);
-                    setPlanModal(null);
-                  }}>Delete bake</button>
-                </div>
-              </div>
-            ) : (
-              <button className="delete-order-button" type="button" onClick={() => setConfirmPlanDelete(true)}>
-                <Trash2 size={15} />
-                Delete planned bake
-              </button>
-            ) : null}
-          </form>
-        </Modal>
-      ) : null}
-
-      {starterModal ? (
-        <Modal title="Log a starter feed" onClose={() => setStarterModal(false)}>
-          <form className="form-stack" onSubmit={submitStarter}>
-            <div className="form-grid">
-              <label>Feed ratio<input value={starterForm.ratio} onChange={(event) => setStarterForm({ ...starterForm, ratio: event.target.value })} /></label>
-              <label>Temperature<input type="number" value={starterForm.temperature} onChange={(event) => setStarterForm({ ...starterForm, temperature: event.target.value })} /></label>
-            </div>
-            <label>Rise<input type="number" step="0.1" value={starterForm.rise} onChange={(event) => setStarterForm({ ...starterForm, rise: event.target.value })} /></label>
-            <label>Notes<textarea value={starterForm.note} onChange={(event) => setStarterForm({ ...starterForm, note: event.target.value })} placeholder="Aroma, texture, flour blend…" /></label>
-            <button className="primary-button" type="submit">Save starter log</button>
-          </form>
-        </Modal>
+      {view === "plan" && model?.dough.activityRate > 1.65 ? (
+        <div className="warning-callout compact-warning"><AlertTriangle size={18} /> Fast fermentation estimate—check the dough earlier than usual.</div>
       ) : null}
     </main>
   );

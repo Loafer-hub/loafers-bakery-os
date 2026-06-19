@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { BottomNav } from "./components/AppChrome";
 import { Modal, Toast } from "./components/Primitives";
-import { recipes as seedRecipes, scheduleSeed, seedInventory, seedOrders } from "./data/seed";
+import { recipes as seedRecipes, seedInventory, seedOrders, seedStarters } from "./data/seed";
 import { usePersistentState } from "./hooks/usePersistentState";
 import BakePage from "./pages/BakePage";
 import MorePage from "./pages/MorePage";
@@ -23,11 +23,17 @@ export default function App() {
   const [orders, setOrders] = usePersistentState("loafers-orders-v1", seedOrders);
   const [recipes, setRecipes] = usePersistentState("loafers-recipes-v1", seedRecipes);
   const [bakePlans, setBakePlans] = usePersistentState("loafers-bake-plans-v1", []);
-  const [schedule, setSchedule] = usePersistentState("loafers-schedule-v1", scheduleSeed);
+  const [starters, setStarters] = usePersistentState("loafers-starter-profiles-v1", seedStarters);
   const [starterLogs, setStarterLogs] = usePersistentState("loafers-starter-v1", []);
   const [toast, setToast] = useState("");
   const [quickStarter, setQuickStarter] = useState(false);
-  const [starterNote, setStarterNote] = useState("");
+  const [quickFeed, setQuickFeed] = useState({
+    starterId: "mabel",
+    ratio: "1:2:2",
+    temperature: 76,
+    rise: 2,
+    note: "",
+  });
   const Page = pages[active];
 
   useEffect(() => {
@@ -97,8 +103,32 @@ export default function App() {
   }
 
   function logStarter(entry) {
-    setStarterLogs((current) => [{ ...entry, id: Date.now() }, ...current]);
+    const starter = starters.find((item) => item.id === entry.starterId) || starters[0];
+    setStarterLogs((current) => [{
+      ...entry,
+      id: Date.now(),
+      starterId: entry.starterId || starter?.id,
+      starterName: starter?.name || "Starter",
+      flourBlend: entry.flourBlend || starter?.flourBlend || [],
+      dateTime: entry.dateTime || new Date().toISOString(),
+    }, ...current]);
     setToast("Starter feed logged");
+  }
+
+  function saveStarter(starter) {
+    const { isNew, ...savedStarter } = starter;
+    setStarters((current) => {
+      const exists = current.some((item) => item.id === savedStarter.id);
+      return exists
+        ? current.map((item) => item.id === savedStarter.id ? savedStarter : item)
+        : [...current, savedStarter];
+    });
+    setToast(isNew ? "Starter added" : "Starter profile saved");
+  }
+
+  function deleteStarter(id) {
+    setStarters((current) => current.filter((starter) => starter.id !== id));
+    setToast("Starter deleted");
   }
 
   function addRecipe(recipe) {
@@ -131,22 +161,26 @@ export default function App() {
     orders,
     recipes,
     bakePlans,
+    starters,
     inventory: seedInventory,
     setActive: navigate,
-    schedule,
-    setSchedule,
     onAddOrder: addOrder,
     onClearSampleOrders: clearSampleOrders,
     onDeleteOrder: deleteOrder,
     onDeleteBakePlan: deleteBakePlan,
     onDeleteRecipe: deleteRecipe,
+    onDeleteStarter: deleteStarter,
     onOpenOrder: openOrder,
     onAddRecipe: addRecipe,
     onPlanCreated: setToast,
     onStarterLogged: logStarter,
-    onLogStarter: () => setQuickStarter(true),
+    onLogStarter: () => {
+      setQuickFeed((current) => ({ ...current, starterId: starters[0]?.id || "" }));
+      setQuickStarter(true);
+    },
     onUpdateOrder: updateOrder,
     onSaveBakePlan: saveBakePlan,
+    onSaveStarter: saveStarter,
     selectedOrderId,
     starterLogs,
   };
@@ -162,19 +196,25 @@ export default function App() {
       </div>
 
       {quickStarter ? (
-        <Modal title="How is Mabel looking?" onClose={() => setQuickStarter(false)}>
+        <Modal title="Quick starter check" onClose={() => setQuickStarter(false)}>
           <form className="form-stack" onSubmit={(event) => {
             event.preventDefault();
-            logStarter({ ratio: "1:2:2", temperature: 76, rise: 2.1, note: starterNote });
-            setStarterNote("");
+            logStarter(quickFeed);
+            setQuickFeed((current) => ({ ...current, note: "" }));
             setQuickStarter(false);
           }}>
-            <div className="starter-check-grid">
-              <button type="button">Doubled</button>
-              <button type="button">Domed top</button>
-              <button type="button">Sweet aroma</button>
+            <label>
+              Starter
+              <select value={quickFeed.starterId} onChange={(event) => setQuickFeed({ ...quickFeed, starterId: event.target.value })}>
+                {starters.map((starter) => <option key={starter.id} value={starter.id}>{starter.name}</option>)}
+              </select>
+            </label>
+            <div className="form-grid">
+              <label>Feed ratio<input value={quickFeed.ratio} onChange={(event) => setQuickFeed({ ...quickFeed, ratio: event.target.value })} /></label>
+              <label>Jar temp °F<input type="number" value={quickFeed.temperature} onChange={(event) => setQuickFeed({ ...quickFeed, temperature: Number(event.target.value) })} /></label>
             </div>
-            <label>Quick note<textarea value={starterNote} onChange={(event) => setStarterNote(event.target.value)} placeholder="Bubbles, aroma, texture…" /></label>
+            <label>Rise multiple<input type="number" step="0.1" min="0" value={quickFeed.rise} onChange={(event) => setQuickFeed({ ...quickFeed, rise: Number(event.target.value) })} /></label>
+            <label>Quick note<textarea value={quickFeed.note} onChange={(event) => setQuickFeed({ ...quickFeed, note: event.target.value })} placeholder="Bubbles, aroma, texture…" /></label>
             <button className="primary-button" type="submit">Log starter check</button>
           </form>
         </Modal>

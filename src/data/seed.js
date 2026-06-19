@@ -138,6 +138,19 @@ export const seedInventory = [
   { id: 4, name: "Paper bags", amount: 14, unit: "left", target: 24, status: "low" },
 ];
 
+export const seedStarters = [
+  {
+    id: "mabel",
+    name: "Mabel",
+    hydration: 100,
+    flourBlend: [
+      { type: "Bread flour", percent: 70 },
+      { type: "Whole wheat", percent: 30 },
+    ],
+    notes: "Reliable house starter with a mild, wheaty aroma.",
+  },
+];
+
 export const scheduleSeed = [
   { id: "feed", label: "Feed starter", time: "06:00", day: "Friday" },
   { id: "mix", label: "Mix dough", time: "06:30", day: "Saturday" },

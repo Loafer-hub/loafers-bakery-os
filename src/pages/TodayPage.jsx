@@ -7,14 +7,25 @@ import {
   TrendingUp,
   Wheat,
 } from "lucide-react";
+import { useMemo } from "react";
 import { BrandHeader } from "../components/AppChrome";
+import { buildBakeSchedule } from "../lib/fermentationModel";
 
-function BakeTimeline() {
-  const steps = [
-    { label: "Mix", time: "6:30 AM" },
-    { label: "Shape", time: "11:45 AM" },
-    { label: "Bake", time: "4:30 PM" },
-  ];
+function BakeTimeline({ model }) {
+  if (!model) {
+    return (
+      <div className="bake-timeline empty-timeline" aria-label="No planned bake">
+        <span>Nothing scheduled yet. Plan a bake to build this timeline.</span>
+      </div>
+    );
+  }
+
+  const steps = model.steps
+    .filter((step) => ["mix", "shape", "bake"].includes(step.id))
+    .map((step) => ({
+      label: step.label.replace(" dough", ""),
+      time: step.start.toLocaleString("en-US", { weekday: "short", hour: "numeric", minute: "2-digit" }),
+    }));
 
   return (
     <div className="bake-timeline" aria-label="Today's bake timeline">
@@ -33,10 +44,41 @@ function BakeTimeline() {
   );
 }
 
-export default function TodayPage({ orders, setActive, onLogStarter, onOpenOrder }) {
+export default function TodayPage({
+  orders,
+  setActive,
+  onLogStarter,
+  onOpenOrder,
+  starters,
+  starterLogs,
+  bakePlans,
+  recipes,
+}) {
   const todayOrders = orders.filter((order) => order.due === "Today");
   const totalLoaves = todayOrders.reduce((sum, order) => sum + order.quantity, 0);
   const revenue = todayOrders.reduce((sum, order) => sum + order.total, 0);
+  const starter = starters[0];
+  const latestStarterLog = starterLogs.find((log) => log.starterId === starter?.id) || starterLogs[0];
+  const nextBakeModel = useMemo(() => {
+    const nextPlan = [...bakePlans]
+      .filter((plan) => new Date(plan.bakeEnd || `${plan.date}T23:59:00`) >= new Date())
+      .sort((a, b) => new Date(a.bakeEnd || a.date) - new Date(b.bakeEnd || b.date))[0];
+    if (!nextPlan) return null;
+    const planRecipe = recipes.find((item) => item.id === nextPlan.recipeId);
+    const planStarter = starters.find((item) => item.id === nextPlan.starterId) || starters[0];
+    if (!planRecipe || !planStarter) return null;
+    return buildBakeSchedule({
+      recipe: planRecipe,
+      loaves: nextPlan.loaves,
+      doughTemperature: nextPlan.doughTemperature || 76,
+      coldProofHours: nextPlan.coldProofHours ?? 12,
+      anchorMode: nextPlan.anchorMode || "start",
+      anchorDateTime: nextPlan.anchorDateTime || `${nextPlan.date}T06:30`,
+      starter: planStarter,
+      ratio: nextPlan.ratio || "1:2:2",
+      starterLogs,
+    });
+  }, [bakePlans, recipes, starterLogs, starters]);
 
   return (
     <main className="page today-page">
@@ -48,17 +90,17 @@ export default function TodayPage({ orders, setActive, onLogStarter, onOpenOrder
 
       <section>
         <h2 className="display-title">Today’s bake</h2>
-        <BakeTimeline />
+        <BakeTimeline model={nextBakeModel} />
       </section>
 
       <button className="starter-panel" onClick={onLogStarter}>
         <span className="starter-illustration"><Wheat size={39} strokeWidth={1.4} /></span>
         <span className="starter-copy">
-          <span className="panel-title">Mabel</span>
-          <span className="starter-ready">Ready in 1h 20m</span>
+          <span className="panel-title">{starter?.name || "Starter"}</span>
+          <span className="starter-ready">{latestStarterLog ? `Last fed ${new Date(latestStarterLog.dateTime || Date.now()).toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : "Ready for a first feed log"}</span>
           <span className="starter-stats">
-            <span><TrendingUp size={18} /> <b>2.1×</b> rise</span>
-            <span><Thermometer size={18} /> <b>76°F</b></span>
+            <span><TrendingUp size={18} /> <b>{latestStarterLog?.rise || "—"}×</b> rise</span>
+            <span><Thermometer size={18} /> <b>{latestStarterLog?.temperature || "—"}°F</b></span>
           </span>
         </span>
         <ChevronRight size={22} className="panel-chevron" />

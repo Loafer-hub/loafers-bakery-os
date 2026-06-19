@@ -184,6 +184,19 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   margin: 22px -4px 26px;
 }
 
+.empty-timeline {
+  min-height: 105px;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  color: var(--muted);
+  border: 1px dashed var(--line-strong);
+  border-radius: 10px;
+  text-align: center;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
 .timeline-line {
   position: absolute;
   top: 55px;
@@ -533,6 +546,11 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   border-radius: 50%;
   background: var(--accent);
   cursor: pointer;
+}
+
+.round-action.small {
+  width: 36px;
+  height: 36px;
 }
 
 .heading-action {
@@ -971,6 +989,294 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   min-width: 0;
 }
 
+.model-controls {
+  margin-bottom: 18px;
+  padding: 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: rgba(255,255,255,.44);
+}
+
+.anchor-switch {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px;
+  margin-bottom: 13px;
+  padding: 3px;
+  border-radius: 8px;
+  background: var(--paper-deep);
+}
+
+.anchor-switch button {
+  padding: 8px;
+  color: var(--muted);
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.anchor-switch button.selected {
+  color: var(--ink);
+  background: white;
+  box-shadow: 0 1px 4px rgba(60,44,29,.09);
+}
+
+.anchor-time-field,
+.planner-input-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.anchor-time-field {
+  margin-bottom: 11px;
+}
+
+.anchor-time-field input,
+.planner-input-grid input,
+.planner-input-grid select,
+.starter-profile-switcher select {
+  width: 100%;
+  padding: 9px 10px;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: white;
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.planner-input-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.inline-stepper {
+  height: 35px;
+  display: grid;
+  grid-template-columns: 34px 1fr 34px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: white;
+}
+
+.inline-stepper button,
+.inline-stepper b {
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+}
+
+.inline-stepper button:first-child {
+  border-right: 1px solid var(--line);
+}
+
+.inline-stepper button:last-child {
+  border-left: 1px solid var(--line);
+}
+
+.dynamic-schedule {
+  position: relative;
+  margin-bottom: 18px;
+  padding: 14px 14px 5px 38px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: rgba(255,255,255,.28);
+}
+
+.dynamic-schedule::before {
+  content: "";
+  position: absolute;
+  top: 59px;
+  bottom: 26px;
+  left: 22px;
+  width: 1px;
+  background: var(--accent);
+}
+
+.dynamic-schedule .section-title-line {
+  margin-left: -24px;
+  margin-bottom: 6px;
+}
+
+.dynamic-schedule .section-title-line h2 {
+  font-size: 21px;
+}
+
+.dynamic-schedule-row {
+  position: relative;
+  min-height: 57px;
+  display: grid;
+  grid-template-columns: 1fr 1.15fr;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+.dynamic-schedule-row:last-child {
+  border-bottom: 0;
+}
+
+.dynamic-schedule-row .schedule-dot {
+  left: -21px;
+}
+
+.dynamic-schedule-row > span {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dynamic-schedule-row > span:last-child {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.dynamic-schedule-row strong {
+  font-size: 11px;
+}
+
+.dynamic-schedule-row small {
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.science-curves {
+  margin-bottom: 18px;
+  padding: 15px;
+  color: #3f4e3a;
+  border: 1px solid #c4d0be;
+  border-radius: 10px;
+  background: var(--sage-soft);
+}
+
+.science-curves > .section-title-line {
+  margin-bottom: 11px;
+}
+
+.science-curves .section-title-line svg {
+  color: var(--sage);
+}
+
+.curve-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.science-curve-card {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid rgba(72,90,64,.16);
+  border-radius: 8px;
+  background: rgba(255,255,255,.55);
+}
+
+.science-curve-card > span {
+  display: block;
+  color: var(--muted);
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+}
+
+.science-curve-card > strong {
+  display: block;
+  margin-top: 2px;
+  font-family: "Newsreader", Georgia, serif;
+  font-size: 17px;
+  font-weight: 500;
+}
+
+.science-curve-card svg {
+  width: 100%;
+  margin-top: 4px;
+  overflow: visible;
+}
+
+.levain-fill {
+  fill: rgba(199,85,53,.09);
+}
+
+.dough-fill,
+.starter-estimate-fill {
+  fill: rgba(92,116,81,.13);
+}
+
+.science-curve-card:nth-child(2) .chart-line {
+  stroke: var(--sage);
+}
+
+.factor-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.factor-grid span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 7px;
+  border-radius: 6px;
+  background: rgba(255,255,255,.48);
+  font-size: 8px;
+}
+
+.factor-grid b {
+  font-size: 9px;
+}
+
+.model-note {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+.compact-formula {
+  margin-bottom: 14px;
+}
+
+.compact-formula .formula-title-row {
+  margin-bottom: 5px;
+}
+
+.compact-formula .formula-title-row strong {
+  font-family: "Newsreader", Georgia, serif;
+  font-size: 19px;
+  font-weight: 500;
+}
+
+.flour-summary,
+.starter-profile-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.compact-warning {
+  margin-bottom: 0;
+}
+
+.planner-empty-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 .plan-date-field {
   display: flex;
   align-items: center;
@@ -1378,6 +1684,27 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   border-bottom: 1px solid var(--line);
 }
 
+.starter-profile-switcher {
+  display: grid;
+  grid-template-columns: 1fr 36px 36px;
+  align-items: end;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.starter-profile-switcher label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.starter-profile-note {
+  padding: 12px 0 0;
+}
+
 .starter-hero p {
   margin: 0;
   color: var(--muted);
@@ -1444,6 +1771,103 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .starter-curve, .starter-history {
   padding: 22px 0;
   border-bottom: 1px solid var(--line);
+}
+
+.feed-calendar {
+  padding: 22px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.calendar-heading.compact h2 {
+  font-size: 21px;
+}
+
+.feed-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  overflow: hidden;
+  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.feed-calendar-grid .calendar-blank {
+  min-height: 49px;
+}
+
+.feed-day {
+  position: relative;
+  min-width: 0;
+  min-height: 49px;
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 4px;
+  text-align: left;
+  border: 0;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: rgba(255,255,255,.3);
+  cursor: pointer;
+}
+
+.feed-day > span {
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.feed-day > svg {
+  align-self: center;
+  margin-top: 6px;
+  color: var(--line-strong);
+  opacity: 0;
+}
+
+.feed-day:hover > svg {
+  opacity: 1;
+}
+
+.feed-day.has-feed {
+  background: var(--sage-soft);
+}
+
+.feed-day small {
+  color: var(--sage);
+  font-size: 7px;
+  font-weight: 700;
+}
+
+.feed-day i {
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  color: var(--muted);
+  font-size: 7px;
+  font-style: normal;
+}
+
+.starter-history .section-title-line button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.history-row.detailed {
+  grid-template-columns: 49px 1fr auto;
+  gap: 9px;
+}
+
+.feed-ratio-badge {
+  display: grid !important;
+  place-items: center;
+  min-height: 32px;
+  padding: 4px;
+  color: var(--sage);
+  border-radius: 6px;
+  background: var(--sage-soft);
+  font-size: 9px;
+  font-weight: 700;
 }
 
 .section-title-line {
@@ -2005,6 +2429,34 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
     padding: 6px;
   }
 
+  .model-controls {
+    padding: 11px;
+  }
+
+  .dynamic-schedule {
+    padding-right: 10px;
+  }
+
+  .dynamic-schedule-row {
+    grid-template-columns: .9fr 1.1fr;
+  }
+
+  .science-curves {
+    padding: 12px;
+  }
+
+  .curve-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .science-curve-card svg {
+    height: 74px;
+  }
+
+  .starter-profile-switcher {
+    grid-template-columns: 1fr 34px 34px;
+  }
+
   .calendar-day,
   .calendar-blank {
     min-height: 56px;
@@ -2086,6 +2538,22 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 
   .segmented-control button {
     flex: 1;
+  }
+
+  .planner-input-grid,
+  .factor-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dynamic-schedule-row {
+    grid-template-columns: 1fr;
+    gap: 3px;
+    padding: 8px 0;
+  }
+
+  .dynamic-schedule-row > span:last-child {
+    align-items: flex-start;
+    text-align: left;
   }
 
   .sample-record-banner {
