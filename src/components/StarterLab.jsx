@@ -54,6 +54,7 @@ function emptyProfile() {
     primaryPercent: 70,
     secondaryFlour: "Whole wheat",
     secondaryPercent: 30,
+    hasSecondaryFlour: true,
     notes: "",
     isNew: true,
   };
@@ -66,6 +67,7 @@ function profileForm(starter) {
     primaryPercent: starter.flourBlend?.[0]?.percent ?? 100,
     secondaryFlour: getFlourProfile(starter.flourBlend?.[1]?.type || "Whole wheat").name,
     secondaryPercent: starter.flourBlend?.[1]?.percent ?? 0,
+    hasSecondaryFlour: Boolean(starter.flourBlend?.[1]),
     isNew: false,
   };
 }
@@ -124,9 +126,10 @@ export function StarterLab({
 
   function saveProfile(event) {
     event.preventDefault();
-    const total = Number(profileModal.primaryPercent) + Number(profileModal.secondaryPercent);
+    const secondaryValue = profileModal.hasSecondaryFlour ? Number(profileModal.secondaryPercent) : 0;
+    const total = Number(profileModal.primaryPercent) + secondaryValue;
     const primaryPercent = total ? Math.round(Number(profileModal.primaryPercent) / total * 100) : 100;
-    const secondaryPercent = 100 - primaryPercent;
+    const secondaryPercent = profileModal.hasSecondaryFlour ? 100 - primaryPercent : 0;
     const saved = {
       id: profileModal.id,
       name: profileModal.name.trim(),
@@ -316,13 +319,20 @@ function StarterProfileModal({ form, setForm, onClose, onSubmit, children }) {
           <label>Primary flour<select value={form.primaryFlour} onChange={(event) => setForm({ ...form, primaryFlour: event.target.value })}>{FLOUR_TYPES.map((type) => <option key={type}>{type}</option>)}</select></label>
           <label>Percent<input type="number" min="0" max="100" value={form.primaryPercent} onChange={(event) => setForm({ ...form, primaryPercent: event.target.value })} /></label>
         </div>
-        <div className="form-grid">
-          <label>Second flour<select value={form.secondaryFlour} onChange={(event) => setForm({ ...form, secondaryFlour: event.target.value })}>{FLOUR_TYPES.map((type) => <option key={type}>{type}</option>)}</select></label>
-          <label>Percent<input type="number" min="0" max="100" value={form.secondaryPercent} onChange={(event) => setForm({ ...form, secondaryPercent: event.target.value })} /></label>
-        </div>
+        {form.hasSecondaryFlour ? (
+          <div className="starter-secondary-flour">
+            <div className="form-grid">
+              <label>Second flour<select value={form.secondaryFlour} onChange={(event) => setForm({ ...form, secondaryFlour: event.target.value })}>{FLOUR_TYPES.map((type) => <option key={type}>{type}</option>)}</select></label>
+              <label>Percent<input type="number" min="0" max="100" value={form.secondaryPercent} onChange={(event) => setForm({ ...form, secondaryPercent: event.target.value })} /></label>
+            </div>
+            <button type="button" onClick={() => setForm({ ...form, hasSecondaryFlour: false, secondaryPercent: 0 })}><Trash2 size={14} /> Remove second flour</button>
+          </div>
+        ) : (
+          <button className="storage-file-button starter-add-flour" type="button" onClick={() => setForm({ ...form, hasSecondaryFlour: true, secondaryPercent: 20 })}><Plus size={15} /> Add second flour</button>
+        )}
         <div className="starter-profile-science">
           <div className="section-title-line"><h3>How this feed behaves</h3><span>Research-informed</span></div>
-          <FlourBlendScience compact flours={[form.primaryFlour, Number(form.secondaryPercent) > 0 ? form.secondaryFlour : null]} />
+          <FlourBlendScience compact flours={[form.primaryFlour, form.hasSecondaryFlour && Number(form.secondaryPercent) > 0 ? form.secondaryFlour : null]} />
         </div>
         <label>Starter hydration %<input type="number" min="50" max="200" value={form.hydration} onChange={(event) => setForm({ ...form, hydration: event.target.value })} /></label>
         <label>Profile notes<textarea value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} placeholder="Aroma, personality, maintenance routine…" /></label>

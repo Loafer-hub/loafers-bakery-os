@@ -3223,6 +3223,19 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   background: #fbf6f1;
 }
 
+.cloud-allergy-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  padding: 9px;
+  color: #7d352c;
+  border: 1px solid #e2b5ad;
+  border-radius: 7px;
+  background: #fff2ef;
+  font-size: 8px;
+  line-height: 1.4;
+}
+
 .customer-portal {
   width: min(100%, 760px);
   min-height: 100vh;
@@ -3411,9 +3424,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 }
 
 .customer-section-heading {
-  display: grid;
-  grid-template-columns: 34px 1fr;
-  gap: 13px;
+  display: block;
   margin-bottom: 20px;
 }
 
@@ -3424,7 +3435,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 }
 
 .customer-section-heading h2 {
-  margin: -5px 0 2px;
+  margin: 0 0 2px;
   font-family: "Newsreader", Georgia, serif;
   font-size: 30px;
   font-weight: 500;
@@ -3434,6 +3445,19 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   margin: 0;
   color: var(--muted);
   font-size: 9px;
+}
+
+.allergy-warning {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 11px;
+  color: #7d352c;
+  border: 1px solid #e2b5ad;
+  border-radius: 8px;
+  background: #fff2ef;
+  font-size: 8px;
+  line-height: 1.45;
 }
 
 .customer-product-list {
@@ -3637,6 +3661,30 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   width: min(100%, 280px);
 }
 
+.calendar-export-button {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  color: #485a40;
+  border: 1px solid #9caf92;
+  border-radius: 7px;
+  background: var(--sage-soft);
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.calendar-export-message {
+  padding: 9px 10px;
+  color: var(--muted);
+  border-radius: 7px;
+  background: var(--paper-deep);
+  font-size: 8px;
+  line-height: 1.45;
+}
+
 .recipe-flour-science,
 .starter-flour-science,
 .starter-profile-science,
@@ -3663,6 +3711,30 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   border: 1px solid var(--line);
   border-radius: 9px;
   background: #f8f5ef;
+}
+
+.starter-secondary-flour {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.starter-secondary-flour > button {
+  align-self: flex-end;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px;
+  color: #963f2b;
+  border: 0;
+  background: transparent;
+  font-size: 8px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.starter-add-flour {
+  align-self: stretch;
 }
 
 .starter-profile-science .section-title-line,

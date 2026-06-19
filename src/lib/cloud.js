@@ -197,6 +197,7 @@ export async function submitPublicOrder({
   items,
   pickupAt,
   paymentMethod,
+  allergies,
   notes,
 }) {
   const { data, error } = await requireClient().rpc("submit_public_order", {
@@ -205,6 +206,7 @@ export async function submitPublicOrder({
     p_items: items,
     p_pickup_at: pickupAt || null,
     p_payment_method: paymentMethod || "Cash",
+    p_allergies: allergies || "",
     p_notes: notes || "",
   });
   throwIfError(error);
@@ -225,6 +227,7 @@ export async function listCustomerOrderRequests(bakeryId) {
       customer_phone,
       payment_method,
       pickup_location,
+      allergies,
       customer_notes,
       created_at,
       customer_order_items(id, product_name, unit_price_cents, quantity)

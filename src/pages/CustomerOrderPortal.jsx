@@ -41,6 +41,7 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
     phone: "",
     pickupAt: "",
     paymentMethod: "Venmo",
+    allergies: "",
     notes: "",
   });
 
@@ -155,6 +156,7 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
         })),
         pickupAt: form.pickupAt ? new Date(form.pickupAt).toISOString() : null,
         paymentMethod: form.paymentMethod,
+        allergies: form.allergies.trim(),
         notes: form.notes.trim(),
       });
       setSuccess(result);
@@ -233,7 +235,7 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
 
       <form onSubmit={submitOrder}>
         <section className="customer-menu">
-          <div className="customer-section-heading"><span>01</span><div><h2>Choose your loaves</h2><p>Requests are confirmed by the baker before they become final orders.</p></div></div>
+          <div className="customer-section-heading"><div><h2>Choose your loaves</h2><p>Requests are confirmed by the baker before they become final orders.</p></div></div>
           <div className="customer-product-list">
             {storefront.products.map((product) => (
               <article className={quantities[product.id] ? "customer-product selected" : "customer-product"} key={product.id}>
@@ -249,7 +251,7 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
         </section>
 
         <section className="customer-details">
-          <div className="customer-section-heading"><span>02</span><div><h2>Pickup & contact</h2><p>Leave enough information for the baker to confirm your request.</p></div></div>
+          <div className="customer-section-heading"><div><h2>Pickup & contact</h2><p>Leave enough information for the baker to confirm your request.</p></div></div>
           <div className="form-stack">
             <label>Name<input required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="Your name" /></label>
             <div className="form-grid">
@@ -275,7 +277,9 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
               </div>
             </fieldset>
             <aside className="pickup-location-card"><Store size={18} /><span><small>Pickup location</small><strong>{storefront.bakery.pickup_location || DEFAULT_PICKUP_LOCATION}</strong></span></aside>
-            <label>Request notes<textarea value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} placeholder="Scoring preference, timing, or anything the baker should know. Please discuss allergies directly." /></label>
+            <label>Allergies or food sensitivities<textarea value={form.allergies} onChange={(event) => setForm({ ...form, allergies: event.target.value })} placeholder="List allergies, sensitivities, or write “None.” The baker will confirm before accepting." /></label>
+            <aside className="allergy-warning"><strong>Home bakery notice</strong><span>Loafers handles wheat and may handle dairy, seeds, and other allergens. An allergy note is a request for review, not a guarantee against cross-contact.</span></aside>
+            <label>Request notes<textarea value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} placeholder="Scoring preference, timing, or anything else the baker should know." /></label>
           </div>
         </section>
 

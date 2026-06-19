@@ -2,8 +2,9 @@ import { CalendarDays, CheckCircle2, List, MessageSquareText, Plus, Search, Shop
 import { useEffect, useMemo, useState } from "react";
 import { PageHeading } from "../components/AppChrome";
 import { CloudOrderInbox } from "../components/CloudOrderInbox";
-import { OrderCalendar } from "../components/OrderCalendar";
+import { OrderCalendar, orderPickupDate } from "../components/OrderCalendar";
 import { EmptyState, Modal, Status } from "../components/Primitives";
+import { downloadOrderCalendar } from "../lib/orderCalendarExport";
 
 const filters = ["All", "New", "Paid"];
 
@@ -40,6 +41,13 @@ function pickupDueLabel(value) {
   });
 }
 
+function localInputValue(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60 * 1000).toISOString().slice(0, 16);
+}
+
 export default function OrdersPage({
   cloudAccount,
   orders,
@@ -59,6 +67,7 @@ export default function OrdersPage({
   const [query, setQuery] = useState("");
   const [showAdd, setShowAdd] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [calendarMessage, setCalendarMessage] = useState("");
   const [detailForm, setDetailForm] = useState({ status: "New", notes: "", pickupAt: "" });
   const [form, setForm] = useState({
     customer: "",
@@ -88,9 +97,7 @@ export default function OrdersPage({
     setDetailForm({
       status: selectedOrder.status,
       notes: selectedOrder.notes || "",
-      pickupAt: selectedOrder.pickupAt
-        ? new Date(new Date(selectedOrder.pickupAt).getTime() - new Date(selectedOrder.pickupAt).getTimezoneOffset() * 60 * 1000).toISOString().slice(0, 16)
-        : "",
+      pickupAt: localInputValue(selectedOrder.pickupAt || orderPickupDate(selectedOrder)),
     });
     setConfirmDelete(false);
   }, [selectedOrder]);
@@ -123,6 +130,25 @@ export default function OrdersPage({
       due: pickupDueLabel(detailForm.pickupAt),
     });
     onOpenOrder(null);
+  }
+
+  function addOrderToCalendar() {
+    setCalendarMessage("");
+    try {
+      downloadOrderCalendar({
+        order: {
+          ...selectedOrder,
+          pickupAt: detailForm.pickupAt ? new Date(detailForm.pickupAt).toISOString() : selectedOrder.pickupAt,
+        },
+        pickupAt: detailForm.pickupAt ? new Date(detailForm.pickupAt).toISOString() : selectedOrder.pickupAt,
+        recipes,
+        starters,
+        starterLogs,
+      });
+      setCalendarMessage("Calendar file created. Open it on your phone and tap Add.");
+    } catch (error) {
+      setCalendarMessage(error.message);
+    }
   }
 
   return (
@@ -308,6 +334,10 @@ export default function OrdersPage({
                 placeholder="Pickup details, scoring request, allergies, payment reminder…"
               />
             </label>
+            <button className="calendar-export-button" type="button" onClick={addOrderToCalendar}>
+              <CalendarDays size={16} /> Add full bake plan to phone calendar
+            </button>
+            {calendarMessage ? <div className="calendar-export-message">{calendarMessage}</div> : null}
             <button className="primary-button" type="submit">Save order details</button>
             {confirmDelete ? (
               <div className="delete-confirmation">

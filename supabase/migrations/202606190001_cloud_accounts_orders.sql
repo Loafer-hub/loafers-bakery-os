@@ -84,6 +84,7 @@ create table if not exists public.customer_orders (
   payment_method text not null default 'Cash'
     check (payment_method in ('Venmo', 'Zelle', 'Cash')),
   pickup_location text not null default 'Three Bears, Delta Junction, AK',
+  allergies text not null default '',
   customer_notes text not null default '',
   baker_notes text not null default '',
   created_at timestamptz not null default now(),
@@ -333,6 +334,7 @@ after insert on auth.users
 for each row execute procedure public.handle_new_user();
 
 drop function if exists public.submit_public_order(text, jsonb, jsonb, timestamptz, text);
+drop function if exists public.submit_public_order(text, jsonb, jsonb, timestamptz, text, text);
 
 create or replace function public.submit_public_order(
   p_slug text,
@@ -340,6 +342,7 @@ create or replace function public.submit_public_order(
   p_items jsonb,
   p_pickup_at timestamptz default null,
   p_payment_method text default 'Cash',
+  p_allergies text default '',
   p_notes text default ''
 )
 returns jsonb
@@ -412,6 +415,7 @@ begin
     customer_phone,
     payment_method,
     pickup_location,
+    allergies,
     customer_notes
   )
   values (
@@ -425,6 +429,7 @@ begin
     customer_phone_value,
     p_payment_method,
     target_bakery.pickup_location,
+    left(coalesce(p_allergies, ''), 1200),
     left(coalesce(p_notes, ''), 1200)
   )
   returning id into order_uuid;
@@ -473,5 +478,5 @@ begin
 end;
 $$;
 
-revoke all on function public.submit_public_order(text, jsonb, jsonb, timestamptz, text, text) from public;
-grant execute on function public.submit_public_order(text, jsonb, jsonb, timestamptz, text, text) to anon, authenticated;
+revoke all on function public.submit_public_order(text, jsonb, jsonb, timestamptz, text, text, text) from public;
+grant execute on function public.submit_public_order(text, jsonb, jsonb, timestamptz, text, text, text) to anon, authenticated;

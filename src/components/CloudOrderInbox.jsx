@@ -88,6 +88,7 @@ export function CloudOrderInbox({ cloudAccount, orders, onImportOrder }) {
                     <div><dt>Location</dt><dd>{request.pickup_location || "Three Bears, Delta Junction, AK"}</dd></div>
                   </dl>
                   {request.customer_notes ? <blockquote>{request.customer_notes}</blockquote> : null}
+                  {request.allergies ? <div className="cloud-allergy-alert"><strong>Allergies</strong><span>{request.allergies}</span></div> : null}
                   <button className="primary-button" type="button" disabled={loading} onClick={() => importRequest(request)}>
                     <Download size={15} /> Accept into Orders
                   </button>

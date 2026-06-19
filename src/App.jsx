@@ -105,6 +105,7 @@ export default function App() {
       contact ? `Customer contact: ${contact}` : "",
       request.payment_method ? `Payment: ${request.payment_method}` : "",
       request.pickup_location ? `Pickup: ${request.pickup_location}` : "",
+      request.allergies ? `ALLERGIES: ${request.allergies}` : "",
       `Online request: ${request.request_code}`,
     ].filter(Boolean).join("\n\n");
     const initials = request.customer_name
@@ -128,6 +129,7 @@ export default function App() {
       pickupAt: request.pickup_at,
       paymentMethod: request.payment_method,
       pickupLocation: request.pickup_location,
+      allergies: request.allergies,
       accent: "sage",
       notes,
       isSample: false,
