@@ -11,7 +11,7 @@ import {
 } from "./data/seed";
 import { usePersistentState } from "./hooks/usePersistentState";
 import { useCloudAccount } from "./hooks/useCloudAccount";
-import { syncBakerCapacityReservations } from "./lib/cloud";
+import { completeCustomerOrder, syncBakerCapacityReservations } from "./lib/cloud";
 import BakePage from "./pages/BakePage";
 import CustomerOrderPortal from "./pages/CustomerOrderPortal";
 import MorePage from "./pages/MorePage";
@@ -153,6 +153,19 @@ export default function App() {
       order.id === id ? { ...order, ...changes } : order
     )));
     setToast("Order details saved");
+  }
+
+  async function completeOrder(id, changes = {}) {
+    const order = orders.find((item) => item.id === id);
+    if (!order) return;
+    if (order.cloudOrderId) await completeCustomerOrder(order.cloudOrderId);
+    setOrders((current) => current.map((item) => (
+      item.id === id
+        ? { ...item, ...changes, status: "Completed", completedAt: new Date().toISOString() }
+        : item
+    )));
+    setSelectedOrderId(null);
+    setToast("Bake completed and moved to Completed");
   }
 
   function deleteOrder(id) {
@@ -325,6 +338,7 @@ export default function App() {
     setActive: navigate,
     onAddOrder: addOrder,
     onClearSampleOrders: clearSampleOrders,
+    onCompleteOrder: completeOrder,
     onDeleteOrder: deleteOrder,
     onDeleteBakePlan: deleteBakePlan,
     onDeleteExpense: deleteExpense,

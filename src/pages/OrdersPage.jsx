@@ -7,7 +7,7 @@ import { EmptyState, Modal, Status } from "../components/Primitives";
 import { downloadOrderCalendar } from "../lib/orderCalendarExport";
 import { MAX_DAILY_LOAVES, orderCapacityForDate } from "../lib/orderCapacity";
 
-const filters = ["All", "New", "Paid"];
+const filters = ["Pending", "Completed", "All"];
 
 const sampleCustomers = new Set([
   "Emily Morgan",
@@ -65,13 +65,14 @@ export default function OrdersPage({
   starterLogs,
   onAddOrder,
   onClearSampleOrders,
+  onCompleteOrder,
   onDeleteOrder,
   onImportCloudOrder,
   onOpenOrder,
   onUpdateOrder,
   selectedOrderId,
 }) {
-  const [filter, setFilter] = useState("All");
+  const [filter, setFilter] = useState("Pending");
   const [view, setView] = useState("list");
   const [query, setQuery] = useState("");
   const [showAdd, setShowAdd] = useState(false);
@@ -79,6 +80,7 @@ export default function OrdersPage({
   const [calendarMessage, setCalendarMessage] = useState("");
   const [addError, setAddError] = useState("");
   const [detailError, setDetailError] = useState("");
+  const [completing, setCompleting] = useState(false);
   const [detailForm, setDetailForm] = useState({ status: "New", notes: "", pickupAt: "" });
   const [form, setForm] = useState({
     customer: "",
@@ -92,13 +94,15 @@ export default function OrdersPage({
   const filteredOrders = useMemo(() => {
     const normalized = query.trim().toLowerCase();
     return orders.filter((order) => {
-      const matchesFilter = filter === "All" || order.status === filter;
+      const matchesFilter = filter === "All"
+        || (filter === "Pending" && order.status !== "Completed")
+        || (filter === "Completed" && order.status === "Completed");
       const matchesQuery = !normalized || `${order.customer} ${order.product}`.toLowerCase().includes(normalized);
       return matchesFilter && matchesQuery;
     });
   }, [filter, orders, query]);
 
-  const openOrders = orders.filter((order) => order.status !== "Paid").length;
+  const openOrders = orders.filter((order) => order.status !== "Completed").length;
   const bookedRevenue = orders.reduce((sum, order) => sum + order.total, 0);
   const sampleOrderCount = orders.filter(isSampleOrder).length;
   const selectedOrder = orders.find((order) => order.id === selectedOrderId);
@@ -144,7 +148,7 @@ export default function OrdersPage({
     });
   }
 
-  function saveDetails(event) {
+  async function saveDetails(event) {
     event.preventDefault();
     const nextCapacity = orderCapacityForDate(orders, detailForm.pickupAt, selectedOrder.quantity, selectedOrder.id);
     const nextError = capacityError(nextCapacity, selectedOrder.quantity);
@@ -152,13 +156,22 @@ export default function OrdersPage({
       setDetailError(nextError);
       return;
     }
-    onUpdateOrder(selectedOrder.id, {
-      status: detailForm.status,
+    const changes = {
       notes: detailForm.notes.trim(),
       pickupAt: detailForm.pickupAt ? new Date(detailForm.pickupAt).toISOString() : null,
       due: pickupDueLabel(detailForm.pickupAt),
-    });
-    onOpenOrder(null);
+    };
+    try {
+      if (detailForm.status === "Completed" && selectedOrder.status !== "Completed") {
+        await onCompleteOrder(selectedOrder.id, changes);
+        setFilter("Completed");
+      } else {
+        onUpdateOrder(selectedOrder.id, { ...changes, status: detailForm.status });
+      }
+      onOpenOrder(null);
+    } catch (error) {
+      setDetailError(error.message);
+    }
   }
 
   function addOrderToCalendar() {
@@ -177,6 +190,23 @@ export default function OrdersPage({
       setCalendarMessage("Calendar file created. Open it on your phone and tap Add.");
     } catch (error) {
       setCalendarMessage(error.message);
+    }
+  }
+
+  async function completeBake() {
+    setCompleting(true);
+    setDetailError("");
+    try {
+      await onCompleteOrder(selectedOrder.id, {
+        notes: detailForm.notes.trim(),
+        pickupAt: detailForm.pickupAt ? new Date(detailForm.pickupAt).toISOString() : null,
+        due: pickupDueLabel(detailForm.pickupAt),
+      });
+      setFilter("Completed");
+    } catch (error) {
+      setDetailError(error.message);
+    } finally {
+      setCompleting(false);
     }
   }
 
@@ -266,8 +296,8 @@ export default function OrdersPage({
                   {order.due}
                   {order.notes ? <MessageSquareText size={13} aria-label="Has notes" /> : null}
                 </span>
-                <Status tone={order.status === "Paid" ? "success" : order.status === "New" ? "accent" : "neutral"}>
-                  {order.status === "Paid" ? <CheckCircle2 size={13} /> : <ShoppingBag size={13} />}
+                <Status tone={order.status === "Completed" || order.status === "Paid" ? "success" : order.status === "New" ? "accent" : "neutral"}>
+                  {order.status === "Completed" || order.status === "Paid" ? <CheckCircle2 size={13} /> : <ShoppingBag size={13} />}
                   {order.status}
                 </Status>
               </div>
@@ -365,7 +395,7 @@ export default function OrdersPage({
               </div>
             ) : null}
             <label>
-              Payment status
+              Order status
               <select
                 value={detailForm.status}
                 onChange={(event) => setDetailForm({ ...detailForm, status: event.target.value })}
@@ -373,6 +403,7 @@ export default function OrdersPage({
                 <option>New</option>
                 <option>Deposit</option>
                 <option>Paid</option>
+                <option>Completed</option>
               </select>
             </label>
             {detailError ? <p className="form-error" role="alert">{detailError}</p> : null}
@@ -388,6 +419,13 @@ export default function OrdersPage({
               <CalendarDays size={16} /> Add full bake plan to phone calendar
             </button>
             {calendarMessage ? <div className="calendar-export-message">{calendarMessage}</div> : null}
+            {selectedOrder.status !== "Completed" ? (
+              <button className="complete-bake-button" type="button" disabled={completing} onClick={completeBake}>
+                <CheckCircle2 size={16} /> {completing ? "Completing…" : "Complete bake"}
+              </button>
+            ) : (
+              <div className="completed-order-banner"><CheckCircle2 size={16} /> Bake completed</div>
+            )}
             <button className="primary-button" type="submit">Save order details</button>
             {confirmDelete ? (
               <div className="delete-confirmation">

@@ -223,7 +223,7 @@ export async function submitPublicOrder({
   return data;
 }
 
-export async function listCustomerOrderRequests(bakeryId) {
+export async function listCustomerOrderRequests(bakeryId, status = "requested") {
   const { data, error } = await requireClient()
     .from("customer_orders")
     .select(`
@@ -244,7 +244,7 @@ export async function listCustomerOrderRequests(bakeryId) {
       customer_order_items(id, product_name, unit_price_cents, quantity)
     `)
     .eq("bakery_id", bakeryId)
-    .eq("status", "requested")
+    .eq("status", status)
     .order("created_at", { ascending: false });
   throwIfError(error);
   return data || [];
@@ -279,6 +279,17 @@ export async function rejectCustomerOrderRequest(orderId, bakerNotes) {
     .update({
       status: "declined",
       baker_notes: bakerNotes.trim(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", orderId);
+  throwIfError(error);
+}
+
+export async function completeCustomerOrder(orderId) {
+  const { error } = await requireClient()
+    .from("customer_orders")
+    .update({
+      status: "completed",
       updated_at: new Date().toISOString(),
     })
     .eq("id", orderId);

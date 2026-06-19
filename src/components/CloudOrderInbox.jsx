@@ -21,7 +21,9 @@ function pickupLabel(value) {
 
 export function CloudOrderInbox({ cloudAccount, orders, onImportOrder }) {
   const [requests, setRequests] = useState([]);
+  const [rejected, setRejected] = useState([]);
   const [open, setOpen] = useState(false);
+  const [view, setView] = useState("pending");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [comments, setComments] = useState({});
@@ -33,10 +35,14 @@ export function CloudOrderInbox({ cloudAccount, orders, onImportOrder }) {
     setLoading(true);
     setError("");
     try {
-      const nextRequests = await listCustomerOrderRequests(bakeryId);
+      const [nextRequests, nextRejected] = await Promise.all([
+        listCustomerOrderRequests(bakeryId, "requested"),
+        listCustomerOrderRequests(bakeryId, "declined"),
+      ]);
       const imported = new Set(orders.map((order) => order.cloudOrderId).filter(Boolean));
       const pending = nextRequests.filter((request) => !imported.has(request.id));
       setRequests(pending);
+      setRejected(nextRejected);
       setComments((current) => Object.fromEntries(pending.map((request) => [
         request.id,
         current[request.id] ?? request.baker_notes ?? "",
@@ -90,6 +96,11 @@ export function CloudOrderInbox({ cloudAccount, orders, onImportOrder }) {
     try {
       await rejectCustomerOrderRequest(request.id, comments[request.id] || "");
       setRequests((current) => current.filter((item) => item.id !== request.id));
+      setRejected((current) => [{
+        ...request,
+        status: "declined",
+        baker_notes: comments[request.id] || "",
+      }, ...current]);
       setRejectingId(null);
     } catch (nextError) {
       setError(nextError.message);
@@ -108,15 +119,25 @@ export function CloudOrderInbox({ cloudAccount, orders, onImportOrder }) {
       {open ? (
         <Modal title="Customer requests" onClose={() => setOpen(false)}>
           <div className="cloud-request-list">
+            <div className="cloud-history-switch" aria-label="Customer request history">
+              <button type="button" className={view === "pending" ? "selected" : ""} onClick={() => setView("pending")}>
+                Pending <span>{requests.length}</span>
+              </button>
+              <button type="button" className={view === "rejected" ? "selected" : ""} onClick={() => setView("rejected")}>
+                Rejected <span>{rejected.length}</span>
+              </button>
+            </div>
             <button className="storage-file-button" type="button" onClick={refresh} disabled={loading}><RefreshCw size={15} /> Refresh requests</button>
             {error ? <p className="form-error" role="alert">{error}</p> : null}
-            {!requests.length && !loading ? <p className="cloud-empty-copy">No new requests. Shared customer orders will appear here.</p> : null}
-            {requests.map((request) => {
+            {view === "pending" && !requests.length && !loading ? <p className="cloud-empty-copy">No new requests. Shared customer orders will appear here.</p> : null}
+            {view === "rejected" && !rejected.length && !loading ? <p className="cloud-empty-copy">No rejected requests yet.</p> : null}
+            {(view === "pending" ? requests : rejected).map((request) => {
               const items = request.customer_order_items || [];
+              const isRejected = view === "rejected";
               return (
-                <article className="cloud-request-card" key={request.id}>
+                <article className={isRejected ? "cloud-request-card rejected-history-card" : "cloud-request-card"} key={request.id}>
                   <div className="cloud-request-heading">
-                    <span><strong>{request.customer_name}</strong><small>Request {request.request_code}</small></span>
+                    <span><strong>{request.customer_name}</strong><small>{isRejected ? "Rejected" : "Request"} {request.request_code}</small></span>
                     <strong>${(request.subtotal_cents / 100).toFixed(2)}</strong>
                   </div>
                   <p>{items.map((item) => `${item.quantity} × ${item.product_name}`).join(" · ")}</p>
@@ -128,26 +149,35 @@ export function CloudOrderInbox({ cloudAccount, orders, onImportOrder }) {
                   </dl>
                   {request.customer_notes ? <blockquote>{request.customer_notes}</blockquote> : null}
                   {request.allergies ? <div className="cloud-allergy-alert"><strong>Allergies</strong><span>{request.allergies}</span></div> : null}
-                  <label className="cloud-comment-field">
-                    Baker comment
-                    <textarea
-                      value={comments[request.id] || ""}
-                      onChange={(event) => setComments((current) => ({ ...current, [request.id]: event.target.value }))}
-                      placeholder="Availability, pickup details, payment reminder…"
-                    />
-                  </label>
-                  <div className="cloud-request-actions">
-                    <button className="primary-button" type="button" disabled={loading} onClick={() => importRequest(request)}>
-                      <Download size={15} /> Accept
-                    </button>
-                    <button className="secondary-button" type="button" disabled={loading} onClick={() => saveComment(request)}>
-                      <MessageSquareText size={15} /> Comment
-                    </button>
-                    <button className="reject-request-button" type="button" disabled={loading} onClick={() => setRejectingId(request.id)}>
-                      <XCircle size={15} /> Reject
-                    </button>
-                  </div>
-                  {rejectingId === request.id ? (
+                  {isRejected ? (
+                    <div className="rejected-history-note">
+                      <strong>Baker comment</strong>
+                      <span>{request.baker_notes || "No comment was saved."}</span>
+                    </div>
+                  ) : (
+                    <>
+                      <label className="cloud-comment-field">
+                        Baker comment
+                        <textarea
+                          value={comments[request.id] || ""}
+                          onChange={(event) => setComments((current) => ({ ...current, [request.id]: event.target.value }))}
+                          placeholder="Availability, pickup details, payment reminder…"
+                        />
+                      </label>
+                      <div className="cloud-request-actions">
+                        <button className="primary-button" type="button" disabled={loading} onClick={() => importRequest(request)}>
+                          <Download size={15} /> Accept
+                        </button>
+                        <button className="secondary-button" type="button" disabled={loading} onClick={() => saveComment(request)}>
+                          <MessageSquareText size={15} /> Comment
+                        </button>
+                        <button className="reject-request-button" type="button" disabled={loading} onClick={() => setRejectingId(request.id)}>
+                          <XCircle size={15} /> Reject
+                        </button>
+                      </div>
+                    </>
+                  )}
+                  {!isRejected && rejectingId === request.id ? (
                     <div className="reject-request-confirmation">
                       <span>Reject this request? The comment above will be saved with it.</span>
                       <div>

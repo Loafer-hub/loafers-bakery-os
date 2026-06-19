@@ -10,6 +10,7 @@ import {
 import { useMemo } from "react";
 import { BrandHeader } from "../components/AppChrome";
 import { buildBakeSchedule } from "../lib/fermentationModel";
+import { MAX_DAILY_LOAVES, pickupDateKey } from "../lib/orderCapacity";
 
 function BakeTimeline({ model }) {
   if (!model) {
@@ -55,9 +56,15 @@ export default function TodayPage({
   recipes,
   onOpenStorage,
 }) {
-  const todayOrders = orders.filter((order) => order.due === "Today");
+  const today = new Date();
+  const todayKey = pickupDateKey(today);
+  const todayOrders = orders.filter((order) => (
+    order.status !== "Completed"
+    && (pickupDateKey(order.pickupAt) === todayKey || (!order.pickupAt && order.due === "Today"))
+  ));
   const totalLoaves = todayOrders.reduce((sum, order) => sum + order.quantity, 0);
   const revenue = todayOrders.reduce((sum, order) => sum + order.total, 0);
+  const capacityUsed = Math.min(MAX_DAILY_LOAVES, totalLoaves);
   const starter = starters[0];
   const latestStarterLog = starterLogs.find((log) => log.starterId === starter?.id) || starterLogs[0];
   const nextBakeModel = useMemo(() => {
@@ -86,7 +93,7 @@ export default function TodayPage({
       <BrandHeader onOpenStorage={onOpenStorage} />
       <section className="greeting">
         <h1>Good morning, Joshua</h1>
-        <p>Thursday, June 18</p>
+        <p>{today.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}</p>
       </section>
 
       <section>
@@ -133,10 +140,14 @@ export default function TodayPage({
         </div>
         <div className="capacity-row">
           <Gauge size={21} />
-          <span><b>{totalLoaves}</b> of 10 loaves</span>
-          <span className="capacity-track" aria-label={`${totalLoaves} of 10 loaves planned`}>
-            {Array.from({ length: 10 }, (_, index) => (
-              <i key={index} className={index < totalLoaves ? "filled" : ""} />
+          <span><b>{totalLoaves}</b> of {MAX_DAILY_LOAVES} loaves today</span>
+          <span
+            className="capacity-track"
+            style={{ gridTemplateColumns: `repeat(${MAX_DAILY_LOAVES}, 1fr)` }}
+            aria-label={`${totalLoaves} of ${MAX_DAILY_LOAVES} loaves booked today`}
+          >
+            {Array.from({ length: MAX_DAILY_LOAVES }, (_, index) => (
+              <i key={index} className={index < capacityUsed ? "filled" : ""} />
             ))}
           </span>
         </div>

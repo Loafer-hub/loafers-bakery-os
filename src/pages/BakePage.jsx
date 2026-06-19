@@ -16,6 +16,7 @@ import {
   curvePath,
   recipeFlourBlend,
 } from "../lib/fermentationModel";
+import { pickupDateKey } from "../lib/orderCapacity";
 
 function localDateTimeValue(date = new Date()) {
   const shifted = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
@@ -60,6 +61,7 @@ function sameCalendarDay(a, b) {
 export default function BakePage({
   recipes,
   bakePlans,
+  orders,
   starters,
   starterLogs,
   onDeleteBakePlan,
@@ -85,6 +87,20 @@ export default function BakePage({
   });
   const recipe = recipes.find((item) => item.id === recipeId) || recipes[0];
   const starter = starters.find((item) => item.id === starterId) || starters[0];
+  const acceptedOrderBakes = useMemo(() => orders.flatMap((order) => {
+    if (!order.cloudOrderId || order.status === "Completed") return [];
+    const date = pickupDateKey(order.pickupAt);
+    if (!date) return [];
+    return [{
+      id: `accepted-${order.id}`,
+      date,
+      customer: order.customer,
+      recipeName: order.product,
+      loaves: order.quantity,
+      orderId: order.id,
+      kind: "accepted-order",
+    }];
+  }), [orders]);
 
   useEffect(() => {
     if (recipes.length && !recipes.some((item) => item.id === recipeId)) {
@@ -177,7 +193,7 @@ export default function BakePage({
 
   const headingTitle = view === "plan" ? (editingPlanId ? "Change bake plan" : "Dynamic bake plan") : view === "calendar" ? "Bake calendar" : "Starters";
   const headingSubtitle = view === "calendar"
-    ? `${bakePlans.length} ${bakePlans.length === 1 ? "planned bake" : "planned bakes"}`
+    ? `${bakePlans.length} planned · ${acceptedOrderBakes.length} accepted`
     : view === "starter"
       ? `${starters.length} ${starters.length === 1 ? "starter profile" : "starter profiles"}`
       : model
@@ -346,6 +362,7 @@ export default function BakePage({
         <BakeCalendar
           month={calendarMonth}
           plans={bakePlans}
+          orderBakes={acceptedOrderBakes}
           onChangeMonth={(amount) => setCalendarMonth((current) => new Date(current.getFullYear(), current.getMonth() + amount, 1))}
           onSelectDate={resetForDate}
           onOpenPlan={loadPlan}

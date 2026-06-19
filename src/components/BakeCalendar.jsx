@@ -6,7 +6,14 @@ function dateKey(year, month, day) {
   return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
-export function BakeCalendar({ month, plans, onChangeMonth, onSelectDate, onOpenPlan }) {
+export function BakeCalendar({
+  month,
+  plans,
+  orderBakes = [],
+  onChangeMonth,
+  onSelectDate,
+  onOpenPlan,
+}) {
   const year = month.getFullYear();
   const monthIndex = month.getMonth();
   const firstWeekday = new Date(year, monthIndex, 1).getDay();
@@ -16,11 +23,18 @@ export function BakeCalendar({ month, plans, onChangeMonth, onSelectDate, onOpen
     return day >= 1 && day <= daysInMonth ? day : null;
   });
   const plansByDate = new Map();
+  const ordersByDate = new Map();
 
   plans.forEach((plan) => {
     const items = plansByDate.get(plan.date) || [];
     items.push(plan);
     plansByDate.set(plan.date, items);
+  });
+
+  orderBakes.forEach((orderBake) => {
+    const items = ordersByDate.get(orderBake.date) || [];
+    items.push(orderBake);
+    ordersByDate.set(orderBake.date, items);
   });
 
   const monthPlans = plans
@@ -29,6 +43,16 @@ export function BakeCalendar({ month, plans, onChangeMonth, onSelectDate, onOpen
       return planYear === year && planMonth === monthIndex + 1;
     })
     .sort((a, b) => a.date.localeCompare(b.date));
+  const monthOrderBakes = orderBakes
+    .filter((orderBake) => {
+      const [orderYear, orderMonth] = orderBake.date.split("-").map(Number);
+      return orderYear === year && orderMonth === monthIndex + 1;
+    })
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const monthEntries = [
+    ...monthPlans.map((plan) => ({ ...plan, kind: "plan" })),
+    ...monthOrderBakes,
+  ].sort((a, b) => a.date.localeCompare(b.date));
 
   return (
     <section className="calendar-panel" aria-label="Monthly bake calendar">
@@ -49,22 +73,33 @@ export function BakeCalendar({ month, plans, onChangeMonth, onSelectDate, onOpen
           if (!day) return <span className="calendar-blank" key={`blank-${index}`} />;
           const date = dateKey(year, monthIndex, day);
           const datePlans = plansByDate.get(date) || [];
+          const dateOrders = ordersByDate.get(date) || [];
           const firstPlan = datePlans[0];
+          const firstOrder = dateOrders[0];
+          const totalEntries = datePlans.length + dateOrders.length;
           return (
             <button
-              className={datePlans.length ? "calendar-day has-bake" : "calendar-day"}
+              className={[
+                "calendar-day",
+                totalEntries ? "has-bake" : "",
+                dateOrders.length ? "has-accepted-order" : "",
+              ].filter(Boolean).join(" ")}
               key={date}
               type="button"
               onClick={() => firstPlan ? onOpenPlan(firstPlan) : onSelectDate(date)}
               aria-label={firstPlan
                 ? `${date}: ${firstPlan.loaves} loaf ${firstPlan.recipeName} bake`
+                : firstOrder
+                  ? `${date}: accepted order for ${firstOrder.customer}; add a bake plan`
                 : `${date}: add a bake`}
             >
               <span>{day}</span>
               {firstPlan ? (
                 <small>{firstPlan.loaves} · {firstPlan.recipeName}</small>
+              ) : firstOrder ? (
+                <small>{firstOrder.loaves} · {firstOrder.customer}</small>
               ) : <Plus size={12} />}
-              {datePlans.length > 1 ? <i>+{datePlans.length - 1}</i> : null}
+              {totalEntries > 1 ? <i>+{totalEntries - 1}</i> : null}
             </button>
           );
         })}
@@ -72,20 +107,34 @@ export function BakeCalendar({ month, plans, onChangeMonth, onSelectDate, onOpen
       <div className="month-bake-list">
         <div className="section-title-line">
           <h3>Planned this month</h3>
-          <span>{monthPlans.length} {monthPlans.length === 1 ? "bake" : "bakes"}</span>
+          <span>{monthPlans.length} planned · {monthOrderBakes.length} accepted</span>
         </div>
-        {monthPlans.length ? monthPlans.map((plan) => (
-          <button type="button" className="planned-bake-row" key={plan.id} onClick={() => onOpenPlan(plan)}>
-            <span className="planned-bake-date">
-              <strong>{Number(plan.date.slice(-2))}</strong>
-              <small>{new Date(`${plan.date}T12:00:00`).toLocaleDateString("en-US", { weekday: "short" })}</small>
-            </span>
-            <span>
-              <strong>{plan.recipeName}</strong>
-              <small>{plan.loaves} {plan.loaves === 1 ? "loaf" : "loaves"}</small>
-            </span>
-            <ChevronRight size={17} />
-          </button>
+        {monthEntries.length ? monthEntries.map((entry) => (
+          entry.kind === "accepted-order" ? (
+            <div className="planned-bake-row accepted-order-bake" key={entry.id}>
+              <span className="planned-bake-date">
+                <strong>{Number(entry.date.slice(-2))}</strong>
+                <small>{new Date(`${entry.date}T12:00:00`).toLocaleDateString("en-US", { weekday: "short" })}</small>
+              </span>
+              <span>
+                <strong>{entry.customer}</strong>
+                <small>{entry.loaves} {entry.loaves === 1 ? "loaf" : "loaves"} · accepted order</small>
+              </span>
+              <span className="accepted-order-badge">Accepted</span>
+            </div>
+          ) : (
+            <button type="button" className="planned-bake-row" key={entry.id} onClick={() => onOpenPlan(entry)}>
+              <span className="planned-bake-date">
+                <strong>{Number(entry.date.slice(-2))}</strong>
+                <small>{new Date(`${entry.date}T12:00:00`).toLocaleDateString("en-US", { weekday: "short" })}</small>
+              </span>
+              <span>
+                <strong>{entry.recipeName}</strong>
+                <small>{entry.loaves} {entry.loaves === 1 ? "loaf" : "loaves"}</small>
+              </span>
+              <ChevronRight size={17} />
+            </button>
+          )
         )) : (
           <button type="button" className="calendar-empty" onClick={() => onSelectDate(dateKey(year, monthIndex, 1))}>
             <Plus size={18} />
