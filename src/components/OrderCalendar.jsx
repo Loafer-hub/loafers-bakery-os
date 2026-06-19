@@ -206,26 +206,30 @@ export function OrderCalendar({
           const key = `${year}-${String(monthIndex + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
           const dayEvents = (eventsByDate.get(key) || [])
             .sort((a, b) => a.time - b.time);
+          const groupedEvents = Object.keys(eventTypes).flatMap((type) => {
+            const matching = dayEvents.filter((event) => event.type === type);
+            return matching.length ? [{ type, events: matching }] : [];
+          });
           return (
             <div className={dayEvents.length ? "order-calendar-day has-events" : "order-calendar-day"} key={key}>
               <span>{day}</span>
               <div>
-                {dayEvents.slice(0, 4).map((event) => {
-                  const config = eventTypes[event.type];
+                {groupedEvents.map((group) => {
+                  const config = eventTypes[group.type];
+                  const firstEvent = group.events[0];
                   return (
                     <button
                       className={`order-calendar-event order-event-${config.className}`}
-                      key={event.id}
+                      key={`${key}-${group.type}`}
                       type="button"
-                      title={`${config.label}: ${event.customer} at ${event.time.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`}
-                      onClick={() => onOpenOrder(event.orderId)}
+                      title={`${config.label}: ${group.events.map((event) => event.customer).join(", ")}`}
+                      onClick={() => onOpenOrder(firstEvent.orderId)}
                     >
-                      <strong>{config.label}</strong>
-                      <small>{event.customer.split(" ")[0]}</small>
+                      <strong>{config.label}{group.events.length > 1 ? ` · ${group.events.length}` : ""}</strong>
+                      <small>{group.events.length === 1 ? firstEvent.customer.split(" ")[0] : "orders"}</small>
                     </button>
                   );
                 })}
-                {dayEvents.length > 4 ? <em>+{dayEvents.length - 4}</em> : null}
               </div>
             </div>
           );
