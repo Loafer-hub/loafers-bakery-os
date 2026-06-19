@@ -17,7 +17,7 @@ const navItems = [
   { id: "more", label: "Trends", icon: LineChart },
 ];
 
-export function BrandHeader({ compact = false }) {
+export function BrandHeader({ compact = false, onOpenStorage }) {
   if (compact) {
     return (
       <header className="compact-brand">
@@ -25,7 +25,7 @@ export function BrandHeader({ compact = false }) {
           <span className="brand-mark"><Wheat size={20} strokeWidth={1.8} /></span>
           <span className="brand-name">Loafers</span>
         </div>
-        <button className="icon-button" aria-label="Open profile">
+        <button className="icon-button" aria-label="Open storage and backup" onClick={onOpenStorage}>
           <UserRound size={21} />
         </button>
       </header>
@@ -38,7 +38,7 @@ export function BrandHeader({ compact = false }) {
         <span className="brand-mark"><Wheat size={23} strokeWidth={1.8} /></span>
         <span className="brand-name">Loafers</span>
       </div>
-      <button className="icon-button" aria-label="Open profile">
+      <button className="icon-button" aria-label="Open storage and backup" onClick={onOpenStorage}>
         <UserRound size={23} />
       </button>
     </header>

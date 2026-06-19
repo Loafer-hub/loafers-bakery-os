@@ -2458,6 +2458,267 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   font-size: 10px;
 }
 
+.visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+.storage-center {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.storage-hero {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 15px;
+  color: #485a40;
+  border: 1px solid #c4d0be;
+  border-radius: 10px;
+  background: var(--sage-soft);
+}
+
+.storage-hero > span {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: rgba(255,255,255,.7);
+}
+
+.storage-hero div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.storage-hero strong {
+  font-family: "Newsreader", Georgia, serif;
+  font-size: 20px;
+  font-weight: 500;
+}
+
+.storage-hero p,
+.storage-section > p,
+.storage-privacy-note p,
+.restore-preview p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.storage-status-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.storage-status-grid div {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 3px;
+  padding: 13px 4px;
+  border-right: 1px solid var(--line);
+}
+
+.storage-status-grid div:last-child {
+  border: 0;
+}
+
+.storage-status-grid svg {
+  width: 17px;
+  color: var(--accent);
+}
+
+.storage-status-grid strong {
+  font-family: "Newsreader", Georgia, serif;
+  font-size: 19px;
+  font-weight: 500;
+}
+
+.storage-status-grid span {
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.storage-section {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  padding: 15px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #ffffff70;
+}
+
+.storage-section .section-title-line h3 {
+  font-size: 22px;
+}
+
+.storage-section .section-title-line > div {
+  display: flex;
+  flex-direction: column;
+}
+
+.storage-section .section-title-line > svg {
+  color: var(--accent);
+}
+
+.storage-dataset-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.storage-dataset-grid div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 7px;
+  padding: 8px 9px;
+  border-radius: 7px;
+  background: var(--paper-deep);
+  font-size: 9px;
+}
+
+.storage-dataset-grid strong {
+  font-size: 11px;
+}
+
+.storage-dataset-grid.compact {
+  margin-top: 8px;
+}
+
+.backup-section > small {
+  color: var(--muted);
+  text-align: center;
+  font-size: 8px;
+}
+
+.restore-section label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.restore-section textarea {
+  min-height: 86px;
+  padding: 10px;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: white;
+  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  font-size: 9px;
+  font-weight: 400;
+  resize: vertical;
+}
+
+.storage-file-button,
+.storage-preview-button {
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  color: var(--accent);
+  border: 1px solid var(--line-strong);
+  border-radius: 7px;
+  background: white;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.storage-preview-button:disabled {
+  cursor: default;
+  opacity: .4;
+}
+
+.restore-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid #d6b29f;
+  border-radius: 9px;
+  background: #fbefe9;
+}
+
+.restore-preview > div:first-child {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--sage);
+}
+
+.restore-preview > div:first-child span {
+  display: flex;
+  flex-direction: column;
+}
+
+.restore-preview > div:first-child small {
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.restore-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+  gap: 6px;
+}
+
+.storage-success {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px;
+  color: #485a40;
+  border-radius: 7px;
+  background: var(--sage-soft);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.recovery-section {
+  border-color: #c4d0be;
+  background: var(--sage-soft);
+}
+
+.storage-privacy-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 12px;
+  color: var(--muted);
+  border-radius: 8px;
+  background: var(--paper-deep);
+}
+
+.storage-privacy-note svg {
+  flex: 0 0 auto;
+  color: var(--accent);
+}
+
 .recipe-flour-science,
 .starter-flour-science,
 .starter-profile-science,

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { BottomNav } from "./components/AppChrome";
 import { Modal, Toast } from "./components/Primitives";
+import { StorageCenter } from "./components/StorageCenter";
 import {
   recipes as seedRecipes,
   seedExpenses,
@@ -33,8 +34,13 @@ export default function App() {
   const [bakePlans, setBakePlans] = usePersistentState("loafers-bake-plans-v1", []);
   const [starters, setStarters] = usePersistentState("loafers-starter-profiles-v1", seedStarters);
   const [starterLogs, setStarterLogs] = usePersistentState("loafers-starter-v1", []);
+  const [storageMeta, setStorageMeta] = usePersistentState("loafers-storage-meta-v1", {
+    lastBackupAt: null,
+  });
+  const [recoveryBackup, setRecoveryBackup] = usePersistentState("loafers-recovery-v1", null);
   const [toast, setToast] = useState("");
   const [quickStarter, setQuickStarter] = useState(false);
+  const [storageOpen, setStorageOpen] = useState(false);
   const [quickFeed, setQuickFeed] = useState({
     starterId: "mabel",
     ratio: "1:2:2",
@@ -213,6 +219,30 @@ export default function App() {
     setToast("Planned bake deleted");
   }
 
+  function applyStorageData(data) {
+    setOrders(data.orders);
+    setRecipes(data.recipes);
+    setInventory(data.inventory);
+    setExpenses(data.expenses);
+    setBakePlans(data.bakePlans);
+    setStarters(data.starters);
+    setStarterLogs(data.starterLogs);
+    setSelectedOrderId(null);
+  }
+
+  function restoreStorage(data, previousBackup) {
+    setRecoveryBackup(previousBackup);
+    applyStorageData(data);
+    setToast("Backup restored");
+  }
+
+  function undoStorageRestore() {
+    if (!recoveryBackup) return;
+    applyStorageData(recoveryBackup.data);
+    setRecoveryBackup(null);
+    setToast("Previous records recovered");
+  }
+
   const sharedProps = {
     orders,
     recipes,
@@ -237,6 +267,7 @@ export default function App() {
       setQuickFeed((current) => ({ ...current, starterId: starters[0]?.id || "" }));
       setQuickStarter(true);
     },
+    onOpenStorage: () => setStorageOpen(true),
     onUpdateOrder: updateOrder,
     onSaveBakePlan: saveBakePlan,
     onSaveInventoryItem: saveInventoryItem,
@@ -279,6 +310,26 @@ export default function App() {
             <button className="primary-button" type="submit">Log starter check</button>
           </form>
         </Modal>
+      ) : null}
+
+      {storageOpen ? (
+        <StorageCenter
+          data={{
+            orders,
+            recipes,
+            inventory,
+            expenses,
+            bakePlans,
+            starters,
+            starterLogs,
+          }}
+          lastBackupAt={storageMeta.lastBackupAt}
+          recoveryBackup={recoveryBackup}
+          onClose={() => setStorageOpen(false)}
+          onRestore={restoreStorage}
+          onSetLastBackupAt={(lastBackupAt) => setStorageMeta({ lastBackupAt })}
+          onUndoRestore={undoStorageRestore}
+        />
       ) : null}
     </div>
   );

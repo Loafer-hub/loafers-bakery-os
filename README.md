@@ -38,7 +38,7 @@ The compiled app is written to `dist`.
 
 ## Product status
 
-This is a polished, interactive front-end MVP with an iOS-native Capacitor shell. Orders, schedules, and starter logs use Capacitor Preferences on iOS and migrate existing browser data automatically.
+This is a polished, interactive front-end MVP with an iOS-native Capacitor shell. Bakery records use Capacitor Preferences on iOS and migrate existing browser data automatically. The Storage & Backup center exports a versioned JSON backup, validates restores before applying them, and keeps an automatic recovery copy before every restore.
 
 ## iOS project
 
@@ -56,6 +56,8 @@ The iOS foundation includes:
 - Bundle identifier `com.loafers.bakery`
 - Native app icon and launch screen
 - Native Preferences storage
+- Versioned backup export and two-step restore
+- Automatic undo copy before restoring data
 - Status-bar and splash-screen integration
 - Apple privacy manifest for UserDefaults
 - Offline local fonts
@@ -65,4 +67,4 @@ For an App Store release, the next production phases should add:
 - Secure sign-in and cloud sync
 - Customer order-request links and payment processing
 - Notifications and calendar reminders
-- Database backups, exports, taxes, and multi-device sync
+- Taxes and multi-device cloud sync

@@ -53,6 +53,7 @@ export default function TodayPage({
   starterLogs,
   bakePlans,
   recipes,
+  onOpenStorage,
 }) {
   const todayOrders = orders.filter((order) => order.due === "Today");
   const totalLoaves = todayOrders.reduce((sum, order) => sum + order.quantity, 0);
@@ -82,7 +83,7 @@ export default function TodayPage({
 
   return (
     <main className="page today-page">
-      <BrandHeader />
+      <BrandHeader onOpenStorage={onOpenStorage} />
       <section className="greeting">
         <h1>Good morning, Joshua</h1>
         <p>Thursday, June 18</p>
