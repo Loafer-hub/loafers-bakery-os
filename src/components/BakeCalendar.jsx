@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { CalendarOff, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -10,9 +10,16 @@ export function BakeCalendar({
   month,
   plans,
   orderBakes = [],
+  unavailableDays = [],
+  availabilityMode,
+  availabilitySaving,
+  canManageAvailability,
+  availabilityError,
   onChangeMonth,
   onSelectDate,
   onOpenPlan,
+  onToggleAvailabilityMode,
+  onToggleUnavailable,
 }) {
   const year = month.getFullYear();
   const monthIndex = month.getMonth();
@@ -24,6 +31,7 @@ export function BakeCalendar({
   });
   const plansByDate = new Map();
   const ordersByDate = new Map();
+  const unavailableByDate = new Map(unavailableDays.map((day) => [day.unavailable_date, day]));
 
   plans.forEach((plan) => {
     const items = plansByDate.get(plan.date) || [];
@@ -56,6 +64,15 @@ export function BakeCalendar({
 
   return (
     <section className="calendar-panel" aria-label="Monthly bake calendar">
+      <div className="availability-toolbar">
+        <span><CalendarOff size={17} /><span><strong>Customer availability</strong><small>Block days when you cannot accept bake orders.</small></span></span>
+        <button type="button" className={availabilityMode ? "selected" : ""} disabled={!canManageAvailability || availabilitySaving} onClick={onToggleAvailabilityMode}>
+          {availabilityMode ? "Done blocking" : "Block days"}
+        </button>
+      </div>
+      {!canManageAvailability ? <p className="availability-note">Sign in to your bakery cloud account to manage customer blackout days.</p> : null}
+      {availabilityMode ? <p className="availability-mode-note">Tap dates to block or reopen them. Red-striped days are unavailable to customers.</p> : null}
+      {availabilityError ? <p className="form-error" role="alert">{availabilityError}</p> : null}
       <div className="calendar-heading">
         <button type="button" onClick={() => onChangeMonth(-1)} aria-label="Previous month">
           <ChevronLeft size={18} />
@@ -77,17 +94,26 @@ export function BakeCalendar({
           const firstPlan = datePlans[0];
           const firstOrder = dateOrders[0];
           const totalEntries = datePlans.length + dateOrders.length;
+          const unavailable = unavailableByDate.get(date);
           return (
             <button
               className={[
                 "calendar-day",
                 totalEntries ? "has-bake" : "",
                 dateOrders.length ? "has-accepted-order" : "",
+                unavailable ? "unavailable-bake-day" : "",
+                availabilityMode ? "availability-editing" : "",
               ].filter(Boolean).join(" ")}
               key={date}
               type="button"
-              onClick={() => firstPlan ? onOpenPlan(firstPlan) : onSelectDate(date)}
-              aria-label={firstPlan
+              onClick={() => availabilityMode
+                ? onToggleUnavailable(date)
+                : firstPlan
+                  ? onOpenPlan(firstPlan)
+                  : onSelectDate(date)}
+              aria-label={availabilityMode
+                ? `${date}: ${unavailable ? "reopen customer orders" : "block customer orders"}`
+                : firstPlan
                 ? `${date}: ${firstPlan.loaves} loaf ${firstPlan.recipeName} bake`
                 : firstOrder
                   ? `${date}: accepted order for ${firstOrder.customer}; add a bake plan`
@@ -98,6 +124,8 @@ export function BakeCalendar({
                 <small>{firstPlan.loaves} · {firstPlan.recipeName}</small>
               ) : firstOrder ? (
                 <small>{firstOrder.loaves} · {firstOrder.customer}</small>
+              ) : unavailable ? (
+                <small>Unavailable</small>
               ) : <Plus size={12} />}
               {totalEntries > 1 ? <i>+{totalEntries - 1}</i> : null}
             </button>

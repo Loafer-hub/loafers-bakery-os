@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { CustomerPickupCalendar } from "../components/CustomerPickupCalendar";
+import { CustomerOrderLookup } from "../components/CustomerOrderLookup";
 import {
   loadPublicStorefront,
   signInWithEmail,
@@ -104,6 +105,7 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
     .map((product) => ({ ...product, quantity: Number(quantities[product.id]) })), [quantities, storefront]);
   const total = selectedItems.reduce((sum, item) => sum + item.price_cents * item.quantity, 0);
   const loafCount = selectedItems.reduce((sum, item) => sum + item.quantity, 0);
+  const trackedCode = new URLSearchParams(window.location.search).get("track") || "";
 
   function changeQuantity(productId, change) {
     const currentProduct = Number(quantities[productId] || 0);
@@ -213,6 +215,12 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
         <p>{storefront.bakery.name} received your bread request. The baker will confirm availability and pickup details for {storefront.bakery.pickup_location || DEFAULT_PICKUP_LOCATION}.</p>
         <div><small>Request code</small><strong>{success.request_code}</strong><span>{dollars(success.subtotal_cents)}</span></div>
         <aside className="success-payment-detail"><small>{form.paymentMethod}</small><strong>{PAYMENT_DETAILS[form.paymentMethod]}</strong></aside>
+        <CustomerOrderLookup
+          configured={cloudAccount.configured}
+          initialCode={success.request_code}
+          initialContact={form.email.trim() || form.phone.trim()}
+          slug={slug}
+        />
         <button className="primary-button" type="button" onClick={() => setSuccess(null)}>Make another request</button>
       </main>
     );
@@ -256,6 +264,13 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
           <span><Banknote size={17} /><span><small>Payment</small><strong>{(storefront.bakery.payment_methods || DEFAULT_PAYMENT_METHODS).join(", ")}</strong></span></span>
         </div>
       </section>
+
+      <CustomerOrderLookup
+        configured={cloudAccount.configured}
+        initialCode={trackedCode}
+        initialContact={form.email}
+        slug={slug}
+      />
 
       <form onSubmit={submitOrder}>
         <section className="customer-menu">

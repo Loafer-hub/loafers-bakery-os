@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   acceptCustomerOrderRequest,
   commentCustomerOrderRequest,
+  listCustomerFeedback,
   listCustomerOrderRequests,
   rejectCustomerOrderRequest,
 } from "../lib/cloud";
@@ -22,6 +23,7 @@ function pickupLabel(value) {
 export function CloudOrderInbox({ cloudAccount, orders, onImportOrder }) {
   const [requests, setRequests] = useState([]);
   const [rejected, setRejected] = useState([]);
+  const [feedback, setFeedback] = useState([]);
   const [open, setOpen] = useState(false);
   const [view, setView] = useState("pending");
   const [loading, setLoading] = useState(false);
@@ -35,14 +37,16 @@ export function CloudOrderInbox({ cloudAccount, orders, onImportOrder }) {
     setLoading(true);
     setError("");
     try {
-      const [nextRequests, nextRejected] = await Promise.all([
+      const [nextRequests, nextRejected, nextFeedback] = await Promise.all([
         listCustomerOrderRequests(bakeryId, "requested"),
         listCustomerOrderRequests(bakeryId, "declined"),
+        listCustomerFeedback(bakeryId),
       ]);
       const imported = new Set(orders.map((order) => order.cloudOrderId).filter(Boolean));
       const pending = nextRequests.filter((request) => !imported.has(request.id));
       setRequests(pending);
       setRejected(nextRejected);
+      setFeedback(nextFeedback);
       setComments((current) => Object.fromEntries(pending.map((request) => [
         request.id,
         current[request.id] ?? request.baker_notes ?? "",
@@ -126,12 +130,22 @@ export function CloudOrderInbox({ cloudAccount, orders, onImportOrder }) {
               <button type="button" className={view === "rejected" ? "selected" : ""} onClick={() => setView("rejected")}>
                 Rejected <span>{rejected.length}</span>
               </button>
+              <button type="button" className={view === "feedback" ? "selected" : ""} onClick={() => setView("feedback")}>
+                Feedback <span>{feedback.length}</span>
+              </button>
             </div>
             <button className="storage-file-button" type="button" onClick={refresh} disabled={loading}><RefreshCw size={15} /> Refresh requests</button>
             {error ? <p className="form-error" role="alert">{error}</p> : null}
             {view === "pending" && !requests.length && !loading ? <p className="cloud-empty-copy">No new requests. Shared customer orders will appear here.</p> : null}
             {view === "rejected" && !rejected.length && !loading ? <p className="cloud-empty-copy">No rejected requests yet.</p> : null}
-            {(view === "pending" ? requests : rejected).map((request) => {
+            {view === "feedback" && !feedback.length && !loading ? <p className="cloud-empty-copy">No customer suggestions or reviews yet.</p> : null}
+            {view === "feedback" ? feedback.map((entry) => (
+              <article className="cloud-feedback-card" key={entry.id}>
+                <div><span><strong>{entry.customer_name}</strong><small>{entry.feedback_type}</small></span>{entry.rating ? <span className="feedback-rating">{Array.from({ length: entry.rating }, () => "★").join("")}</span> : null}</div>
+                <p>{entry.message}</p>
+                <small>{new Date(entry.created_at).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })}</small>
+              </article>
+            )) : (view === "pending" ? requests : rejected).map((request) => {
               const items = request.customer_order_items || [];
               const isRejected = view === "rejected";
               return (

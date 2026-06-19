@@ -14,6 +14,13 @@ function monthBounds(month) {
   };
 }
 
+function shiftDateKey(key, days) {
+  const [year, month, day] = key.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
+  date.setDate(date.getDate() + days);
+  return pickupDateKey(date);
+}
+
 export function CustomerPickupCalendar({
   configured,
   loafCount,
@@ -57,6 +64,8 @@ export function CustomerPickupCalendar({
       remaining: Number(day.remaining ?? MAX_DAILY_LOAVES),
       full: day.is_full,
       feedReserved: day.is_feed_reserved,
+      unavailable: day.is_unavailable,
+      unavailableReason: day.unavailable_reason,
     },
   ])), [capacity]);
 
@@ -65,6 +74,7 @@ export function CustomerPickupCalendar({
   const firstWeekday = new Date(year, monthIndex, 1).getDay();
   const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
   const today = pickupDateKey(new Date());
+  const maxDate = shiftDateKey(today, 30);
   const cells = Array.from({ length: 42 }, (_, index) => {
     const day = index - firstWeekday + 1;
     return day >= 1 && day <= daysInMonth ? day : null;
@@ -94,16 +104,23 @@ export function CustomerPickupCalendar({
             remaining: MAX_DAILY_LOAVES,
             full: false,
             feedReserved: false,
+            unavailable: false,
+            unavailableReason: "",
           };
           const past = key < today;
+          const beyondWindow = key > maxDate;
           const cannotFit = loafCount > 0 && loafCount > remote.remaining;
           const status = {
             ...remote,
-            disabled: past || remote.full || remote.feedReserved || cannotFit,
+            disabled: past || beyondWindow || remote.unavailable || remote.full || remote.feedReserved || cannotFit,
           };
           const label = past
             ? "Past"
-            : remote.full
+            : beyondWindow
+              ? "30-day limit"
+              : remote.unavailable
+                ? "Unavailable"
+                : remote.full
               ? "Full"
               : remote.feedReserved
                 ? "Feed prep"
@@ -120,6 +137,7 @@ export function CustomerPickupCalendar({
                 status.disabled ? "disabled" : "",
                 remote.full ? "full" : "",
                 remote.feedReserved ? "feed-reserved" : "",
+                remote.unavailable ? "unavailable" : "",
               ].filter(Boolean).join(" ")}
               disabled={status.disabled}
               key={key}
@@ -128,7 +146,7 @@ export function CustomerPickupCalendar({
               aria-label={`${key}: ${label}`}
             >
               <strong>{day}</strong>
-              <small>{(remote.full || remote.feedReserved) ? <LockKeyhole size={8} /> : null}{label}</small>
+              <small>{(remote.full || remote.feedReserved || remote.unavailable || beyondWindow) ? <LockKeyhole size={8} /> : null}{label}</small>
             </button>
           );
         })}
@@ -137,7 +155,9 @@ export function CustomerPickupCalendar({
         <span><i className="open" />Open</span>
         <span><i className="full" />Six loaves booked</span>
         <span><i className="feed" />Reserved for starter feed</span>
+        <span><i className="unavailable" />Baker unavailable</span>
       </div>
+      <p className="customer-calendar-window-note">Orders are available for the next 30 days only.</p>
       {error ? <p className="form-error" role="alert">{error}</p> : null}
     </section>
   );

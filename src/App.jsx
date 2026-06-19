@@ -11,7 +11,12 @@ import {
 } from "./data/seed";
 import { usePersistentState } from "./hooks/usePersistentState";
 import { useCloudAccount } from "./hooks/useCloudAccount";
-import { completeCustomerOrder, syncBakerCapacityReservations } from "./lib/cloud";
+import {
+  completeCustomerOrder,
+  syncBakerCapacityReservations,
+  updateCustomerOrderBakeProgress,
+} from "./lib/cloud";
+import { BAKE_PHASES, normalizedBakeProgress } from "./lib/bakeProgress";
 import BakePage from "./pages/BakePage";
 import CustomerOrderPortal from "./pages/CustomerOrderPortal";
 import MorePage from "./pages/MorePage";
@@ -141,6 +146,7 @@ export default function App() {
       paymentMethod: request.payment_method,
       pickupLocation: request.pickup_location,
       allergies: request.allergies,
+      bakeProgress: normalizedBakeProgress(request.bake_progress),
       accent: "sage",
       notes,
       isSample: false,
@@ -158,14 +164,34 @@ export default function App() {
   async function completeOrder(id, changes = {}) {
     const order = orders.find((item) => item.id === id);
     if (!order) return;
-    if (order.cloudOrderId) await completeCustomerOrder(order.cloudOrderId);
+    const completedProgress = Object.fromEntries(BAKE_PHASES.map((phase) => [phase.id, true]));
+    if (order.cloudOrderId) {
+      await updateCustomerOrderBakeProgress(order.cloudOrderId, completedProgress);
+      await completeCustomerOrder(order.cloudOrderId);
+    }
     setOrders((current) => current.map((item) => (
       item.id === id
-        ? { ...item, ...changes, status: "Completed", completedAt: new Date().toISOString() }
+        ? {
+          ...item,
+          ...changes,
+          status: "Completed",
+          bakeProgress: completedProgress,
+          completedAt: new Date().toISOString(),
+        }
         : item
     )));
     setSelectedOrderId(null);
     setToast("Bake completed and moved to Completed");
+  }
+
+  async function updateOrderProgress(id, bakeProgress) {
+    const order = orders.find((item) => item.id === id);
+    if (!order) return;
+    if (order.cloudOrderId) await updateCustomerOrderBakeProgress(order.cloudOrderId, bakeProgress);
+    setOrders((current) => current.map((item) => (
+      item.id === id ? { ...item, bakeProgress } : item
+    )));
+    setToast("Customer bake progress updated");
   }
 
   function deleteOrder(id) {
@@ -356,6 +382,7 @@ export default function App() {
     },
     onOpenStorage: () => setStorageOpen(true),
     onUpdateOrder: updateOrder,
+    onUpdateOrderProgress: updateOrderProgress,
     onSaveBakePlan: saveBakePlan,
     onSaveInventoryItem: saveInventoryItem,
     onSaveRecipe: saveRecipe,

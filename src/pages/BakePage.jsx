@@ -17,6 +17,11 @@ import {
   recipeFlourBlend,
 } from "../lib/fermentationModel";
 import { pickupDateKey } from "../lib/orderCapacity";
+import {
+  blockBakeryDay,
+  listBakeryUnavailableDays,
+  unblockBakeryDay,
+} from "../lib/cloud";
 
 function localDateTimeValue(date = new Date()) {
   const shifted = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
@@ -59,6 +64,7 @@ function sameCalendarDay(a, b) {
 }
 
 export default function BakePage({
+  cloudAccount,
   recipes,
   bakePlans,
   orders,
@@ -85,6 +91,10 @@ export default function BakePage({
     const date = new Date(defaultAnchor());
     return new Date(date.getFullYear(), date.getMonth(), 1);
   });
+  const [unavailableDays, setUnavailableDays] = useState([]);
+  const [availabilityError, setAvailabilityError] = useState("");
+  const [availabilityMode, setAvailabilityMode] = useState(false);
+  const [availabilitySaving, setAvailabilitySaving] = useState(false);
   const recipe = recipes.find((item) => item.id === recipeId) || recipes[0];
   const starter = starters.find((item) => item.id === starterId) || starters[0];
   const acceptedOrderBakes = useMemo(() => orders.flatMap((order) => {
@@ -114,6 +124,25 @@ export default function BakePage({
       setStarterId(starters[0].id);
     }
   }, [starterId, starters]);
+
+  useEffect(() => {
+    const bakeryId = cloudAccount.workspace?.bakeryId;
+    if (!bakeryId) {
+      setUnavailableDays([]);
+      return undefined;
+    }
+    let active = true;
+    listBakeryUnavailableDays(bakeryId)
+      .then((days) => {
+        if (active) setUnavailableDays(days);
+      })
+      .catch((error) => {
+        if (active) setAvailabilityError(error.message);
+      });
+    return () => {
+      active = false;
+    };
+  }, [cloudAccount.workspace?.bakeryId]);
 
   const model = useMemo(() => {
     if (!recipe || !starter || !anchorDateTime) return null;
@@ -189,6 +218,27 @@ export default function BakePage({
     });
     setEditingPlanId(planId);
     setCalendarMonth(new Date(model.bakeEnd.getFullYear(), model.bakeEnd.getMonth(), 1));
+  }
+
+  async function toggleUnavailableDate(date) {
+    const bakeryId = cloudAccount.workspace?.bakeryId;
+    if (!bakeryId || availabilitySaving) return;
+    setAvailabilitySaving(true);
+    setAvailabilityError("");
+    try {
+      const existing = unavailableDays.find((day) => day.unavailable_date === date);
+      if (existing) {
+        await unblockBakeryDay(bakeryId, date);
+        setUnavailableDays((current) => current.filter((day) => day.unavailable_date !== date));
+      } else {
+        const blocked = await blockBakeryDay(bakeryId, date);
+        setUnavailableDays((current) => [...current, blocked].sort((a, b) => a.unavailable_date.localeCompare(b.unavailable_date)));
+      }
+    } catch (error) {
+      setAvailabilityError(error.message);
+    } finally {
+      setAvailabilitySaving(false);
+    }
   }
 
   const headingTitle = view === "plan" ? (editingPlanId ? "Change bake plan" : "Dynamic bake plan") : view === "calendar" ? "Bake calendar" : "Starters";
@@ -363,6 +413,13 @@ export default function BakePage({
           month={calendarMonth}
           plans={bakePlans}
           orderBakes={acceptedOrderBakes}
+          unavailableDays={unavailableDays}
+          availabilityMode={availabilityMode}
+          availabilitySaving={availabilitySaving}
+          canManageAvailability={Boolean(cloudAccount.workspace?.bakeryId)}
+          availabilityError={availabilityError}
+          onToggleAvailabilityMode={() => setAvailabilityMode((current) => !current)}
+          onToggleUnavailable={toggleUnavailableDate}
           onChangeMonth={(amount) => setCalendarMonth((current) => new Date(current.getFullYear(), current.getMonth() + amount, 1))}
           onSelectDate={resetForDate}
           onOpenPlan={loadPlan}

@@ -201,6 +201,36 @@ export async function loadPublicOrderCapacity(slug, from, to) {
   return data || [];
 }
 
+export async function lookupCustomerOrder({ slug, requestCode, contact }) {
+  const { data, error } = await requireClient().rpc("lookup_customer_order", {
+    p_slug: slug,
+    p_request_code: requestCode,
+    p_contact: contact,
+  });
+  throwIfError(error);
+  return data;
+}
+
+export async function submitCustomerFeedback({
+  slug,
+  requestCode,
+  contact,
+  feedbackType,
+  rating,
+  message,
+}) {
+  const { data, error } = await requireClient().rpc("submit_customer_feedback", {
+    p_slug: slug,
+    p_request_code: requestCode,
+    p_contact: contact,
+    p_feedback_type: feedbackType,
+    p_rating: feedbackType === "review" ? rating : null,
+    p_message: message,
+  });
+  throwIfError(error);
+  return data;
+}
+
 export async function submitPublicOrder({
   slug,
   customer,
@@ -240,6 +270,7 @@ export async function listCustomerOrderRequests(bakeryId, status = "requested") 
       allergies,
       customer_notes,
       baker_notes,
+      bake_progress,
       created_at,
       customer_order_items(id, product_name, unit_price_cents, quantity)
     `)
@@ -294,6 +325,60 @@ export async function completeCustomerOrder(orderId) {
     })
     .eq("id", orderId);
   throwIfError(error);
+}
+
+export async function updateCustomerOrderBakeProgress(orderId, bakeProgress) {
+  const { error } = await requireClient()
+    .from("customer_orders")
+    .update({
+      bake_progress: bakeProgress,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", orderId);
+  throwIfError(error);
+}
+
+export async function listBakeryUnavailableDays(bakeryId) {
+  const { data, error } = await requireClient()
+    .from("bakery_unavailable_days")
+    .select("id, unavailable_date, reason")
+    .eq("bakery_id", bakeryId)
+    .order("unavailable_date");
+  throwIfError(error);
+  return data || [];
+}
+
+export async function blockBakeryDay(bakeryId, unavailableDate, reason = "Baker unavailable") {
+  const { data, error } = await requireClient()
+    .from("bakery_unavailable_days")
+    .upsert({
+      bakery_id: bakeryId,
+      unavailable_date: unavailableDate,
+      reason,
+    }, { onConflict: "bakery_id,unavailable_date" })
+    .select("id, unavailable_date, reason")
+    .single();
+  throwIfError(error);
+  return data;
+}
+
+export async function unblockBakeryDay(bakeryId, unavailableDate) {
+  const { error } = await requireClient()
+    .from("bakery_unavailable_days")
+    .delete()
+    .eq("bakery_id", bakeryId)
+    .eq("unavailable_date", unavailableDate);
+  throwIfError(error);
+}
+
+export async function listCustomerFeedback(bakeryId) {
+  const { data, error } = await requireClient()
+    .from("customer_feedback")
+    .select("id, feedback_type, rating, message, customer_name, created_at, read_at")
+    .eq("bakery_id", bakeryId)
+    .order("created_at", { ascending: false });
+  throwIfError(error);
+  return data || [];
 }
 
 export async function syncBakerCapacityReservations(bakeryId, orders) {

@@ -6,6 +6,7 @@ import { OrderCalendar, orderPickupDate } from "../components/OrderCalendar";
 import { EmptyState, Modal, Status } from "../components/Primitives";
 import { downloadOrderCalendar } from "../lib/orderCalendarExport";
 import { MAX_DAILY_LOAVES, orderCapacityForDate } from "../lib/orderCapacity";
+import { BAKE_PHASES, normalizedBakeProgress } from "../lib/bakeProgress";
 
 const filters = ["Pending", "Completed", "All"];
 
@@ -70,6 +71,7 @@ export default function OrdersPage({
   onImportCloudOrder,
   onOpenOrder,
   onUpdateOrder,
+  onUpdateOrderProgress,
   selectedOrderId,
 }) {
   const [filter, setFilter] = useState("Pending");
@@ -81,7 +83,9 @@ export default function OrdersPage({
   const [addError, setAddError] = useState("");
   const [detailError, setDetailError] = useState("");
   const [completing, setCompleting] = useState(false);
+  const [progressSaving, setProgressSaving] = useState("");
   const [detailForm, setDetailForm] = useState({ status: "New", notes: "", pickupAt: "" });
+  const [detailProgress, setDetailProgress] = useState(() => normalizedBakeProgress());
   const [form, setForm] = useState({
     customer: "",
     product: "Country Sourdough",
@@ -118,6 +122,7 @@ export default function OrdersPage({
       notes: selectedOrder.notes || "",
       pickupAt: localInputValue(selectedOrder.pickupAt || orderPickupDate(selectedOrder)),
     });
+    setDetailProgress(normalizedBakeProgress(selectedOrder.bakeProgress));
     setConfirmDelete(false);
     setDetailError("");
   }, [selectedOrder]);
@@ -207,6 +212,21 @@ export default function OrdersPage({
       setDetailError(error.message);
     } finally {
       setCompleting(false);
+    }
+  }
+
+  async function toggleBakePhase(phaseId) {
+    const nextProgress = { ...detailProgress, [phaseId]: !detailProgress[phaseId] };
+    setDetailProgress(nextProgress);
+    setProgressSaving(phaseId);
+    setDetailError("");
+    try {
+      await onUpdateOrderProgress(selectedOrder.id, nextProgress);
+    } catch (error) {
+      setDetailProgress(normalizedBakeProgress(selectedOrder.bakeProgress));
+      setDetailError(error.message);
+    } finally {
+      setProgressSaving("");
     }
   }
 
@@ -415,6 +435,23 @@ export default function OrdersPage({
                 placeholder="Pickup details, scoring request, allergies, payment reminder…"
               />
             </label>
+            <section className="baker-progress-panel" aria-label="Customer-visible bake progress">
+              <div><strong>Customer bake tracker</strong><small>Check each phase to update the customer’s order lookup.</small></div>
+              <div className="baker-progress-grid">
+                {BAKE_PHASES.map((phase) => (
+                  <label className={detailProgress[phase.id] ? "complete" : ""} key={phase.id}>
+                    <input
+                      type="checkbox"
+                      checked={detailProgress[phase.id]}
+                      disabled={Boolean(progressSaving)}
+                      onChange={() => toggleBakePhase(phase.id)}
+                    />
+                    <span><strong>{phase.label}</strong><small>{progressSaving === phase.id ? "Saving…" : phase.detail}</small></span>
+                  </label>
+                ))}
+              </div>
+              {!selectedOrder.cloudOrderId ? <p>Local order: progress is saved here, but only online orders can be viewed by customers.</p> : null}
+            </section>
             <button className="calendar-export-button" type="button" onClick={addOrderToCalendar}>
               <CalendarDays size={16} /> Add full bake plan to phone calendar
             </button>
