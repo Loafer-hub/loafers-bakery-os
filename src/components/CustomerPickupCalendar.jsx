@@ -26,6 +26,7 @@ export function CustomerPickupCalendar({
   loafCount,
   onSelectDate,
   selectedDate,
+  shelfOnly = false,
   slug,
 }) {
   const [month, setMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
@@ -110,7 +111,7 @@ export function CustomerPickupCalendar({
           const past = key < today;
           const beyondWindow = key > maxDate;
           const cannotFit = loafCount > 0 && loafCount > remote.remaining;
-          const bakeDayLocked = loafCount > 0 && (remote.full || remote.feedReserved);
+          const bakeDayLocked = !shelfOnly && (remote.full || remote.feedReserved);
           const status = {
             ...remote,
             disabled: past || beyondWindow || remote.unavailable || bakeDayLocked || cannotFit,
@@ -122,9 +123,9 @@ export function CustomerPickupCalendar({
               : remote.unavailable
                 ? "Unavailable"
                 : remote.full
-              ? loafCount > 0 ? "Full" : "Shelf pickup"
+              ? shelfOnly ? "Shelf pickup" : "Full"
               : remote.feedReserved
-                ? loafCount > 0 ? "Feed prep" : "Shelf pickup"
+                ? shelfOnly ? "Shelf pickup" : "Feed prep"
                 : cannotFit
                   ? `${remote.remaining} left`
                   : remote.booked

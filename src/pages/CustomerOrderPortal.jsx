@@ -135,6 +135,9 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
   const bakeLoafCount = selectedItems
     .filter((item) => item.itemType === "product")
     .reduce((sum, item) => sum + item.quantity, 0);
+  const shelfLoafCount = selectedItems
+    .filter((item) => item.itemType === "shelf")
+    .reduce((sum, item) => sum + item.quantity, 0);
   const pickupOptions = pickupTimeOptions(form.pickupDate);
   const trackedCode = new URLSearchParams(window.location.search).get("track") || "";
 
@@ -383,6 +386,7 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
             <CustomerPickupCalendar
               configured={cloudAccount.configured}
               loafCount={bakeLoafCount}
+              shelfOnly={shelfLoafCount > 0 && bakeLoafCount === 0}
               selectedDate={form.pickupDate}
               slug={slug}
               onSelectDate={(pickupDate, capacity) => {
