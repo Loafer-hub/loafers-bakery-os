@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useMemo } from "react";
 import { BrandHeader } from "../components/AppChrome";
+import { ReadyShelf } from "../components/ReadyShelf";
 import { buildBakeSchedule } from "../lib/fermentationModel";
 import { MAX_DAILY_LOAVES, pickupDateKey } from "../lib/orderCapacity";
 
@@ -46,6 +47,7 @@ function BakeTimeline({ model }) {
 }
 
 export default function TodayPage({
+  cloudAccount,
   orders,
   setActive,
   onLogStarter,
@@ -101,6 +103,8 @@ export default function TodayPage({
         <h2 className="display-title">Today’s bake</h2>
         <BakeTimeline model={nextBakeModel} />
       </section>
+
+      <ReadyShelf cloudAccount={cloudAccount} />
 
       <button className="starter-panel" onClick={onLogStarter}>
         <span className="starter-illustration"><Wheat size={39} strokeWidth={1.4} /></span>

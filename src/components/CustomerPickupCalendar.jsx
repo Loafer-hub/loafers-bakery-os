@@ -110,9 +110,10 @@ export function CustomerPickupCalendar({
           const past = key < today;
           const beyondWindow = key > maxDate;
           const cannotFit = loafCount > 0 && loafCount > remote.remaining;
+          const bakeDayLocked = loafCount > 0 && (remote.full || remote.feedReserved);
           const status = {
             ...remote,
-            disabled: past || beyondWindow || remote.unavailable || remote.full || remote.feedReserved || cannotFit,
+            disabled: past || beyondWindow || remote.unavailable || bakeDayLocked || cannotFit,
           };
           const label = past
             ? "Past"
@@ -121,9 +122,9 @@ export function CustomerPickupCalendar({
               : remote.unavailable
                 ? "Unavailable"
                 : remote.full
-              ? "Full"
+              ? loafCount > 0 ? "Full" : "Shelf pickup"
               : remote.feedReserved
-                ? "Feed prep"
+                ? loafCount > 0 ? "Feed prep" : "Shelf pickup"
                 : cannotFit
                   ? `${remote.remaining} left`
                   : remote.booked

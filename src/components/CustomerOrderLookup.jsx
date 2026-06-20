@@ -165,6 +165,7 @@ export function CustomerOrderLookup({
               </fieldset>
             ) : null}
             <label>{feedback.type === "review" ? "Review" : "Suggestion"}<textarea required value={feedback.message} onChange={(event) => setFeedback({ ...feedback, message: event.target.value })} placeholder={feedback.type === "review" ? "How was your bread and pickup experience?" : "What could Loafers improve or offer next?"} /></label>
+            {feedback.type === "review" ? <p className="customer-review-disclosure">Reviews appear publicly using your first name and last initial.</p> : null}
             <button className="secondary-button" type="submit"><Check size={15} /> Send {feedback.type}</button>
             {feedbackMessage ? <p className="feedback-success">{feedbackMessage}</p> : null}
           </form>

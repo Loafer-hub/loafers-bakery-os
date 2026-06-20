@@ -2,10 +2,13 @@ import {
   Banknote,
   CheckCircle2,
   ChevronLeft,
+  Clock3,
   LockKeyhole,
   Minus,
+  PackageCheck,
   Plus,
   ShoppingBag,
+  Star,
   Store,
   UserRound,
   Wheat,
@@ -20,6 +23,13 @@ import {
   signUpCustomer,
   submitPublicOrder,
 } from "../lib/cloud";
+import {
+  isPickupTimeAllowed,
+  pickupDateTimeIso,
+  pickupHoursLabel,
+  pickupTimeOptions,
+  shelfAgeLabel,
+} from "../lib/pickupHours";
 
 const DEFAULT_PICKUP_LOCATION = "Three Bears, Delta Junction, AK";
 const DEFAULT_PAYMENT_METHODS = ["Venmo", "Zelle", "Cash"];
@@ -48,7 +58,7 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
     email: "",
     phone: "",
     pickupDate: "",
-    pickupTime: "10:00",
+    pickupTime: "07:00",
     paymentMethod: "Venmo",
     allergies: "",
     notes: "",
@@ -72,6 +82,8 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
           price_cents: Math.round(Number(recipe.price || 0) * 100),
           sort_order: index,
         })),
+        shelf: [],
+        reviews: [],
       });
       setLoading(false);
       return;
@@ -100,23 +112,44 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
     if (email) setForm((current) => ({ ...current, email: current.email || email }));
   }, [cloudAccount.session?.user?.email]);
 
-  const selectedItems = useMemo(() => (storefront?.products || [])
-    .filter((product) => Number(quantities[product.id] || 0) > 0)
-    .map((product) => ({ ...product, quantity: Number(quantities[product.id]) })), [quantities, storefront]);
+  const selectedItems = useMemo(() => [
+    ...(storefront?.products || [])
+      .filter((product) => Number(quantities[`product-${product.id}`] || 0) > 0)
+      .map((product) => ({
+        ...product,
+        itemType: "product",
+        quantityKey: `product-${product.id}`,
+        quantity: Number(quantities[`product-${product.id}`]),
+      })),
+    ...(storefront?.shelf || [])
+      .filter((item) => Number(quantities[`shelf-${item.id}`] || 0) > 0)
+      .map((item) => ({
+        ...item,
+        itemType: "shelf",
+        quantityKey: `shelf-${item.id}`,
+        quantity: Number(quantities[`shelf-${item.id}`]),
+      })),
+  ], [quantities, storefront]);
   const total = selectedItems.reduce((sum, item) => sum + item.price_cents * item.quantity, 0);
   const loafCount = selectedItems.reduce((sum, item) => sum + item.quantity, 0);
+  const bakeLoafCount = selectedItems
+    .filter((item) => item.itemType === "product")
+    .reduce((sum, item) => sum + item.quantity, 0);
+  const pickupOptions = pickupTimeOptions(form.pickupDate);
   const trackedCode = new URLSearchParams(window.location.search).get("track") || "";
 
-  function changeQuantity(productId, change) {
-    const currentProduct = Number(quantities[productId] || 0);
-    if (change > 0 && loafCount >= 6) {
-      setError("A pickup request can include no more than six loaves.");
+  function changeQuantity(item, change) {
+    const quantityKey = `${item.itemType}-${item.id}`;
+    const currentQuantity = Number(quantities[quantityKey] || 0);
+    if (item.itemType === "product" && change > 0 && bakeLoafCount >= 6) {
+      setError("A future bake request can include no more than six loaves.");
       return;
     }
+    const maximum = item.itemType === "shelf" ? Number(item.quantity || 0) : 6;
     setError("");
     setQuantities((current) => ({
       ...current,
-      [productId]: Math.max(0, Math.min(6, currentProduct + change)),
+      [quantityKey]: Math.max(0, Math.min(maximum, currentQuantity + change)),
     }));
   }
 
@@ -162,12 +195,15 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
       setError("Choose an available pickup date.");
       return;
     }
-    if (selectedCapacity && loafCount > selectedCapacity.remaining) {
+    if (!isPickupTimeAllowed(form.pickupDate, form.pickupTime)) {
+      setError(`Choose a pickup time between ${pickupHoursLabel(form.pickupDate)}.`);
+      return;
+    }
+    if (selectedCapacity && bakeLoafCount > selectedCapacity.remaining) {
       setError(`Only ${selectedCapacity.remaining} loaf${selectedCapacity.remaining === 1 ? "" : "s"} remain for that pickup day.`);
       return;
     }
     try {
-      const pickupAt = new Date(`${form.pickupDate}T${form.pickupTime || "10:00"}`);
       const result = await submitPublicOrder({
         slug,
         customer: {
@@ -176,10 +212,10 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
           phone: form.phone.trim(),
         },
         items: selectedItems.map((item) => ({
-          product_id: item.id,
+          ...(item.itemType === "shelf" ? { shelf_item_id: item.id } : { product_id: item.id }),
           quantity: item.quantity,
         })),
-        pickupAt: pickupAt.toISOString(),
+        pickupAt: pickupDateTimeIso(form.pickupDate, form.pickupTime),
         paymentMethod: form.paymentMethod,
         allergies: form.allergies.trim(),
         notes: form.notes.trim(),
@@ -262,8 +298,26 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
         <div className="customer-fulfillment-strip">
           <span><Store size={17} /><span><small>Pickup</small><strong>{storefront.bakery.pickup_location || DEFAULT_PICKUP_LOCATION}</strong></span></span>
           <span><Banknote size={17} /><span><small>Payment</small><strong>{(storefront.bakery.payment_methods || DEFAULT_PAYMENT_METHODS).join(", ")}</strong></span></span>
+          <span><Clock3 size={17} /><span><small>Pickup hours</small><strong>Weekdays 7–8:30 AM & 5–8 PM · Weekends 1–4:30 PM</strong></span></span>
         </div>
       </section>
+
+      {(storefront.reviews || []).length ? (
+        <section className="customer-reviews" aria-label="Customer reviews">
+          <div className="customer-section-heading"><div><h2>From the bread table</h2><p>Recent reviews from verified Loafers orders.</p></div></div>
+          <div className="customer-review-list">
+            {storefront.reviews.map((review) => (
+              <article className="customer-review-card" key={review.id}>
+                <span className="customer-review-stars" aria-label={`${review.rating} out of 5 stars`}>
+                  {Array.from({ length: 5 }, (_, index) => <Star key={index} size={14} fill={index < review.rating ? "currentColor" : "none"} />)}
+                </span>
+                <p>“{review.message}”</p>
+                <small>{review.customer_name} · {new Date(review.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" })}</small>
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <CustomerOrderLookup
         configured={cloudAccount.configured}
@@ -273,16 +327,45 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
       />
 
       <form onSubmit={submitOrder}>
+        {(storefront.shelf || []).length ? (
+          <section className="customer-ready-shelf">
+            <div className="customer-section-heading">
+              <div><h2>Ready-to-go shelf</h2><p>Already baked and available while the quantity lasts. Shelf loaves do not use future bake capacity.</p></div>
+            </div>
+            <div className="customer-product-list">
+              {storefront.shelf.map((item) => {
+                const quantityKey = `shelf-${item.id}`;
+                const orderItem = { ...item, itemType: "shelf" };
+                return (
+                  <article className={quantities[quantityKey] ? "customer-product shelf-product selected" : "customer-product shelf-product"} key={item.id}>
+                    <div>
+                      <span className="shelf-product-label"><PackageCheck size={14} /> {shelfAgeLabel(item.baked_on)} · {item.quantity} ready</span>
+                      <h3>{item.name}</h3>
+                      <p>{item.description || "Freshly baked and ready for pickup."}</p>
+                      <strong>{dollars(item.price_cents)}</strong>
+                    </div>
+                    <div className="customer-quantity">
+                      <button type="button" aria-label={`Remove one ${item.name}`} onClick={() => changeQuantity(orderItem, -1)}><Minus size={15} /></button>
+                      <span>{quantities[quantityKey] || 0}</span>
+                      <button type="button" aria-label={`Add one ${item.name}`} onClick={() => changeQuantity(orderItem, 1)} disabled={Number(quantities[quantityKey] || 0) >= Number(item.quantity || 0)}><Plus size={15} /></button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+        ) : null}
+
         <section className="customer-menu">
           <div className="customer-section-heading"><div><h2>Choose your loaves</h2><p>Requests are confirmed by the baker before they become final orders.</p></div></div>
           <div className="customer-product-list">
             {storefront.products.map((product) => (
-              <article className={quantities[product.id] ? "customer-product selected" : "customer-product"} key={product.id}>
+              <article className={quantities[`product-${product.id}`] ? "customer-product selected" : "customer-product"} key={product.id}>
                 <div><h3>{product.name}</h3><p>{product.description}</p><strong>{dollars(product.price_cents)}</strong></div>
                 <div className="customer-quantity">
-                  <button type="button" aria-label={`Remove one ${product.name}`} onClick={() => changeQuantity(product.id, -1)}><Minus size={15} /></button>
-                  <span>{quantities[product.id] || 0}</span>
-                  <button type="button" aria-label={`Add one ${product.name}`} onClick={() => changeQuantity(product.id, 1)}><Plus size={15} /></button>
+                  <button type="button" aria-label={`Remove one ${product.name}`} onClick={() => changeQuantity({ ...product, itemType: "product" }, -1)}><Minus size={15} /></button>
+                  <span>{quantities[`product-${product.id}`] || 0}</span>
+                  <button type="button" aria-label={`Add one ${product.name}`} onClick={() => changeQuantity({ ...product, itemType: "product" }, 1)}><Plus size={15} /></button>
                 </div>
               </article>
             ))}
@@ -299,16 +382,30 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
             </div>
             <CustomerPickupCalendar
               configured={cloudAccount.configured}
-              loafCount={loafCount}
+              loafCount={bakeLoafCount}
               selectedDate={form.pickupDate}
               slug={slug}
               onSelectDate={(pickupDate, capacity) => {
+                const nextOptions = pickupTimeOptions(pickupDate);
                 setSelectedCapacity(capacity);
-                setForm((current) => ({ ...current, pickupDate }));
+                setForm((current) => ({
+                  ...current,
+                  pickupDate,
+                  pickupTime: isPickupTimeAllowed(pickupDate, current.pickupTime)
+                    ? current.pickupTime
+                    : nextOptions[0]?.value || "",
+                }));
                 setError("");
               }}
             />
-            <label>Preferred pickup time<input required type="time" value={form.pickupTime} onChange={(event) => setForm({ ...form, pickupTime: event.target.value })} /></label>
+            <label>
+              Preferred pickup time
+              <select required disabled={!form.pickupDate} value={form.pickupTime} onChange={(event) => setForm({ ...form, pickupTime: event.target.value })}>
+                {!form.pickupDate ? <option value="07:00">Choose a pickup date first</option> : null}
+                {pickupOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+              </select>
+            </label>
+            {form.pickupDate ? <p className="pickup-hours-note"><Clock3 size={14} /> Pickup hours for this day: {pickupHoursLabel(form.pickupDate)}</p> : null}
             <fieldset className="payment-choice">
               <legend>How would you like to pay?</legend>
               <div>

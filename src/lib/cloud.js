@@ -181,14 +181,34 @@ export async function loadPublicStorefront(slug) {
   throwIfError(bakeryError);
   if (!bakery) return null;
 
-  const { data: products, error: productError } = await requireClient()
-    .from("products")
-    .select("id, recipe_id, name, description, price_cents, sort_order")
-    .eq("bakery_id", bakery.id)
-    .eq("active", true)
-    .order("sort_order");
-  throwIfError(productError);
-  return { bakery, products: products || [] };
+  const [productsResult, shelfResult, reviewsResult] = await Promise.all([
+    requireClient()
+      .from("products")
+      .select("id, recipe_id, name, description, price_cents, sort_order")
+      .eq("bakery_id", bakery.id)
+      .eq("active", true)
+      .order("sort_order"),
+    requireClient()
+      .from("ready_shelf_items")
+      .select("id, name, description, baked_on, quantity, price_cents")
+      .eq("bakery_id", bakery.id)
+      .eq("active", true)
+      .gt("quantity", 0)
+      .order("baked_on", { ascending: false }),
+    requireClient().rpc("get_public_reviews", {
+      p_slug: slug,
+      p_limit: 12,
+    }),
+  ]);
+  throwIfError(productsResult.error);
+  throwIfError(shelfResult.error);
+  throwIfError(reviewsResult.error);
+  return {
+    bakery,
+    products: productsResult.data || [],
+    shelf: shelfResult.data || [],
+    reviews: reviewsResult.data || [],
+  };
 }
 
 export async function loadPublicOrderCapacity(slug, from, to) {
@@ -379,6 +399,46 @@ export async function listCustomerFeedback(bakeryId) {
     .order("created_at", { ascending: false });
   throwIfError(error);
   return data || [];
+}
+
+export async function listReadyShelfItems(bakeryId) {
+  const { data, error } = await requireClient()
+    .from("ready_shelf_items")
+    .select("id, name, description, baked_on, quantity, price_cents, active, created_at, updated_at")
+    .eq("bakery_id", bakeryId)
+    .order("baked_on", { ascending: false })
+    .order("created_at", { ascending: false });
+  throwIfError(error);
+  return data || [];
+}
+
+export async function saveReadyShelfItem(bakeryId, item) {
+  const values = {
+    bakery_id: bakeryId,
+    name: item.name,
+    description: item.description || "",
+    baked_on: item.baked_on,
+    quantity: Math.max(0, Math.min(24, Number(item.quantity || 0))),
+    price_cents: Math.max(0, Number(item.price_cents || 0)),
+    active: Boolean(item.active) && Number(item.quantity || 0) > 0,
+    updated_at: new Date().toISOString(),
+  };
+  const query = item.id
+    ? requireClient().from("ready_shelf_items").update(values).eq("id", item.id)
+    : requireClient().from("ready_shelf_items").insert(values);
+  const { data, error } = await query
+    .select("id, name, description, baked_on, quantity, price_cents, active")
+    .single();
+  throwIfError(error);
+  return data;
+}
+
+export async function deleteReadyShelfItem(itemId) {
+  const { error } = await requireClient()
+    .from("ready_shelf_items")
+    .delete()
+    .eq("id", itemId);
+  throwIfError(error);
 }
 
 export async function syncBakerCapacityReservations(bakeryId, orders) {
