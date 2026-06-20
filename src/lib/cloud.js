@@ -138,6 +138,17 @@ export async function publishRecipeCatalog(bakeryId, recipes) {
     name: recipe.name,
     description: recipe.note || "",
     price_cents: Math.max(0, Math.round(Number(recipe.price || 0) * 100)),
+    recipe_details: {
+      yield: Math.max(1, Number(recipe.yield || 1)),
+      hydration: Number(recipe.hydration || 0),
+      ingredients: (recipe.ingredients || []).map((ingredient) => ({
+        name: ingredient.name,
+        weight: Number(ingredient.weight || 0),
+        percent: Number(ingredient.percent || 0),
+        category: ingredient.category || "",
+        flourType: ingredient.flourType || "",
+      })),
+    },
     active: true,
     sort_order: index,
   }));
@@ -184,7 +195,7 @@ export async function loadPublicStorefront(slug) {
   const [productsResult, shelfResult, reviewsResult] = await Promise.all([
     requireClient()
       .from("products")
-      .select("id, recipe_id, name, description, price_cents, sort_order")
+      .select("id, recipe_id, name, description, price_cents, recipe_details, sort_order")
       .eq("bakery_id", bakery.id)
       .eq("active", true)
       .order("sort_order"),
@@ -399,6 +410,14 @@ export async function listCustomerFeedback(bakeryId) {
     .order("created_at", { ascending: false });
   throwIfError(error);
   return data || [];
+}
+
+export async function deleteCustomerFeedback(feedbackId) {
+  const { error } = await requireClient()
+    .from("customer_feedback")
+    .delete()
+    .eq("id", feedbackId);
+  throwIfError(error);
 }
 
 export async function listReadyShelfItems(bakeryId) {

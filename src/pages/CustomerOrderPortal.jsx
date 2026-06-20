@@ -3,6 +3,7 @@ import {
   CheckCircle2,
   ChevronLeft,
   Clock3,
+  Info,
   LockKeyhole,
   Minus,
   PackageCheck,
@@ -16,6 +17,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { CustomerPickupCalendar } from "../components/CustomerPickupCalendar";
 import { CustomerOrderLookup } from "../components/CustomerOrderLookup";
+import { Modal } from "../components/Primitives";
 import {
   loadPublicStorefront,
   signInWithEmail,
@@ -30,6 +32,7 @@ import {
   pickupTimeOptions,
   shelfAgeLabel,
 } from "../lib/pickupHours";
+import { estimateRecipeNutrition } from "../lib/nutrition";
 
 const DEFAULT_PICKUP_LOCATION = "Three Bears, Delta Junction, AK";
 const DEFAULT_PAYMENT_METHODS = ["Venmo", "Zelle", "Cash"];
@@ -53,6 +56,7 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
   const [accountMode, setAccountMode] = useState("signin");
   const [accountForm, setAccountForm] = useState({ name: "", email: "", password: "" });
   const [selectedCapacity, setSelectedCapacity] = useState(null);
+  const [selectedProduct, setSelectedProduct] = useState(null);
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -80,6 +84,11 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
           name: recipe.name,
           description: recipe.note,
           price_cents: Math.round(Number(recipe.price || 0) * 100),
+          recipe_details: {
+            yield: recipe.yield,
+            hydration: recipe.hydration,
+            ingredients: recipe.ingredients,
+          },
           sort_order: index,
         })),
         shelf: [],
@@ -364,7 +373,12 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
           <div className="customer-product-list">
             {storefront.products.map((product) => (
               <article className={quantities[`product-${product.id}`] ? "customer-product selected" : "customer-product"} key={product.id}>
-                <div><h3>{product.name}</h3><p>{product.description}</p><strong>{dollars(product.price_cents)}</strong></div>
+                <button className="customer-product-info" type="button" onClick={() => setSelectedProduct(product)} aria-label={`View details for ${product.name}`}>
+                  <span><Info size={13} /> View recipe details</span>
+                  <h3>{product.name}</h3>
+                  <p>{product.description}</p>
+                  <strong>{dollars(product.price_cents)}</strong>
+                </button>
                 <div className="customer-quantity">
                   <button type="button" aria-label={`Remove one ${product.name}`} onClick={() => changeQuantity({ ...product, itemType: "product" }, -1)}><Minus size={15} /></button>
                   <span>{quantities[`product-${product.id}`] || 0}</span>
@@ -444,6 +458,68 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
         </footer>
         {error ? <p className="form-error customer-form-error" role="alert">{error}</p> : null}
       </form>
+
+      {selectedProduct ? <CustomerRecipeDetails product={selectedProduct} onClose={() => setSelectedProduct(null)} /> : null}
     </main>
+  );
+}
+
+function CustomerRecipeDetails({ product, onClose }) {
+  const details = product.recipe_details || {};
+  const ingredients = Array.isArray(details.ingredients) ? details.ingredients : [];
+  const baseYield = Math.max(1, Number(details.yield || 1));
+  const nutrition = ingredients.length ? estimateRecipeNutrition({
+    yield: baseYield,
+    ingredients,
+  }) : null;
+
+  return (
+    <Modal title={product.name} onClose={onClose}>
+      <div className="customer-recipe-detail">
+        <div className="customer-recipe-summary">
+          <span><small>Price</small><strong>{dollars(product.price_cents)} / loaf</strong></span>
+          <span><small>Hydration</small><strong>{Number(details.hydration || 0).toFixed(0)}%</strong></span>
+          <span><small>Published formula</small><strong>{baseYield}-loaf batch</strong></span>
+        </div>
+        <p>{product.description || "Small-batch naturally leavened bread."}</p>
+
+        {ingredients.length ? (
+          <>
+            <div className="customer-recipe-heading"><h3>Ingredients & formula</h3><small>Weights shown per loaf</small></div>
+            <div className="customer-formula-table">
+              <div><strong>Ingredient</strong><strong>Weight</strong><strong>Baker’s %</strong></div>
+              {ingredients.map((ingredient, index) => (
+                <div key={`${ingredient.name}-${index}`}>
+                  <span>{ingredient.name}</span>
+                  <span>{Math.round(Number(ingredient.weight || 0) / baseYield)} g</span>
+                  <span>{Number(ingredient.percent || 0).toFixed(Number(ingredient.percent || 0) % 1 ? 1 : 0)}%</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="customer-recipe-heading"><h3>Estimated nutrition</h3><small>Per loaf · per 1/12 loaf slice</small></div>
+            <div className="customer-nutrition-grid">
+              {[
+                ["Calories", "calories", ""],
+                ["Carbohydrates", "carbs", "g"],
+                ["Protein", "protein", "g"],
+                ["Fat", "fat", "g"],
+                ["Fiber", "fiber", "g"],
+                ["Sodium", "sodium", "mg"],
+              ].map(([label, key, unit]) => (
+                <div key={key}>
+                  <span>{label}</span>
+                  <strong>{nutrition.perLoaf[key]}{unit}</strong>
+                  <small>{nutrition.perSlice[key]}{unit} / slice</small>
+                </div>
+              ))}
+            </div>
+            <p className="nutrition-disclaimer">Nutrition is an estimate based on standard ingredient averages, a 100%-hydration starter, and 12 slices per loaf. Flour brands, ingredient brands, fermentation, moisture loss, and slice size change the final values.</p>
+          </>
+        ) : (
+          <p className="customer-formula-unavailable">The baker has not republished this recipe’s full formula yet.</p>
+        )}
+      </div>
+    </Modal>
   );
 }

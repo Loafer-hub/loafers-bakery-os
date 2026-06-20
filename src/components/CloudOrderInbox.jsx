@@ -1,8 +1,9 @@
-import { Cloud, Download, MessageSquareText, RefreshCw, ShoppingBag, XCircle } from "lucide-react";
+import { Cloud, Download, MessageSquareText, RefreshCw, ShoppingBag, Trash2, XCircle } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import {
   acceptCustomerOrderRequest,
   commentCustomerOrderRequest,
+  deleteCustomerFeedback,
   listCustomerFeedback,
   listCustomerOrderRequests,
   rejectCustomerOrderRequest,
@@ -30,6 +31,7 @@ export function CloudOrderInbox({ cloudAccount, orders, onImportOrder }) {
   const [error, setError] = useState("");
   const [comments, setComments] = useState({});
   const [rejectingId, setRejectingId] = useState(null);
+  const [deletingFeedbackId, setDeletingFeedbackId] = useState(null);
   const bakeryId = cloudAccount.workspace?.bakeryId;
 
   const refresh = useCallback(async () => {
@@ -113,6 +115,20 @@ export function CloudOrderInbox({ cloudAccount, orders, onImportOrder }) {
     }
   }
 
+  async function removeFeedback(entry) {
+    setLoading(true);
+    setError("");
+    try {
+      await deleteCustomerFeedback(entry.id);
+      setFeedback((current) => current.filter((item) => item.id !== entry.id));
+      setDeletingFeedbackId(null);
+    } catch (nextError) {
+      setError(nextError.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <>
       <button className={requests.length ? "cloud-inbox-banner has-orders" : "cloud-inbox-banner"} type="button" onClick={() => setOpen(true)}>
@@ -143,7 +159,19 @@ export function CloudOrderInbox({ cloudAccount, orders, onImportOrder }) {
               <article className="cloud-feedback-card" key={entry.id}>
                 <div><span><strong>{entry.customer_name}</strong><small>{entry.feedback_type}</small></span>{entry.rating ? <span className="feedback-rating">{Array.from({ length: entry.rating }, () => "★").join("")}</span> : null}</div>
                 <p>{entry.message}</p>
-                <small>{new Date(entry.created_at).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })}</small>
+                <div className="cloud-feedback-footer">
+                  <small>{new Date(entry.created_at).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })}</small>
+                  <button type="button" disabled={loading} onClick={() => setDeletingFeedbackId(entry.id)}><Trash2 size={14} /> Delete</button>
+                </div>
+                {deletingFeedbackId === entry.id ? (
+                  <div className="delete-confirmation feedback-delete-confirmation">
+                    <span>Delete this {entry.feedback_type} permanently?</span>
+                    <div>
+                      <button type="button" className="text-button" onClick={() => setDeletingFeedbackId(null)}>Keep it</button>
+                      <button type="button" className="danger-button" disabled={loading} onClick={() => removeFeedback(entry)}>Delete</button>
+                    </div>
+                  </div>
+                ) : null}
               </article>
             )) : (view === "pending" ? requests : rejected).map((request) => {
               const items = request.customer_order_items || [];

@@ -3545,6 +3545,27 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 
 .feedback-rating { color: #bd7d28; font-size: 11px; letter-spacing: 1px; }
 
+.cloud-feedback-footer {
+  align-items: center;
+}
+
+.cloud-feedback-footer > button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 7px;
+  color: #95483d;
+  border: 1px solid #dfc4be;
+  border-radius: 6px;
+  background: #fff8f6;
+  font-size: 7px;
+  font-weight: 700;
+}
+
+.feedback-delete-confirmation {
+  margin-top: 2px;
+}
+
 .cloud-empty-copy {
   margin: 18px 0;
   color: var(--muted);
@@ -4420,6 +4441,31 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   transition: border-color .2s ease, transform .2s ease, box-shadow .2s ease;
 }
 
+.customer-product-info {
+  min-width: 0;
+  align-self: stretch;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding: 0;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.customer-product-info > span:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 8px;
+  color: var(--accent);
+  font-size: 7px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
 .customer-product.selected {
   border-color: #d08a72;
   box-shadow: 0 10px 28px rgba(114,66,43,.08);
@@ -4452,7 +4498,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   font-size: 8px;
 }
 
-.customer-product > div:first-child {
+.customer-product > div:first-child,
+.customer-product-info {
   display: flex;
   align-self: stretch;
   flex-direction: column;
@@ -4472,10 +4519,139 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   line-height: 1.4;
 }
 
-.customer-product > div:first-child > strong {
+.customer-product > div:first-child > strong,
+.customer-product-info > strong {
   margin-top: auto;
   color: var(--accent);
   font-size: 11px;
+}
+
+.customer-recipe-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.customer-recipe-detail > p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.customer-recipe-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+}
+
+.customer-recipe-summary span {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px;
+  border-right: 1px solid var(--line);
+  background: white;
+}
+
+.customer-recipe-summary span:last-child {
+  border: 0;
+}
+
+.customer-recipe-summary small,
+.customer-recipe-heading small {
+  color: var(--muted);
+  font-size: 7px;
+}
+
+.customer-recipe-summary strong {
+  font-size: 9px;
+}
+
+.customer-recipe-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 3px;
+}
+
+.customer-recipe-heading h3 {
+  margin: 0;
+  font-family: "Newsreader", Georgia, serif;
+  font-size: 20px;
+  font-weight: 500;
+}
+
+.customer-formula-table {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: white;
+}
+
+.customer-formula-table > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) .7fr .7fr;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+  font-size: 8px;
+}
+
+.customer-formula-table > div:first-child {
+  color: var(--muted);
+  background: var(--paper-deep);
+  font-size: 7px;
+}
+
+.customer-formula-table > div:last-child {
+  border: 0;
+}
+
+.customer-formula-table > div > :nth-child(n + 2) {
+  text-align: right;
+}
+
+.customer-nutrition-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.customer-nutrition-grid div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 9px;
+  border: 1px solid #cbd3c3;
+  border-radius: 8px;
+  background: #f1f4ed;
+}
+
+.customer-nutrition-grid span,
+.customer-nutrition-grid small {
+  color: var(--muted);
+  font-size: 7px;
+}
+
+.customer-nutrition-grid strong {
+  color: #45543d;
+  font-family: "Newsreader", Georgia, serif;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.nutrition-disclaimer,
+.customer-formula-unavailable {
+  padding: 9px;
+  border-radius: 7px;
+  background: var(--paper-deep);
+  font-size: 7px !important;
+  line-height: 1.45 !important;
 }
 
 .customer-quantity {
@@ -5291,6 +5467,20 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 
   .customer-product {
     min-height: 125px;
+  }
+
+  .customer-recipe-summary,
+  .customer-nutrition-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .customer-recipe-summary span:nth-child(2) {
+    border-right: 0;
+  }
+
+  .customer-recipe-summary span:last-child {
+    grid-column: 1 / -1;
+    border-top: 1px solid var(--line);
   }
 
   .customer-quantity {
