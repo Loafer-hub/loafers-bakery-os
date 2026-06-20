@@ -13,9 +13,12 @@ import { usePersistentState } from "./hooks/usePersistentState";
 import { useCloudAccount } from "./hooks/useCloudAccount";
 import {
   completeCustomerOrder,
+  loadBakerySettings,
+  saveBakerySettings,
   syncBakerCapacityReservations,
   updateCustomerOrderBakeProgress,
 } from "./lib/cloud";
+import { DEFAULT_BAKERY_SETTINGS, normalizedBakerySettings } from "./lib/bakerySettings";
 import { BAKE_PHASES, normalizedBakeProgress } from "./lib/bakeProgress";
 import {
   deductInventoryForOrder,
@@ -26,6 +29,7 @@ import CustomerOrderPortal from "./pages/CustomerOrderPortal";
 import MorePage from "./pages/MorePage";
 import OrdersPage from "./pages/OrdersPage";
 import RecipesPage from "./pages/RecipesPage";
+import SettingsPage from "./pages/SettingsPage";
 import TodayPage from "./pages/TodayPage";
 
 const pages = {
@@ -34,6 +38,7 @@ const pages = {
   bake: BakePage,
   recipes: RecipesPage,
   more: MorePage,
+  settings: SettingsPage,
 };
 
 export default function App() {
@@ -47,6 +52,10 @@ export default function App() {
   const [storedProductionAutomation, setProductionAutomation] = usePersistentState(
     "loafers-production-automation-v1",
     DEFAULT_PRODUCTION_AUTOMATION,
+  );
+  const [bakerySettings, setBakerySettings] = usePersistentState(
+    "loafers-bakery-settings-v1",
+    DEFAULT_BAKERY_SETTINGS,
   );
   const [starters, setStarters] = usePersistentState("loafers-starter-profiles-v1", seedStarters);
   const [starterLogs, setStarterLogs] = usePersistentState("loafers-starter-v1", []);
@@ -87,6 +96,16 @@ export default function App() {
     }, 700);
     return () => window.clearTimeout(timeout);
   }, [cloudAccount.workspace?.bakeryId, orders]);
+
+  useEffect(() => {
+    const bakeryId = cloudAccount.workspace?.bakeryId;
+    if (!bakeryId) return;
+    loadBakerySettings(bakeryId)
+      .then((settings) => {
+        if (settings) setBakerySettings(settings);
+      })
+      .catch(() => {});
+  }, [cloudAccount.workspace?.bakeryId, setBakerySettings]);
 
   function addOrder(form) {
     const initials = form.customer
@@ -389,6 +408,17 @@ export default function App() {
     });
   }
 
+  async function updateBakerySettings(settings) {
+    const normalized = normalizedBakerySettings(settings);
+    setBakerySettings(normalized);
+    if (cloudAccount.workspace?.bakeryId) {
+      await saveBakerySettings(cloudAccount.workspace.bakeryId, normalized);
+      await cloudAccount.refreshWorkspace();
+    }
+    setToast("Bakery settings saved");
+    return normalized;
+  }
+
   function applyStorageData(data) {
     setOrders(data.orders);
     setRecipes(data.recipes);
@@ -415,6 +445,7 @@ export default function App() {
 
   const sharedProps = {
     cloudAccount,
+    bakerySettings: normalizedBakerySettings(bakerySettings),
     productionAutomation,
     orders,
     recipes,
@@ -433,6 +464,7 @@ export default function App() {
     onDeleteRecipe: deleteRecipe,
     onDeleteStarter: deleteStarter,
     onChangeProductionAutomation: setProductionAutomation,
+    onSaveBakerySettings: updateBakerySettings,
     onOpenOrder: openOrder,
     onImportCloudOrder: importCloudOrder,
     onLogExpense: logExpense,
@@ -457,6 +489,7 @@ export default function App() {
   if (orderSlug) {
     return (
       <CustomerOrderPortal
+        bakerySettings={normalizedBakerySettings(bakerySettings)}
         cloudAccount={cloudAccount}
         fallbackRecipes={recipes}
         slug={orderSlug}
@@ -470,7 +503,7 @@ export default function App() {
         <div className="scroll-view">
           <Page {...sharedProps} />
         </div>
-        <BottomNav active={active} onChange={navigate} />
+        <BottomNav active={active === "settings" ? "more" : active} onChange={navigate} />
         <Toast message={toast} />
       </div>
 

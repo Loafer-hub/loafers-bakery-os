@@ -1,7 +1,8 @@
 import { ChevronLeft, ChevronRight, LockKeyhole } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { loadPublicOrderCapacity } from "../lib/cloud";
-import { MAX_DAILY_LOAVES, pickupDateKey } from "../lib/orderCapacity";
+import { pickupDateKey } from "../lib/orderCapacity";
+import { normalizedBakerySettings } from "../lib/bakerySettings";
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -28,7 +29,10 @@ export function CustomerPickupCalendar({
   selectedDate,
   shelfOnly = false,
   slug,
+  settings,
 }) {
+  const rules = normalizedBakerySettings(settings);
+  const dailyCapacity = rules.dailyCapacity;
   const [month, setMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
   const [capacity, setCapacity] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -62,20 +66,21 @@ export function CustomerPickupCalendar({
     day.pickup_date,
     {
       booked: Number(day.loaf_count || 0),
-      remaining: Number(day.remaining ?? MAX_DAILY_LOAVES),
+      remaining: Number(day.remaining ?? dailyCapacity),
       full: day.is_full,
       feedReserved: day.is_feed_reserved,
       unavailable: day.is_unavailable,
       unavailableReason: day.unavailable_reason,
     },
-  ])), [capacity]);
+  ])), [capacity, dailyCapacity]);
 
   const year = month.getFullYear();
   const monthIndex = month.getMonth();
   const firstWeekday = new Date(year, monthIndex, 1).getDay();
   const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
   const today = pickupDateKey(new Date());
-  const maxDate = shiftDateKey(today, 30);
+  const firstAvailableDate = shiftDateKey(today, rules.leadTimeDays);
+  const maxDate = shiftDateKey(today, rules.orderWindowDays);
   const cells = Array.from({ length: 42 }, (_, index) => {
     const day = index - firstWeekday + 1;
     return day >= 1 && day <= daysInMonth ? day : null;
@@ -90,7 +95,7 @@ export function CustomerPickupCalendar({
     <section className="customer-pickup-calendar" aria-label="Choose an available pickup date">
       <div className="customer-calendar-heading">
         <button type="button" onClick={() => setMonth((current) => new Date(current.getFullYear(), current.getMonth() - 1, 1))} aria-label="Previous pickup month"><ChevronLeft size={18} /></button>
-        <span><strong>{month.toLocaleDateString("en-US", { month: "long", year: "numeric" })}</strong><small>{loading ? "Checking capacity…" : "Six-slot daily bake limit"}</small></span>
+        <span><strong>{month.toLocaleDateString("en-US", { month: "long", year: "numeric" })}</strong><small>{loading ? "Checking capacity…" : `${dailyCapacity}-slot daily bake limit`}</small></span>
         <button type="button" onClick={() => setMonth((current) => new Date(current.getFullYear(), current.getMonth() + 1, 1))} aria-label="Next pickup month"><ChevronRight size={18} /></button>
       </div>
       <div className="customer-calendar-weekdays" aria-hidden="true">
@@ -102,24 +107,27 @@ export function CustomerPickupCalendar({
           const key = `${year}-${String(monthIndex + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
           const remote = capacityByDate.get(key) || {
             booked: 0,
-            remaining: MAX_DAILY_LOAVES,
+            remaining: dailyCapacity,
             full: false,
             feedReserved: false,
             unavailable: false,
             unavailableReason: "",
           };
           const past = key < today;
+          const beforeLeadTime = key < firstAvailableDate;
           const beyondWindow = key > maxDate;
           const cannotFit = loafCount > 0 && loafCount > remote.remaining;
           const bakeDayLocked = !shelfOnly && (remote.full || remote.feedReserved);
           const status = {
             ...remote,
-            disabled: past || beyondWindow || remote.unavailable || bakeDayLocked || cannotFit,
+            disabled: past || beforeLeadTime || beyondWindow || remote.unavailable || bakeDayLocked || cannotFit,
           };
           const label = past
             ? "Past"
+            : beforeLeadTime
+              ? `${rules.leadTimeDays}-day notice`
             : beyondWindow
-              ? "30-day limit"
+              ? `${rules.orderWindowDays}-day limit`
               : remote.unavailable
                 ? "Unavailable"
                 : remote.full
@@ -148,18 +156,20 @@ export function CustomerPickupCalendar({
               aria-label={`${key}: ${label}`}
             >
               <strong>{day}</strong>
-              <small>{(remote.full || remote.feedReserved || remote.unavailable || beyondWindow) ? <LockKeyhole size={8} /> : null}{label}</small>
+              <small>{(remote.full || remote.feedReserved || remote.unavailable || beforeLeadTime || beyondWindow) ? <LockKeyhole size={8} /> : null}{label}</small>
             </button>
           );
         })}
       </div>
       <div className="customer-capacity-legend">
         <span><i className="open" />Open</span>
-        <span><i className="full" />Six bake slots booked</span>
+        <span><i className="full" />{dailyCapacity} bake slots booked</span>
         <span><i className="feed" />Reserved for starter feed</span>
         <span><i className="unavailable" />Baker unavailable</span>
       </div>
-      <p className="customer-calendar-window-note">Orders are available for the next 30 days only.</p>
+      <p className="customer-calendar-window-note">
+        Orders are available {rules.leadTimeDays ? `with ${rules.leadTimeDays} day${rules.leadTimeDays === 1 ? "" : "s"} notice and ` : ""}up to {rules.orderWindowDays} days ahead.
+      </p>
       {error ? <p className="form-error" role="alert">{error}</p> : null}
     </section>
   );

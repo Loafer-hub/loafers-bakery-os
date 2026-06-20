@@ -35,7 +35,7 @@ function blankShelfItem() {
   };
 }
 
-export function ReadyShelf({ cloudAccount }) {
+export function ReadyShelf({ cloudAccount, enabled = true }) {
   const bakeryId = cloudAccount.workspace?.bakeryId;
   const [items, setItems] = useState([]);
   const [form, setForm] = useState(null);
@@ -101,7 +101,7 @@ export function ReadyShelf({ cloudAccount }) {
         <button
           type="button"
           className="round-action small"
-          disabled={!bakeryId}
+          disabled={!bakeryId || !enabled}
           onClick={() => setForm(blankShelfItem())}
           aria-label="Add a loaf to the ready shelf"
         >
@@ -109,13 +109,16 @@ export function ReadyShelf({ cloudAccount }) {
         </button>
       </div>
 
+      {!enabled ? (
+        <div className="shelf-cloud-note"><PackageCheck size={17} /><span>The customer shelf is hidden. Turn it on in Bakery Settings when you have prebaked stock.</span></div>
+      ) : null}
       {!bakeryId ? (
         <div className="shelf-cloud-note"><Cloud size={17} /><span>Sign in to your bakery cloud account to stock the public shelf.</span></div>
       ) : null}
       {loading ? <p className="shelf-loading">Checking the shelf…</p> : null}
       {error ? <p className="form-error" role="alert">{error}</p> : null}
 
-      <div className="ready-shelf-list">
+      <div className={enabled ? "ready-shelf-list" : "ready-shelf-list feature-hidden"}>
         {items.map((item) => (
           <article className={item.active && item.quantity > 0 ? "ready-shelf-row" : "ready-shelf-row inactive"} key={item.id}>
             <span className="shelf-icon"><PackageCheck size={20} /></span>

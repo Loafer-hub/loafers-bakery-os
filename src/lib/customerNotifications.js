@@ -26,14 +26,22 @@ function latestPhase(progress) {
   return [...BAKE_PHASES].reverse().find((phase) => normalized[phase.id]) || null;
 }
 
-export function buildCustomerStatusMessage(order, progress = order.bakeProgress) {
+const EVENT_LINES = {
+  accepted: "Your order has been accepted.",
+  bakeProgress: "Here is the latest update on your bake.",
+  comments: "The baker added an update to your order.",
+  ready: "Your order is packed and ready for pickup.",
+  rejected: "I’m sorry, but I’m unable to accept this order request.",
+};
+
+export function buildCustomerStatusMessage(order, progress = order.bakeProgress, eventType = "") {
   const phase = latestPhase(progress);
   const firstName = String(order.customer || "there").trim().split(/\s+/)[0];
   const status = STATUS_LABELS[order.status] || String(order.status || "updated").toLowerCase();
   const lines = [
     `Hi ${firstName}, this is Joshua from Loafers.`,
-    `Your order is ${status}.`,
-    phase ? `Current bake step: ${phase.label} — ${phase.detail}` : "",
+    EVENT_LINES[eventType] || `Your order is ${status}.`,
+    eventType === "bakeProgress" && phase ? `Current bake step: ${phase.label} — ${phase.detail}` : "",
     `Order: ${order.itemSummary || `${order.quantity} × ${order.product}`}.`,
     `Pickup: ${pickupLabel(order.pickupAt)} at ${order.pickupLocation || "Three Bears, Delta Junction, AK"}.`,
     order.notes ? `Baker note: ${order.notes}` : "",
@@ -43,13 +51,13 @@ export function buildCustomerStatusMessage(order, progress = order.bakeProgress)
   return lines.join("\n");
 }
 
-export function emailNotificationHref(order, progress) {
+export function emailNotificationHref(order, progress, eventType) {
   const subject = encodeURIComponent(`Loafers order update${order.requestCode ? ` · ${order.requestCode}` : ""}`);
-  const body = encodeURIComponent(buildCustomerStatusMessage(order, progress));
+  const body = encodeURIComponent(buildCustomerStatusMessage(order, progress, eventType));
   return `mailto:${encodeURIComponent(order.customerEmail || "")}?subject=${subject}&body=${body}`;
 }
 
-export function smsNotificationHref(order, progress) {
-  const body = encodeURIComponent(buildCustomerStatusMessage(order, progress));
+export function smsNotificationHref(order, progress, eventType) {
+  const body = encodeURIComponent(buildCustomerStatusMessage(order, progress, eventType));
   return `sms:${String(order.customerPhone || "").replace(/[^\d+]/g, "")}?&body=${body}`;
 }

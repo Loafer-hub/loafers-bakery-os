@@ -5,7 +5,8 @@ import { CloudOrderInbox } from "../components/CloudOrderInbox";
 import { OrderCalendar, orderPickupDate } from "../components/OrderCalendar";
 import { EmptyState, Modal, Status } from "../components/Primitives";
 import { downloadOrderCalendar } from "../lib/orderCalendarExport";
-import { MAX_DAILY_LOAVES, orderCapacityForDate } from "../lib/orderCapacity";
+import { orderCapacityForDate } from "../lib/orderCapacity";
+import { normalizedBakerySettings, notificationEventOptions } from "../lib/bakerySettings";
 import { BAKE_PHASES, normalizedBakeProgress } from "../lib/bakeProgress";
 import { emailNotificationHref, smsNotificationHref } from "../lib/customerNotifications";
 import { normalizedSalesOptions, pluralUnit } from "../lib/salesOptions";
@@ -56,12 +57,13 @@ function localInputValue(value) {
 function capacityError(status, requestedSlots) {
   if (!status.key) return "Choose a pickup date and time.";
   if (status.feedReserved) return "That day is locked for feeding starter for the next full bake day.";
-  if (status.full) return "That pickup day already has all six bake slots booked.";
+  if (status.full) return `That pickup day already has all ${status.maximum} bake slots booked.`;
   if (requestedSlots > status.remaining) return `Only ${status.remaining} bake slot${status.remaining === 1 ? "" : "s"} remain for that day.`;
   return "";
 }
 
 export default function OrdersPage({
+  bakerySettings,
   cloudAccount,
   orders,
   recipes,
@@ -77,6 +79,9 @@ export default function OrdersPage({
   onUpdateOrderProgress,
   selectedOrderId,
 }) {
+  const rules = normalizedBakerySettings(bakerySettings);
+  const dailyCapacity = rules.dailyCapacity;
+  const enabledNotificationEvents = notificationEventOptions(rules);
   const [filter, setFilter] = useState("Pending");
   const [view, setView] = useState("list");
   const [query, setQuery] = useState("");
@@ -87,6 +92,7 @@ export default function OrdersPage({
   const [detailError, setDetailError] = useState("");
   const [completing, setCompleting] = useState(false);
   const [progressSaving, setProgressSaving] = useState("");
+  const [notificationEvent, setNotificationEvent] = useState("accepted");
   const [detailForm, setDetailForm] = useState({
     status: "New",
     notes: "",
@@ -130,9 +136,9 @@ export default function OrdersPage({
   const formSaleOption = formSaleOptions.find((option) => option.id === form.saleOptionId) || formSaleOptions[0];
   const formCapacityUnits = Number(formSaleOption?.capacityUnits || 1) * Number(form.packageCount || 1);
   const formTotal = Number(formSaleOption?.price || 0) * Number(form.packageCount || 1);
-  const addCapacity = orderCapacityForDate(orders, form.pickupAt, formCapacityUnits);
+  const addCapacity = orderCapacityForDate(orders, form.pickupAt, formCapacityUnits, null, dailyCapacity);
   const detailCapacity = selectedOrder
-    ? orderCapacityForDate(orders, detailForm.pickupAt, selectedOrder.quantity, selectedOrder.id)
+    ? orderCapacityForDate(orders, detailForm.pickupAt, selectedOrder.quantity, selectedOrder.id, dailyCapacity)
     : null;
 
   useEffect(() => {
@@ -147,9 +153,10 @@ export default function OrdersPage({
       notifySms: Boolean(selectedOrder.notifySms),
     });
     setDetailProgress(normalizedBakeProgress(selectedOrder.bakeProgress));
+    setNotificationEvent(enabledNotificationEvents[0]?.id || "");
     setConfirmDelete(false);
     setDetailError("");
-  }, [selectedOrder]);
+  }, [selectedOrder, bakerySettings]);
 
   useEffect(() => {
     if (!recipes.length || recipes.some((recipe) => recipe.name === form.product)) return;
@@ -165,7 +172,7 @@ export default function OrdersPage({
     if (!form.customer.trim()) return;
     const selectedRecipe = formRecipe;
     const selectedOption = formSaleOption;
-    const nextCapacity = orderCapacityForDate(orders, form.pickupAt, formCapacityUnits);
+    const nextCapacity = orderCapacityForDate(orders, form.pickupAt, formCapacityUnits, null, dailyCapacity);
     const nextError = capacityError(nextCapacity, formCapacityUnits);
     if (nextError) {
       setAddError(nextError);
@@ -173,6 +180,8 @@ export default function OrdersPage({
     }
     onAddOrder({
       ...form,
+      notifyEmail: Boolean(rules.emailNotifications && form.notifyEmail && form.customerEmail.trim()),
+      notifySms: Boolean(rules.smsNotifications && form.notifySms && form.customerPhone.trim()),
       product: `${selectedRecipe.name} · ${selectedOption.label}`,
       quantity: formCapacityUnits,
       totalUnits: Number(selectedOption.units || 1) * Number(form.packageCount || 1),
@@ -207,7 +216,7 @@ export default function OrdersPage({
 
   async function saveDetails(event) {
     event.preventDefault();
-    const nextCapacity = orderCapacityForDate(orders, detailForm.pickupAt, selectedOrder.quantity, selectedOrder.id);
+    const nextCapacity = orderCapacityForDate(orders, detailForm.pickupAt, selectedOrder.quantity, selectedOrder.id, dailyCapacity);
     const nextError = capacityError(nextCapacity, selectedOrder.quantity);
     if (nextError) {
       setDetailError(nextError);
@@ -217,8 +226,8 @@ export default function OrdersPage({
       notes: detailForm.notes.trim(),
       customerEmail: detailForm.customerEmail.trim(),
       customerPhone: detailForm.customerPhone.trim(),
-      notifyEmail: Boolean(detailForm.notifyEmail && detailForm.customerEmail.trim()),
-      notifySms: Boolean(detailForm.notifySms && detailForm.customerPhone.trim()),
+      notifyEmail: Boolean(rules.emailNotifications && detailForm.notifyEmail && detailForm.customerEmail.trim()),
+      notifySms: Boolean(rules.smsNotifications && detailForm.notifySms && detailForm.customerPhone.trim()),
       pickupAt: detailForm.pickupAt ? new Date(detailForm.pickupAt).toISOString() : null,
       due: pickupDueLabel(detailForm.pickupAt),
     };
@@ -265,16 +274,16 @@ export default function OrdersPage({
         await updateCustomerOrderNotificationPreferences(selectedOrder.cloudOrderId, {
           customerEmail: detailForm.customerEmail,
           customerPhone: detailForm.customerPhone,
-          notifyEmail: detailForm.notifyEmail,
-          notifySms: detailForm.notifySms,
+          notifyEmail: rules.emailNotifications && detailForm.notifyEmail,
+          notifySms: rules.smsNotifications && detailForm.notifySms,
         });
       }
       await onCompleteOrder(selectedOrder.id, {
         notes: detailForm.notes.trim(),
         customerEmail: detailForm.customerEmail.trim(),
         customerPhone: detailForm.customerPhone.trim(),
-        notifyEmail: Boolean(detailForm.notifyEmail && detailForm.customerEmail.trim()),
-        notifySms: Boolean(detailForm.notifySms && detailForm.customerPhone.trim()),
+        notifyEmail: Boolean(rules.emailNotifications && detailForm.notifyEmail && detailForm.customerEmail.trim()),
+        notifySms: Boolean(rules.smsNotifications && detailForm.notifySms && detailForm.customerPhone.trim()),
         pickupAt: detailForm.pickupAt ? new Date(detailForm.pickupAt).toISOString() : null,
         due: pickupDueLabel(detailForm.pickupAt),
       });
@@ -449,8 +458,8 @@ export default function OrdersPage({
               <label>Phone<input value={form.customerPhone} onChange={(event) => setForm({ ...form, customerPhone: event.target.value })} placeholder="Optional" /></label>
             </div>
             <div className="local-notification-options">
-              <label><input type="checkbox" disabled={!form.customerEmail.trim()} checked={form.notifyEmail && Boolean(form.customerEmail.trim())} onChange={(event) => setForm({ ...form, notifyEmail: event.target.checked })} /> Email status updates</label>
-              <label><input type="checkbox" disabled={!form.customerPhone.trim()} checked={form.notifySms && Boolean(form.customerPhone.trim())} onChange={(event) => setForm({ ...form, notifySms: event.target.checked })} /> Text status updates</label>
+              <label><input type="checkbox" disabled={!rules.emailNotifications || !form.customerEmail.trim()} checked={rules.emailNotifications && form.notifyEmail && Boolean(form.customerEmail.trim())} onChange={(event) => setForm({ ...form, notifyEmail: event.target.checked })} /> Email status updates</label>
+              <label><input type="checkbox" disabled={!rules.smsNotifications || !form.customerPhone.trim()} checked={rules.smsNotifications && form.notifySms && Boolean(form.customerPhone.trim())} onChange={(event) => setForm({ ...form, notifySms: event.target.checked })} /> Text status updates</label>
             </div>
             <div className="form-grid">
               <label>Pickup<input type="datetime-local" value={form.pickupAt} onChange={(event) => {
@@ -467,7 +476,7 @@ export default function OrdersPage({
               </label>
             </div>
             <div className={`order-capacity-note ${addCapacity.full || addCapacity.feedReserved ? "locked" : ""}`}>
-              <strong>{addCapacity.feedReserved ? "Starter-feed day locked" : `${addCapacity.booked} of ${MAX_DAILY_LOAVES} bake slots booked`}</strong>
+              <strong>{addCapacity.feedReserved ? "Starter-feed day locked" : `${addCapacity.booked} of ${dailyCapacity} bake slots booked`}</strong>
               <span>{addCapacity.feedReserved ? "Choose another pickup day." : `${addCapacity.remaining} remaining before this day closes.`}</span>
             </div>
             {addError ? <p className="form-error" role="alert">{addError}</p> : null}
@@ -494,7 +503,7 @@ export default function OrdersPage({
             </label>
             {detailCapacity ? (
               <div className={`order-capacity-note ${detailCapacity.full || detailCapacity.feedReserved ? "locked" : ""}`}>
-                <strong>{detailCapacity.feedReserved ? "Starter-feed day locked" : `${detailCapacity.booked} of ${MAX_DAILY_LOAVES} other loaves booked`}</strong>
+                <strong>{detailCapacity.feedReserved ? "Starter-feed day locked" : `${detailCapacity.booked} of ${dailyCapacity} other bake slots booked`}</strong>
                 <span>{detailCapacity.feedReserved ? "Keep this order on a different pickup day." : `${detailCapacity.remaining} spaces available for this order.`}</span>
               </div>
             ) : null}
@@ -528,28 +537,35 @@ export default function OrdersPage({
                 <label>Email<input type="email" value={detailForm.customerEmail} onChange={(event) => setDetailForm({ ...detailForm, customerEmail: event.target.value })} placeholder="Customer email" /></label>
                 <label>Phone<input value={detailForm.customerPhone} onChange={(event) => setDetailForm({ ...detailForm, customerPhone: event.target.value })} placeholder="Customer phone" /></label>
               </div>
+              <label>
+                Message type
+                <select disabled={!enabledNotificationEvents.length} value={notificationEvent} onChange={(event) => setNotificationEvent(event.target.value)}>
+                  {!enabledNotificationEvents.length ? <option value="">All message events are off in Bakery Settings</option> : null}
+                  {enabledNotificationEvents.map((event) => <option key={event.id} value={event.id}>{event.label}</option>)}
+                </select>
+              </label>
               <div className="local-notification-options">
-                <label><input type="checkbox" disabled={!detailForm.customerEmail.trim()} checked={detailForm.notifyEmail && Boolean(detailForm.customerEmail.trim())} onChange={(event) => setDetailForm({ ...detailForm, notifyEmail: event.target.checked })} /> Email updates requested</label>
-                <label><input type="checkbox" disabled={!detailForm.customerPhone.trim()} checked={detailForm.notifySms && Boolean(detailForm.customerPhone.trim())} onChange={(event) => setDetailForm({ ...detailForm, notifySms: event.target.checked })} /> Text updates requested</label>
+                <label><input type="checkbox" disabled={!rules.emailNotifications || !detailForm.customerEmail.trim()} checked={rules.emailNotifications && detailForm.notifyEmail && Boolean(detailForm.customerEmail.trim())} onChange={(event) => setDetailForm({ ...detailForm, notifyEmail: event.target.checked })} /> Email updates requested</label>
+                <label><input type="checkbox" disabled={!rules.smsNotifications || !detailForm.customerPhone.trim()} checked={rules.smsNotifications && detailForm.notifySms && Boolean(detailForm.customerPhone.trim())} onChange={(event) => setDetailForm({ ...detailForm, notifySms: event.target.checked })} /> Text updates requested</label>
               </div>
               <div className="notification-action-grid">
                 <a
-                  className={!detailForm.notifyEmail || !detailForm.customerEmail.trim() ? "disabled" : ""}
-                  aria-disabled={!detailForm.notifyEmail || !detailForm.customerEmail.trim()}
-                  href={detailForm.notifyEmail && detailForm.customerEmail.trim() ? emailNotificationHref({
+                  className={!rules.emailNotifications || !notificationEvent || !detailForm.notifyEmail || !detailForm.customerEmail.trim() ? "disabled" : ""}
+                  aria-disabled={!rules.emailNotifications || !notificationEvent || !detailForm.notifyEmail || !detailForm.customerEmail.trim()}
+                  href={rules.emailNotifications && notificationEvent && detailForm.notifyEmail && detailForm.customerEmail.trim() ? emailNotificationHref({
                     ...selectedOrder,
                     ...detailForm,
                     customerEmail: detailForm.customerEmail.trim(),
-                  }, detailProgress) : undefined}
+                  }, detailProgress, notificationEvent) : undefined}
                 ><Mail size={16} /> Email status</a>
                 <a
-                  className={!detailForm.notifySms || !detailForm.customerPhone.trim() ? "disabled" : ""}
-                  aria-disabled={!detailForm.notifySms || !detailForm.customerPhone.trim()}
-                  href={detailForm.notifySms && detailForm.customerPhone.trim() ? smsNotificationHref({
+                  className={!rules.smsNotifications || !notificationEvent || !detailForm.notifySms || !detailForm.customerPhone.trim() ? "disabled" : ""}
+                  aria-disabled={!rules.smsNotifications || !notificationEvent || !detailForm.notifySms || !detailForm.customerPhone.trim()}
+                  href={rules.smsNotifications && notificationEvent && detailForm.notifySms && detailForm.customerPhone.trim() ? smsNotificationHref({
                     ...selectedOrder,
                     ...detailForm,
                     customerPhone: detailForm.customerPhone.trim(),
-                  }, detailProgress) : undefined}
+                  }, detailProgress, notificationEvent) : undefined}
                 ><MessageSquareText size={16} /> Text status</a>
               </div>
             </section>

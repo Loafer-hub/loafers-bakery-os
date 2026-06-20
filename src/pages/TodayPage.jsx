@@ -11,7 +11,7 @@ import { useMemo } from "react";
 import { BrandHeader } from "../components/AppChrome";
 import { ReadyShelf } from "../components/ReadyShelf";
 import { buildBakeSchedule } from "../lib/fermentationModel";
-import { MAX_DAILY_LOAVES, pickupDateKey } from "../lib/orderCapacity";
+import { pickupDateKey } from "../lib/orderCapacity";
 
 function BakeTimeline({ model }) {
   if (!model) {
@@ -47,6 +47,7 @@ function BakeTimeline({ model }) {
 }
 
 export default function TodayPage({
+  bakerySettings,
   cloudAccount,
   orders,
   setActive,
@@ -58,6 +59,7 @@ export default function TodayPage({
   recipes,
   onOpenStorage,
 }) {
+  const dailyCapacity = Math.max(1, Number(bakerySettings?.dailyCapacity || 6));
   const today = new Date();
   const todayKey = pickupDateKey(today);
   const todayOrders = orders.filter((order) => (
@@ -68,7 +70,7 @@ export default function TodayPage({
   const totalLoaves = todayOrders.reduce((sum, order) => sum + Number(order.quantity || 0), 0);
   const totalItems = todayOrders.reduce((sum, order) => sum + Number(order.totalUnits || order.quantity || 0), 0);
   const revenue = todayOrders.reduce((sum, order) => sum + order.total, 0);
-  const capacityUsed = Math.min(MAX_DAILY_LOAVES, totalLoaves);
+  const capacityUsed = Math.min(dailyCapacity, totalLoaves);
   const starter = starters[0];
   const latestStarterLog = starterLogs.find((log) => log.starterId === starter?.id) || starterLogs[0];
   const nextBakeModel = useMemo(() => {
@@ -105,7 +107,7 @@ export default function TodayPage({
         <BakeTimeline model={nextBakeModel} />
       </section>
 
-      <ReadyShelf cloudAccount={cloudAccount} />
+      <ReadyShelf cloudAccount={cloudAccount} enabled={bakerySettings?.readyShelfEnabled !== false} />
 
       <button className="starter-panel" onClick={onLogStarter}>
         <span className="starter-illustration"><Wheat size={39} strokeWidth={1.4} /></span>
@@ -146,13 +148,13 @@ export default function TodayPage({
         </div>
         <div className="capacity-row">
           <Gauge size={21} />
-          <span><b>{totalLoaves}</b> of {MAX_DAILY_LOAVES} bake slots today</span>
+          <span><b>{totalLoaves}</b> of {dailyCapacity} bake slots today</span>
           <span
             className="capacity-track"
-            style={{ gridTemplateColumns: `repeat(${MAX_DAILY_LOAVES}, 1fr)` }}
-            aria-label={`${totalLoaves} of ${MAX_DAILY_LOAVES} bake slots booked today`}
+            style={{ gridTemplateColumns: `repeat(${dailyCapacity}, 1fr)` }}
+            aria-label={`${totalLoaves} of ${dailyCapacity} bake slots booked today`}
           >
-            {Array.from({ length: MAX_DAILY_LOAVES }, (_, index) => (
+            {Array.from({ length: dailyCapacity }, (_, index) => (
               <i key={index} className={index < capacityUsed ? "filled" : ""} />
             ))}
           </span>

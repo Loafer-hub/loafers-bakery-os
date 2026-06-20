@@ -34,6 +34,7 @@ function pickupLabel(value) {
 
 export function CustomerOrderLookup({
   configured,
+  feedbackEnabled = true,
   initialCode = "",
   initialContact = "",
   slug,
@@ -149,7 +150,7 @@ export function CustomerOrderLookup({
             ))}
           </div>
 
-          <form className="customer-feedback-form" onSubmit={sendFeedback}>
+          {feedbackEnabled ? <form className="customer-feedback-form" onSubmit={sendFeedback}>
             <div className="customer-feedback-switch">
               <button type="button" className={feedback.type === "suggestion" ? "selected" : ""} onClick={() => setFeedback({ ...feedback, type: "suggestion" })}><MessageCircle size={14} /> Suggestion</button>
               <button type="button" className={feedback.type === "review" ? "selected" : ""} onClick={() => setFeedback({ ...feedback, type: "review" })}><Star size={14} /> Review</button>
@@ -168,7 +169,7 @@ export function CustomerOrderLookup({
             {feedback.type === "review" ? <p className="customer-review-disclosure">Reviews appear publicly using your first name and last initial.</p> : null}
             <button className="secondary-button" type="submit"><Check size={15} /> Send {feedback.type}</button>
             {feedbackMessage ? <p className="feedback-success">{feedbackMessage}</p> : null}
-          </form>
+          </form> : null}
         </div>
       ) : null}
     </section>

@@ -1,11 +1,4 @@
-const WEEKDAY_WINDOWS = [
-  { start: 7 * 60, end: 8 * 60 + 30 },
-  { start: 17 * 60, end: 20 * 60 },
-];
-
-const WEEKEND_WINDOWS = [
-  { start: 13 * 60, end: 16 * 60 + 30 },
-];
+import { normalizedBakerySettings } from "./bakerySettings";
 
 function dateFromKey(dateKey) {
   if (!dateKey) return null;
@@ -14,10 +7,21 @@ function dateFromKey(dateKey) {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
-function windowsForDate(dateKey) {
+function minutesFromTime(value) {
+  const [hour, minute] = String(value || "00:00").split(":").map(Number);
+  return hour * 60 + minute;
+}
+
+function windowsForDate(dateKey, settings) {
   const date = dateFromKey(dateKey);
-  if (!date) return WEEKDAY_WINDOWS;
-  return [0, 6].includes(date.getDay()) ? WEEKEND_WINDOWS : WEEKDAY_WINDOWS;
+  const normalized = normalizedBakerySettings(settings);
+  const source = date && [0, 6].includes(date.getDay())
+    ? normalized.weekendWindows
+    : normalized.weekdayWindows;
+  return source.map((window) => ({
+    start: minutesFromTime(window.start),
+    end: minutesFromTime(window.end),
+  }));
 }
 
 function timeValue(minutes) {
@@ -29,27 +33,28 @@ function timeLabel(minutes) {
     .toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 }
 
-export function pickupTimeOptions(dateKey) {
-  return windowsForDate(dateKey).flatMap((window) => {
+export function pickupTimeOptions(dateKey, settings) {
+  const interval = normalizedBakerySettings(settings).pickupIntervalMinutes;
+  return windowsForDate(dateKey, settings).flatMap((window) => {
     const options = [];
-    for (let minutes = window.start; minutes <= window.end; minutes += 30) {
+    for (let minutes = window.start; minutes <= window.end; minutes += interval) {
       options.push({ value: timeValue(minutes), label: timeLabel(minutes) });
     }
     return options;
   });
 }
 
-export function pickupHoursLabel(dateKey) {
-  return windowsForDate(dateKey)
+export function pickupHoursLabel(dateKey, settings) {
+  return windowsForDate(dateKey, settings)
     .map((window) => `${timeLabel(window.start)}–${timeLabel(window.end)}`)
     .join(" and ");
 }
 
-export function isPickupTimeAllowed(dateKey, time) {
+export function isPickupTimeAllowed(dateKey, time, settings) {
   if (!dateKey || !time) return false;
   const [hour, minute] = time.split(":").map(Number);
   const value = hour * 60 + minute;
-  return windowsForDate(dateKey).some((window) => value >= window.start && value <= window.end);
+  return windowsForDate(dateKey, settings).some((window) => value >= window.start && value <= window.end);
 }
 
 export function pickupDateTimeIso(dateKey, time) {

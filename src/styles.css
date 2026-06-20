@@ -6426,6 +6426,251 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   }
 }
 
+.settings-page form {
+  display: grid;
+  gap: 14px;
+}
+
+.settings-hero-card,
+.settings-card {
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: var(--paper);
+  box-shadow: 0 12px 35px rgba(60, 43, 28, 0.06);
+}
+
+.settings-hero-card {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: linear-gradient(135deg, #edf2e9, #f9f5ed);
+}
+
+.settings-hero-card > span:first-child {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 14px;
+  color: var(--sage);
+  background: white;
+}
+
+.settings-hero-card strong,
+.settings-hero-card p {
+  display: block;
+  margin: 0;
+}
+
+.settings-hero-card p {
+  padding-top: 3px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.settings-sync-pill {
+  padding: 6px 9px;
+  border-radius: 999px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.72);
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.settings-sync-pill.online {
+  color: #46613d;
+  background: #dfead9;
+}
+
+.settings-card {
+  display: grid;
+  gap: 14px;
+  padding: 17px;
+}
+
+.settings-card .section-title-line {
+  margin: 0;
+}
+
+.settings-card > label,
+.settings-number-grid label,
+.settings-test-grid label,
+.settings-time-window label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.settings-card input,
+.settings-card select,
+.settings-card textarea {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 11px 12px;
+  color: var(--ink);
+  background: white;
+}
+
+.settings-card textarea {
+  min-height: 76px;
+  resize: vertical;
+}
+
+.settings-toggle-list,
+.settings-event-list {
+  display: grid;
+  gap: 8px;
+}
+
+.settings-event-list {
+  padding-top: 5px;
+  border-top: 1px solid var(--line);
+}
+
+.settings-event-list > p,
+.settings-publish-card > p {
+  margin: -4px 0 2px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.settings-number-grid,
+.settings-hours-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.settings-number-grid label {
+  padding: 11px;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: #f8f5ef;
+}
+
+.settings-number-grid small {
+  font-weight: 400;
+  line-height: 1.35;
+}
+
+.settings-time-window {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: #f8f5ef;
+}
+
+.settings-time-window > strong {
+  grid-column: 1 / -1;
+  font-size: 12px;
+}
+
+.settings-provider-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 14px;
+  color: #4d5f46;
+  background: var(--sage-soft);
+}
+
+.settings-provider-note span,
+.settings-provider-note strong,
+.settings-provider-note small {
+  display: block;
+}
+
+.settings-provider-note small {
+  padding-top: 3px;
+  line-height: 1.45;
+}
+
+.settings-test-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+}
+
+.settings-test-grid a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 42px;
+  border-radius: 12px;
+  color: white;
+  background: var(--sage);
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.settings-test-grid a:last-child {
+  background: #506f6c;
+}
+
+.settings-test-grid a.disabled {
+  pointer-events: none;
+  opacity: 0.38;
+}
+
+.settings-success {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 13px;
+  color: #46613d;
+  background: var(--sage-soft);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.settings-save-button {
+  position: sticky;
+  bottom: 10px;
+  z-index: 4;
+  box-shadow: 0 12px 30px rgba(109, 51, 32, 0.25);
+}
+
+.ready-shelf-list.feature-hidden {
+  display: none;
+}
+
+.customer-ordering-paused {
+  min-height: 100vh;
+}
+
+@media (max-width: 420px) {
+  .settings-hero-card {
+    grid-template-columns: auto 1fr;
+  }
+
+  .settings-sync-pill {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+
+  .settings-number-grid,
+  .settings-hours-grid,
+  .settings-test-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     scroll-behavior: auto !important;

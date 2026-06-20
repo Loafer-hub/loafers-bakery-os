@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { normalizedBakerySettings } from "./bakerySettings";
 import { normalizedSalesOptions } from "./salesOptions";
 
 const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL || "").trim();
@@ -94,7 +95,7 @@ export async function loadBakerWorkspace(userId) {
   if (!userId) return null;
   const { data, error } = await requireClient()
     .from("bakery_members")
-    .select("bakery_id, role, bakeries(id, name, slug, public_ordering, ordering_intro)")
+    .select("bakery_id, role, bakeries(id, name, slug, public_ordering, ordering_intro, pickup_location, payment_methods)")
     .eq("user_id", userId)
     .limit(1)
     .maybeSingle();
@@ -105,6 +106,43 @@ export async function loadBakerWorkspace(userId) {
     role: data.role,
     bakery: data.bakeries,
   };
+}
+
+export async function loadBakerySettings(bakeryId) {
+  if (!bakeryId) return null;
+  const { data, error } = await requireClient()
+    .from("bakery_settings")
+    .select("settings")
+    .eq("bakery_id", bakeryId)
+    .maybeSingle();
+  throwIfError(error);
+  return normalizedBakerySettings(data?.settings || {});
+}
+
+export async function saveBakerySettings(bakeryId, settings) {
+  const normalized = normalizedBakerySettings(settings);
+  const timestamp = new Date().toISOString();
+  const [settingsResult, bakeryResult] = await Promise.all([
+    requireClient()
+      .from("bakery_settings")
+      .upsert({
+        bakery_id: bakeryId,
+        settings: normalized,
+        updated_at: timestamp,
+      }, { onConflict: "bakery_id" }),
+    requireClient()
+      .from("bakeries")
+      .update({
+        public_ordering: normalized.onlineOrdering,
+        ordering_intro: normalized.orderingIntro,
+        pickup_location: normalized.pickupLocation,
+        updated_at: timestamp,
+      })
+      .eq("id", bakeryId),
+  ]);
+  throwIfError(settingsResult.error);
+  throwIfError(bakeryResult.error);
+  return normalized;
 }
 
 export async function uploadCloudSnapshot(bakeryId, backup, userId) {
@@ -195,14 +233,17 @@ export async function publishRecipeCatalog(bakeryId, recipes) {
 }
 
 export async function loadPublicStorefront(slug) {
-  const { data: bakery, error: bakeryError } = await requireClient()
-    .from("bakeries")
-    .select("id, name, slug, ordering_intro, pickup_location, payment_methods")
-    .eq("slug", slug)
-    .eq("public_ordering", true)
-    .maybeSingle();
-  throwIfError(bakeryError);
-  if (!bakery) return null;
+  const { data: config, error: configError } = await requireClient().rpc(
+    "get_public_storefront_config",
+    { p_slug: slug },
+  );
+  throwIfError(configError);
+  if (!config?.bakery) return null;
+  const bakery = config.bakery;
+  const settings = normalizedBakerySettings(config.settings || {});
+  if (!settings.onlineOrdering) {
+    return { bakery, settings, products: [], shelf: [], reviews: [] };
+  }
 
   const [productsResult, shelfResult, reviewsResult] = await Promise.all([
     requireClient()
@@ -211,23 +252,24 @@ export async function loadPublicStorefront(slug) {
       .eq("bakery_id", bakery.id)
       .eq("active", true)
       .order("sort_order"),
-    requireClient()
+    settings.readyShelfEnabled ? requireClient()
       .from("ready_shelf_items")
       .select("id, name, description, baked_on, quantity, price_cents")
       .eq("bakery_id", bakery.id)
       .eq("active", true)
       .gt("quantity", 0)
-      .order("baked_on", { ascending: false }),
-    requireClient().rpc("get_public_reviews", {
+      .order("baked_on", { ascending: false }) : Promise.resolve({ data: [], error: null }),
+    settings.reviewsVisible ? requireClient().rpc("get_public_reviews", {
       p_slug: slug,
       p_limit: 12,
-    }),
+    }) : Promise.resolve({ data: [], error: null }),
   ]);
   throwIfError(productsResult.error);
   throwIfError(shelfResult.error);
   throwIfError(reviewsResult.error);
   return {
     bakery,
+    settings,
     products: productsResult.data || [],
     shelf: shelfResult.data || [],
     reviews: reviewsResult.data || [],

@@ -7,6 +7,7 @@ import {
   Pencil,
   Plus,
   Receipt,
+  Settings2,
   Trash2,
   UsersRound,
 } from "lucide-react";
@@ -58,6 +59,7 @@ export default function MorePage({
   onDeleteInventoryItem,
   onLogExpense,
   onSaveInventoryItem,
+  setActive,
 }) {
   const [inventoryForm, setInventoryForm] = useState(null);
   const [purchaseForm, setPurchaseForm] = useState(null);
@@ -93,7 +95,11 @@ export default function MorePage({
 
   return (
     <main className="page">
-      <PageHeading title="Trends" subtitle="Costs, stock, sales, and the pulse of your one-person bakery." />
+      <PageHeading
+        title="Trends"
+        subtitle="Costs, stock, sales, and the pulse of your one-person bakery."
+        action={<button className="round-action" type="button" onClick={() => setActive("settings")} aria-label="Open bakery settings"><Settings2 size={20} /></button>}
+      />
 
       <section className="trend-card">
         <div className="section-title-line">

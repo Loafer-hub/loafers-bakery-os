@@ -34,18 +34,26 @@ export function dailyLoafTotals(orders, excludeOrderId = null) {
   return totals;
 }
 
-export function orderCapacityForDate(orders, pickupAt, requestedLoaves = 0, excludeOrderId = null) {
+export function orderCapacityForDate(
+  orders,
+  pickupAt,
+  requestedLoaves = 0,
+  excludeOrderId = null,
+  maximum = MAX_DAILY_LOAVES,
+) {
+  const dailyMaximum = Math.max(1, Number(maximum || MAX_DAILY_LOAVES));
   const key = pickupDateKey(pickupAt);
   const totals = dailyLoafTotals(orders, excludeOrderId);
   const booked = key ? totals.get(key) || 0 : 0;
   const nextDayBooked = key ? totals.get(shiftDateKey(key, 1)) || 0 : 0;
-  const remaining = Math.max(0, MAX_DAILY_LOAVES - booked);
-  const feedReserved = nextDayBooked >= MAX_DAILY_LOAVES;
-  const full = booked >= MAX_DAILY_LOAVES;
+  const remaining = Math.max(0, dailyMaximum - booked);
+  const feedReserved = nextDayBooked >= dailyMaximum;
+  const full = booked >= dailyMaximum;
   return {
     key,
     booked,
     remaining,
+    maximum: dailyMaximum,
     full,
     feedReserved,
     canFit: Boolean(key) && !full && !feedReserved && requestedLoaves <= remaining,

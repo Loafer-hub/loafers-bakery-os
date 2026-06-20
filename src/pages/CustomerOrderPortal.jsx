@@ -25,6 +25,7 @@ import {
   signUpCustomer,
   submitPublicOrder,
 } from "../lib/cloud";
+import { normalizedBakerySettings } from "../lib/bakerySettings";
 import {
   isPickupTimeAllowed,
   pickupDateTimeIso,
@@ -66,7 +67,12 @@ function productSalesOptions(product) {
   }];
 }
 
-export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slug }) {
+export default function CustomerOrderPortal({
+  bakerySettings,
+  cloudAccount,
+  fallbackRecipes,
+  slug,
+}) {
   const [storefront, setStorefront] = useState(null);
   const [loading, setLoading] = useState(cloudAccount.configured);
   const [error, setError] = useState("");
@@ -101,6 +107,7 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
           pickup_location: DEFAULT_PICKUP_LOCATION,
           payment_methods: DEFAULT_PAYMENT_METHODS,
         },
+        settings: normalizedBakerySettings(bakerySettings),
         products: fallbackRecipes.map((recipe, index) => ({
           id: `preview-${recipe.id}`,
           recipe_id: recipe.id,
@@ -151,7 +158,7 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
     return () => {
       active = false;
     };
-  }, [cloudAccount.configured, fallbackRecipes, slug]);
+  }, [bakerySettings, cloudAccount.configured, fallbackRecipes, slug]);
 
   useEffect(() => {
     const email = cloudAccount.session?.user?.email;
@@ -179,6 +186,7 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
       })),
   ], [quantities, storefront]);
   const total = selectedItems.reduce((sum, item) => sum + item.price_cents * item.quantity, 0);
+  const rules = normalizedBakerySettings(storefront?.settings || bakerySettings);
   const packageCount = selectedItems.reduce((sum, item) => sum + item.quantity, 0);
   const itemCount = selectedItems.reduce((sum, item) => (
     sum + item.quantity * Number(item.saleOption?.units || 1)
@@ -189,15 +197,15 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
   const shelfLoafCount = selectedItems
     .filter((item) => item.itemType === "shelf")
     .reduce((sum, item) => sum + item.quantity, 0);
-  const pickupOptions = pickupTimeOptions(form.pickupDate);
+  const pickupOptions = pickupTimeOptions(form.pickupDate, rules);
   const trackedCode = new URLSearchParams(window.location.search).get("track") || "";
 
   function changeQuantity(item, change) {
     const quantityKey = item.quantityKey || `${item.itemType}-${item.id}`;
     const currentQuantity = Number(quantities[quantityKey] || 0);
     const capacityChange = Number(item.saleOption?.capacity_units || 1);
-    if (item.itemType === "product" && change > 0 && bakeLoafCount + capacityChange > 6) {
-      setError("That package would exceed the six-slot daily bake capacity.");
+    if (item.itemType === "product" && change > 0 && bakeLoafCount + capacityChange > rules.dailyCapacity) {
+      setError(`That package would exceed the ${rules.dailyCapacity}-slot daily bake capacity.`);
       return;
     }
     const maximum = item.itemType === "shelf" ? Number(item.quantity || 0) : 6;
@@ -250,8 +258,8 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
       setError("Choose an available pickup date.");
       return;
     }
-    if (!isPickupTimeAllowed(form.pickupDate, form.pickupTime)) {
-      setError(`Choose a pickup time between ${pickupHoursLabel(form.pickupDate)}.`);
+    if (!isPickupTimeAllowed(form.pickupDate, form.pickupTime, rules)) {
+      setError(`Choose a pickup time between ${pickupHoursLabel(form.pickupDate, rules)}.`);
       return;
     }
     if (selectedCapacity && bakeLoafCount > selectedCapacity.remaining) {
@@ -277,8 +285,8 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
         allergies: form.allergies.trim(),
         notes: form.notes.trim(),
         notifications: {
-          email: Boolean(form.notifyEmail && form.email.trim()),
-          sms: Boolean(form.notifySms && form.phone.trim()),
+          email: Boolean(rules.emailNotifications && form.notifyEmail && form.email.trim()),
+          sms: Boolean(rules.smsNotifications && form.notifySms && form.phone.trim()),
         },
       });
       setSuccess(result);
@@ -314,11 +322,37 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
         <aside className="success-payment-detail"><small>{form.paymentMethod}</small><strong>{PAYMENT_DETAILS[form.paymentMethod]}</strong></aside>
         <CustomerOrderLookup
           configured={cloudAccount.configured}
+          feedbackEnabled={rules.feedbackEnabled}
           initialCode={success.request_code}
           initialContact={form.email.trim() || form.phone.trim()}
           slug={slug}
         />
         <button className="primary-button" type="button" onClick={() => setSuccess(null)}>Make another request</button>
+      </main>
+    );
+  }
+
+  if (!rules.onlineOrdering) {
+    return (
+      <main className="customer-portal customer-ordering-paused">
+        <header className="customer-header">
+          <div className="brand-lockup"><span className="brand-mark"><Wheat size={23} /></span><span className="brand-name">{storefront.bakery.name}</span></div>
+        </header>
+        <section className="customer-hero">
+          <span className="eyebrow-label dark">Small-batch sourdough</span>
+          <h1>Online ordering is paused.</h1>
+          <p>The baker is not accepting new requests right now. Existing customers can still track an order below.</p>
+          <div className="customer-fulfillment-strip">
+            <span><Store size={17} /><span><small>Pickup</small><strong>{rules.pickupLocation}</strong></span></span>
+          </div>
+        </section>
+        <CustomerOrderLookup
+          configured={cloudAccount.configured}
+          feedbackEnabled={rules.feedbackEnabled}
+          initialCode={trackedCode}
+          initialContact={form.email}
+          slug={slug}
+        />
       </main>
     );
   }
@@ -359,11 +393,11 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
         <div className="customer-fulfillment-strip">
           <span><Store size={17} /><span><small>Pickup</small><strong>{storefront.bakery.pickup_location || DEFAULT_PICKUP_LOCATION}</strong></span></span>
           <span><Banknote size={17} /><span><small>Payment</small><strong>{(storefront.bakery.payment_methods || DEFAULT_PAYMENT_METHODS).join(", ")}</strong></span></span>
-          <span><Clock3 size={17} /><span><small>Pickup hours</small><strong>Weekdays 7–8:30 AM & 5–8 PM · Weekends 1–4:30 PM</strong></span></span>
+          <span><Clock3 size={17} /><span><small>Pickup hours</small><strong>Weekdays {pickupHoursLabel("2026-06-22", rules)} · Weekends {pickupHoursLabel("2026-06-21", rules)}</strong></span></span>
         </div>
       </section>
 
-      {(storefront.reviews || []).length ? (
+      {rules.reviewsVisible && (storefront.reviews || []).length ? (
         <section className="customer-reviews" aria-label="Customer reviews">
           <div className="customer-section-heading"><div><h2>From the bread table</h2><p>Recent reviews from verified Loafers orders.</p></div></div>
           <div className="customer-review-list">
@@ -382,13 +416,14 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
 
       <CustomerOrderLookup
         configured={cloudAccount.configured}
+        feedbackEnabled={rules.feedbackEnabled}
         initialCode={trackedCode}
         initialContact={form.email}
         slug={slug}
       />
 
       <form onSubmit={submitOrder}>
-        {(storefront.shelf || []).length ? (
+        {rules.readyShelfEnabled && (storefront.shelf || []).length ? (
           <section className="customer-ready-shelf">
             <div className="customer-section-heading">
               <div><h2>Ready-to-go shelf</h2><p>Already baked and available while the quantity lasts. Shelf loaves do not use future bake capacity.</p></div>
@@ -448,13 +483,14 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
               shelfOnly={shelfLoafCount > 0 && bakeLoafCount === 0}
               selectedDate={form.pickupDate}
               slug={slug}
+              settings={rules}
               onSelectDate={(pickupDate, capacity) => {
-                const nextOptions = pickupTimeOptions(pickupDate);
+                const nextOptions = pickupTimeOptions(pickupDate, rules);
                 setSelectedCapacity(capacity);
                 setForm((current) => ({
                   ...current,
                   pickupDate,
-                  pickupTime: isPickupTimeAllowed(pickupDate, current.pickupTime)
+                  pickupTime: isPickupTimeAllowed(pickupDate, current.pickupTime, rules)
                     ? current.pickupTime
                     : nextOptions[0]?.value || "",
                 }));
@@ -468,7 +504,7 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
                 {pickupOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
               </select>
             </label>
-            {form.pickupDate ? <p className="pickup-hours-note"><Clock3 size={14} /> Pickup hours for this day: {pickupHoursLabel(form.pickupDate)}</p> : null}
+            {form.pickupDate ? <p className="pickup-hours-note"><Clock3 size={14} /> Pickup hours for this day: {pickupHoursLabel(form.pickupDate, rules)}</p> : null}
             <fieldset className="payment-choice">
               <legend>How would you like to pay?</legend>
               <div>
@@ -496,12 +532,12 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
             <label>Request notes<textarea value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} placeholder="Scoring preference, timing, or anything else the baker should know." /></label>
             <fieldset className="notification-preferences">
               <legend>Order status notifications</legend>
-              <label className={!form.email.trim() ? "disabled" : ""}>
-                <input type="checkbox" disabled={!form.email.trim()} checked={form.notifyEmail && Boolean(form.email.trim())} onChange={(event) => setForm({ ...form, notifyEmail: event.target.checked })} />
+              <label className={!rules.emailNotifications || !form.email.trim() ? "disabled" : ""}>
+                <input type="checkbox" disabled={!rules.emailNotifications || !form.email.trim()} checked={rules.emailNotifications && form.notifyEmail && Boolean(form.email.trim())} onChange={(event) => setForm({ ...form, notifyEmail: event.target.checked })} />
                 <span><strong>Email updates</strong><small>Order acceptance, bake progress, comments, and pickup readiness.</small></span>
               </label>
-              <label className={!form.phone.trim() ? "disabled" : ""}>
-                <input type="checkbox" disabled={!form.phone.trim()} checked={form.notifySms && Boolean(form.phone.trim())} onChange={(event) => setForm({ ...form, notifySms: event.target.checked })} />
+              <label className={!rules.smsNotifications || !form.phone.trim() ? "disabled" : ""}>
+                <input type="checkbox" disabled={!rules.smsNotifications || !form.phone.trim()} checked={rules.smsNotifications && form.notifySms && Boolean(form.phone.trim())} onChange={(event) => setForm({ ...form, notifySms: event.target.checked })} />
                 <span><strong>Text updates</strong><small>Message and data rates may apply. You can ask the baker to stop updates at any time.</small></span>
               </label>
             </fieldset>
