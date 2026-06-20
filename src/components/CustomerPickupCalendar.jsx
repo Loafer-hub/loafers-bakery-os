@@ -90,7 +90,7 @@ export function CustomerPickupCalendar({
     <section className="customer-pickup-calendar" aria-label="Choose an available pickup date">
       <div className="customer-calendar-heading">
         <button type="button" onClick={() => setMonth((current) => new Date(current.getFullYear(), current.getMonth() - 1, 1))} aria-label="Previous pickup month"><ChevronLeft size={18} /></button>
-        <span><strong>{month.toLocaleDateString("en-US", { month: "long", year: "numeric" })}</strong><small>{loading ? "Checking capacity…" : "Six-loaf daily limit"}</small></span>
+        <span><strong>{month.toLocaleDateString("en-US", { month: "long", year: "numeric" })}</strong><small>{loading ? "Checking capacity…" : "Six-slot daily bake limit"}</small></span>
         <button type="button" onClick={() => setMonth((current) => new Date(current.getFullYear(), current.getMonth() + 1, 1))} aria-label="Next pickup month"><ChevronRight size={18} /></button>
       </div>
       <div className="customer-calendar-weekdays" aria-hidden="true">
@@ -155,7 +155,7 @@ export function CustomerPickupCalendar({
       </div>
       <div className="customer-capacity-legend">
         <span><i className="open" />Open</span>
-        <span><i className="full" />Six loaves booked</span>
+        <span><i className="full" />Six bake slots booked</span>
         <span><i className="feed" />Reserved for starter feed</span>
         <span><i className="unavailable" />Baker unavailable</span>
       </div>

@@ -33,6 +33,7 @@ import {
   shelfAgeLabel,
 } from "../lib/pickupHours";
 import { estimateRecipeNutrition } from "../lib/nutrition";
+import { pluralUnit } from "../lib/salesOptions";
 
 const DEFAULT_PICKUP_LOCATION = "Three Bears, Delta Junction, AK";
 const DEFAULT_PAYMENT_METHODS = ["Venmo", "Zelle", "Cash"];
@@ -46,12 +47,32 @@ function dollars(cents) {
   return `$${(Number(cents || 0) / 100).toFixed(2)}`;
 }
 
+function productSalesOptions(product) {
+  if (Array.isArray(product.sales_options) && product.sales_options.length) {
+    return product.sales_options.map((option, index) => ({
+      id: String(option.id || `option-${index + 1}`),
+      label: option.label || `Option ${index + 1}`,
+      units: Math.max(0.5, Number(option.units || 1)),
+      price_cents: Math.max(0, Number(option.price_cents ?? product.price_cents ?? 0)),
+      capacity_units: Math.max(1, Math.min(6, Number(option.capacity_units || 1))),
+    }));
+  }
+  return [{
+    id: "default",
+    label: "Loaf",
+    units: 1,
+    price_cents: Number(product.price_cents || 0),
+    capacity_units: 1,
+  }];
+}
+
 export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slug }) {
   const [storefront, setStorefront] = useState(null);
   const [loading, setLoading] = useState(cloudAccount.configured);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(null);
   const [quantities, setQuantities] = useState({});
+  const [selectedOptions, setSelectedOptions] = useState({});
   const [accountOpen, setAccountOpen] = useState(false);
   const [accountMode, setAccountMode] = useState("signin");
   const [accountForm, setAccountForm] = useState({ name: "", email: "", password: "" });
@@ -64,6 +85,8 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
     pickupDate: "",
     pickupTime: "07:00",
     paymentMethod: "Venmo",
+    notifyEmail: true,
+    notifySms: false,
     allergies: "",
     notes: "",
   });
@@ -86,9 +109,23 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
           price_cents: Math.round(Number(recipe.price || 0) * 100),
           recipe_details: {
             yield: recipe.yield,
+            unitName: recipe.unitName || "loaf",
             hydration: recipe.hydration,
             ingredients: recipe.ingredients,
           },
+          sales_options: (recipe.salesOptions || [{
+            id: "default",
+            label: "Loaf",
+            units: 1,
+            price: recipe.price,
+            capacityUnits: 1,
+          }]).map((option) => ({
+            id: option.id,
+            label: option.label,
+            units: option.units,
+            price_cents: Math.round(Number(option.price || 0) * 100),
+            capacity_units: option.capacityUnits || 1,
+          })),
           sort_order: index,
         })),
         shelf: [],
@@ -122,14 +159,16 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
   }, [cloudAccount.session?.user?.email]);
 
   const selectedItems = useMemo(() => [
-    ...(storefront?.products || [])
-      .filter((product) => Number(quantities[`product-${product.id}`] || 0) > 0)
-      .map((product) => ({
+    ...(storefront?.products || []).flatMap((product) => productSalesOptions(product)
+      .filter((option) => Number(quantities[`product-${product.id}-${option.id}`] || 0) > 0)
+      .map((option) => ({
         ...product,
         itemType: "product",
-        quantityKey: `product-${product.id}`,
-        quantity: Number(quantities[`product-${product.id}`]),
-      })),
+        saleOption: option,
+        quantityKey: `product-${product.id}-${option.id}`,
+        quantity: Number(quantities[`product-${product.id}-${option.id}`]),
+        price_cents: option.price_cents,
+      }))),
     ...(storefront?.shelf || [])
       .filter((item) => Number(quantities[`shelf-${item.id}`] || 0) > 0)
       .map((item) => ({
@@ -140,10 +179,13 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
       })),
   ], [quantities, storefront]);
   const total = selectedItems.reduce((sum, item) => sum + item.price_cents * item.quantity, 0);
-  const loafCount = selectedItems.reduce((sum, item) => sum + item.quantity, 0);
+  const packageCount = selectedItems.reduce((sum, item) => sum + item.quantity, 0);
+  const itemCount = selectedItems.reduce((sum, item) => (
+    sum + item.quantity * Number(item.saleOption?.units || 1)
+  ), 0);
   const bakeLoafCount = selectedItems
     .filter((item) => item.itemType === "product")
-    .reduce((sum, item) => sum + item.quantity, 0);
+    .reduce((sum, item) => sum + item.quantity * Number(item.saleOption?.capacity_units || 1), 0);
   const shelfLoafCount = selectedItems
     .filter((item) => item.itemType === "shelf")
     .reduce((sum, item) => sum + item.quantity, 0);
@@ -151,10 +193,11 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
   const trackedCode = new URLSearchParams(window.location.search).get("track") || "";
 
   function changeQuantity(item, change) {
-    const quantityKey = `${item.itemType}-${item.id}`;
+    const quantityKey = item.quantityKey || `${item.itemType}-${item.id}`;
     const currentQuantity = Number(quantities[quantityKey] || 0);
-    if (item.itemType === "product" && change > 0 && bakeLoafCount >= 6) {
-      setError("A future bake request can include no more than six loaves.");
+    const capacityChange = Number(item.saleOption?.capacity_units || 1);
+    if (item.itemType === "product" && change > 0 && bakeLoafCount + capacityChange > 6) {
+      setError("That package would exceed the six-slot daily bake capacity.");
       return;
     }
     const maximum = item.itemType === "shelf" ? Number(item.quantity || 0) : 6;
@@ -212,7 +255,7 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
       return;
     }
     if (selectedCapacity && bakeLoafCount > selectedCapacity.remaining) {
-      setError(`Only ${selectedCapacity.remaining} loaf${selectedCapacity.remaining === 1 ? "" : "s"} remain for that pickup day.`);
+      setError(`Only ${selectedCapacity.remaining} bake slot${selectedCapacity.remaining === 1 ? "" : "s"} remain for that pickup day.`);
       return;
     }
     try {
@@ -224,13 +267,19 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
           phone: form.phone.trim(),
         },
         items: selectedItems.map((item) => ({
-          ...(item.itemType === "shelf" ? { shelf_item_id: item.id } : { product_id: item.id }),
+          ...(item.itemType === "shelf"
+            ? { shelf_item_id: item.id }
+            : { product_id: item.id, sale_option_id: item.saleOption.id }),
           quantity: item.quantity,
         })),
         pickupAt: pickupDateTimeIso(form.pickupDate, form.pickupTime),
         paymentMethod: form.paymentMethod,
         allergies: form.allergies.trim(),
         notes: form.notes.trim(),
+        notifications: {
+          email: Boolean(form.notifyEmail && form.email.trim()),
+          sms: Boolean(form.notifySms && form.phone.trim()),
+        },
       });
       setSuccess(result);
       setQuantities({});
@@ -372,19 +421,15 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
           <div className="customer-section-heading"><div><h2>Choose your loaves</h2><p>Requests are confirmed by the baker before they become final orders.</p></div></div>
           <div className="customer-product-list">
             {storefront.products.map((product) => (
-              <article className={quantities[`product-${product.id}`] ? "customer-product selected" : "customer-product"} key={product.id}>
-                <button className="customer-product-info" type="button" onClick={() => setSelectedProduct(product)} aria-label={`View details for ${product.name}`}>
-                  <span><Info size={13} /> View recipe details</span>
-                  <h3>{product.name}</h3>
-                  <p>{product.description}</p>
-                  <strong>{dollars(product.price_cents)}</strong>
-                </button>
-                <div className="customer-quantity">
-                  <button type="button" aria-label={`Remove one ${product.name}`} onClick={() => changeQuantity({ ...product, itemType: "product" }, -1)}><Minus size={15} /></button>
-                  <span>{quantities[`product-${product.id}`] || 0}</span>
-                  <button type="button" aria-label={`Add one ${product.name}`} onClick={() => changeQuantity({ ...product, itemType: "product" }, 1)}><Plus size={15} /></button>
-                </div>
-              </article>
+              <CustomerProductCard
+                key={product.id}
+                product={product}
+                quantities={quantities}
+                selectedOptionId={selectedOptions[product.id]}
+                onChangeOption={(optionId) => setSelectedOptions((current) => ({ ...current, [product.id]: optionId }))}
+                onChangeQuantity={changeQuantity}
+                onShowDetails={() => setSelectedProduct(product)}
+              />
             ))}
           </div>
         </section>
@@ -449,11 +494,22 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
             <label>Allergies or food sensitivities<textarea value={form.allergies} onChange={(event) => setForm({ ...form, allergies: event.target.value })} placeholder="List allergies, sensitivities, or write “None.” The baker will confirm before accepting." /></label>
             <aside className="allergy-warning"><strong>Home bakery notice</strong><span>Loafers handles wheat and may handle dairy, seeds, and other allergens. An allergy note is a request for review, not a guarantee against cross-contact.</span></aside>
             <label>Request notes<textarea value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} placeholder="Scoring preference, timing, or anything else the baker should know." /></label>
+            <fieldset className="notification-preferences">
+              <legend>Order status notifications</legend>
+              <label className={!form.email.trim() ? "disabled" : ""}>
+                <input type="checkbox" disabled={!form.email.trim()} checked={form.notifyEmail && Boolean(form.email.trim())} onChange={(event) => setForm({ ...form, notifyEmail: event.target.checked })} />
+                <span><strong>Email updates</strong><small>Order acceptance, bake progress, comments, and pickup readiness.</small></span>
+              </label>
+              <label className={!form.phone.trim() ? "disabled" : ""}>
+                <input type="checkbox" disabled={!form.phone.trim()} checked={form.notifySms && Boolean(form.phone.trim())} onChange={(event) => setForm({ ...form, notifySms: event.target.checked })} />
+                <span><strong>Text updates</strong><small>Message and data rates may apply. You can ask the baker to stop updates at any time.</small></span>
+              </label>
+            </fieldset>
           </div>
         </section>
 
         <footer className="customer-order-footer">
-          <div><ShoppingBag size={18} /><span><strong>{loafCount} {loafCount === 1 ? "loaf" : "loaves"}</strong><small>Estimated total {dollars(total)}</small></span></div>
+          <div><ShoppingBag size={18} /><span><strong>{packageCount} {packageCount === 1 ? "package" : "packages"} · {itemCount} {itemCount === 1 ? "item" : "items"}</strong><small>Estimated total {dollars(total)}</small></span></div>
           <button className="primary-button" type="submit">Send request</button>
         </footer>
         {error ? <p className="form-error customer-form-error" role="alert">{error}</p> : null}
@@ -464,10 +520,62 @@ export default function CustomerOrderPortal({ cloudAccount, fallbackRecipes, slu
   );
 }
 
+function CustomerProductCard({
+  onChangeOption,
+  onChangeQuantity,
+  onShowDetails,
+  product,
+  quantities,
+  selectedOptionId,
+}) {
+  const options = productSalesOptions(product);
+  const selectedOption = options.find((option) => option.id === selectedOptionId) || options[0];
+  const quantityKey = `product-${product.id}-${selectedOption.id}`;
+  const selected = options.some((option) => Number(quantities[`product-${product.id}-${option.id}`] || 0) > 0);
+  const unitName = product.recipe_details?.unitName || "item";
+  const unitsLabel = pluralUnit(unitName, selectedOption.units);
+  return (
+    <article className={selected ? "customer-product selected" : "customer-product"}>
+      <div className="customer-product-main">
+        <button className="customer-product-info" type="button" onClick={onShowDetails} aria-label={`View details for ${product.name}`}>
+          <span><Info size={13} /> View recipe details</span>
+          <h3>{product.name}</h3>
+          <p>{product.description}</p>
+        </button>
+        <label className="customer-package-choice">
+          Package
+          <select value={selectedOption.id} onChange={(event) => onChangeOption(event.target.value)}>
+            {options.map((option) => <option key={option.id} value={option.id}>{option.label} · {option.units} {pluralUnit(unitName, option.units)} · {dollars(option.price_cents)}</option>)}
+          </select>
+        </label>
+        <span className="customer-package-price"><strong>{dollars(selectedOption.price_cents)}</strong><small>{selectedOption.label} · {selectedOption.units} {unitsLabel}</small></span>
+      </div>
+      <div className="customer-quantity">
+        <button type="button" aria-label={`Remove one ${selectedOption.label} of ${product.name}`} onClick={() => onChangeQuantity({
+          ...product,
+          itemType: "product",
+          saleOption: selectedOption,
+          quantityKey,
+        }, -1)}><Minus size={15} /></button>
+        <span>{quantities[quantityKey] || 0}</span>
+        <button type="button" aria-label={`Add one ${selectedOption.label} of ${product.name}`} onClick={() => onChangeQuantity({
+          ...product,
+          itemType: "product",
+          saleOption: selectedOption,
+          quantityKey,
+        }, 1)}><Plus size={15} /></button>
+      </div>
+    </article>
+  );
+}
+
 function CustomerRecipeDetails({ product, onClose }) {
   const details = product.recipe_details || {};
   const ingredients = Array.isArray(details.ingredients) ? details.ingredients : [];
   const baseYield = Math.max(1, Number(details.yield || 1));
+  const unitName = details.unitName || "item";
+  const loafStyle = unitName.toLowerCase().includes("loaf");
+  const salesOptions = productSalesOptions(product);
   const nutrition = ingredients.length ? estimateRecipeNutrition({
     yield: baseYield,
     ingredients,
@@ -477,11 +585,20 @@ function CustomerRecipeDetails({ product, onClose }) {
     <Modal title={product.name} onClose={onClose}>
       <div className="customer-recipe-detail">
         <div className="customer-recipe-summary">
-          <span><small>Price</small><strong>{dollars(product.price_cents)} / loaf</strong></span>
+          <span><small>Starting price</small><strong>{dollars(Math.min(...salesOptions.map((option) => option.price_cents)))}</strong></span>
           <span><small>Hydration</small><strong>{Number(details.hydration || 0).toFixed(0)}%</strong></span>
           <span><small>Published formula</small><strong>{baseYield}-loaf batch</strong></span>
         </div>
         <p>{product.description || "Small-batch naturally leavened bread."}</p>
+        <div className="customer-recipe-heading"><h3>Package sizes</h3><small>Choose on the order card</small></div>
+        <div className="customer-recipe-packages">
+          {salesOptions.map((option) => (
+            <div key={option.id}>
+              <span><strong>{option.label}</strong><small>{option.units} {pluralUnit(unitName, option.units)} · {option.capacity_units} bake slot{option.capacity_units === 1 ? "" : "s"}</small></span>
+              <strong>{dollars(option.price_cents)}</strong>
+            </div>
+          ))}
+        </div>
 
         {ingredients.length ? (
           <>
@@ -497,7 +614,7 @@ function CustomerRecipeDetails({ product, onClose }) {
               ))}
             </div>
 
-            <div className="customer-recipe-heading"><h3>Estimated nutrition</h3><small>Per loaf · per 1/12 loaf slice</small></div>
+            <div className="customer-recipe-heading"><h3>Estimated nutrition</h3><small>{loafStyle ? "Per loaf · per 1/12 loaf slice" : `Per ${unitName}`}</small></div>
             <div className="customer-nutrition-grid">
               {[
                 ["Calories", "calories", ""],
@@ -510,11 +627,11 @@ function CustomerRecipeDetails({ product, onClose }) {
                 <div key={key}>
                   <span>{label}</span>
                   <strong>{nutrition.perLoaf[key]}{unit}</strong>
-                  <small>{nutrition.perSlice[key]}{unit} / slice</small>
+                  {loafStyle ? <small>{nutrition.perSlice[key]}{unit} / slice</small> : <small>per {unitName}</small>}
                 </div>
               ))}
             </div>
-            <p className="nutrition-disclaimer">Nutrition is an estimate based on standard ingredient averages, a 100%-hydration starter, and 12 slices per loaf. Flour brands, ingredient brands, fermentation, moisture loss, and slice size change the final values.</p>
+            <p className="nutrition-disclaimer">Nutrition is an estimate based on standard ingredient averages and a 100%-hydration starter{loafStyle ? ", with 12 slices per loaf" : ""}. Ingredient brands, fermentation, moisture loss, and serving size change the final values.</p>
           </>
         ) : (
           <p className="customer-formula-unavailable">The baker has not republished this recipe’s full formula yet.</p>

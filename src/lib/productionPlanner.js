@@ -49,7 +49,8 @@ function parsedProductLines(order, recipes) {
   if (Array.isArray(order.items) && order.items.length) {
     return order.items.map((item) => ({
       name: item.product_name || item.name,
-      quantity: Math.max(1, Number(item.quantity || 1)),
+      quantity: Math.max(0.5, Number(item.quantity || 1) * Number(item.units_per_pack || 1)),
+      packages: Math.max(1, Number(item.quantity || 1)),
     }));
   }
 
@@ -57,16 +58,16 @@ function parsedProductLines(order, recipes) {
     normalizedName(order.product).includes(normalizedName(recipe.name))
   ));
   if (matchingRecipes.length === 1) {
-    return [{ name: matchingRecipes[0].name, quantity: Math.max(1, Number(order.quantity || 1)) }];
+    return [{ name: matchingRecipes[0].name, quantity: Math.max(1, Number(order.totalUnits || order.quantity || 1)), packages: Math.max(1, Number(order.packageCount || 1)) }];
   }
   if (matchingRecipes.length > 1) {
     return matchingRecipes.map((recipe) => {
       const escaped = recipe.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       const quantityMatch = String(order.product).match(new RegExp(`${escaped}\\s*[×x]\\s*(\\d+)`, "i"));
-      return { name: recipe.name, quantity: Number(quantityMatch?.[1] || 1) };
+      return { name: recipe.name, quantity: Number(quantityMatch?.[1] || 1), packages: Number(quantityMatch?.[1] || 1) };
     });
   }
-  return [{ name: order.product, quantity: Math.max(1, Number(order.quantity || 1)) }];
+  return [{ name: order.product, quantity: Math.max(1, Number(order.totalUnits || order.quantity || 1)), packages: Math.max(1, Number(order.packageCount || 1)) }];
 }
 
 export function orderProductionLines(order, recipes) {
@@ -117,11 +118,13 @@ function buildBatches(orders, recipes, starter, starterLogs, settings) {
       recipe: line.recipe,
       recipeName: line.recipe?.name || line.name,
       loaves: 0,
+      packages: 0,
       customers: [],
       orderIds: [],
       unmatched: !line.recipe,
     };
     current.loaves += line.quantity;
+    current.packages += Number(line.packages || 1);
     current.customers.push(`${line.customer} (${line.quantity})`);
     current.orderIds.push(line.orderId);
     if (new Date(line.pickupAt) < new Date(current.pickupAt)) current.pickupAt = line.pickupAt;
@@ -214,7 +217,8 @@ export function buildProductionPlanner({
   const batches = buildBatches(orders, recipes, starter, starterLogs, resolvedSettings);
   const requirements = ingredientRequirements(batches);
   const totalLoaves = batches.reduce((sum, batch) => sum + batch.loaves, 0);
-  const stock = inventoryStatus(requirements, inventory, totalLoaves, resolvedSettings.includePackaging);
+  const totalPackages = batches.reduce((sum, batch) => sum + batch.packages, 0);
+  const stock = inventoryStatus(requirements, inventory, totalPackages, resolvedSettings.includePackaging);
   const calendarPlans = batches.flatMap((batch) => {
     if (!batch.schedule || !batch.recipe || !starter) return [];
     return [{
@@ -243,6 +247,7 @@ export function buildProductionPlanner({
     stock,
     calendarPlans,
     totalLoaves,
+    totalPackages,
     shortages: stock.filter((row) => row.shortage),
     unmatched: batches.filter((batch) => batch.unmatched),
   };
@@ -284,7 +289,9 @@ export function deductInventoryForOrder(order, recipes, inventory, settings) {
     const bagIndex = nextInventory.findIndex((item) => normalizedName(item.name).includes("paper bag"));
     if (bagIndex >= 0) {
       const bags = nextInventory[bagIndex];
-      const needed = Math.max(1, Number(order.quantity || 1));
+      const needed = Array.isArray(order.items) && order.items.length
+        ? order.items.reduce((sum, item) => sum + Number(item.quantity || 0), 0)
+        : Math.max(1, Number(order.packageCount || order.quantity || 1));
       const before = Number(bags.amount || 0);
       nextInventory[bagIndex] = { ...bags, amount: Math.max(0, before - needed) };
       deductions.push({ itemId: bags.id, name: bags.name, amount: needed, unit: bags.unit });

@@ -1,4 +1,4 @@
-import { CalendarDays, CheckCircle2, List, MessageSquareText, Plus, Search, ShoppingBag, Trash2 } from "lucide-react";
+import { CalendarDays, CheckCircle2, List, Mail, MessageSquareText, Plus, Search, Send, ShoppingBag, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { PageHeading } from "../components/AppChrome";
 import { CloudOrderInbox } from "../components/CloudOrderInbox";
@@ -7,6 +7,9 @@ import { EmptyState, Modal, Status } from "../components/Primitives";
 import { downloadOrderCalendar } from "../lib/orderCalendarExport";
 import { MAX_DAILY_LOAVES, orderCapacityForDate } from "../lib/orderCapacity";
 import { BAKE_PHASES, normalizedBakeProgress } from "../lib/bakeProgress";
+import { emailNotificationHref, smsNotificationHref } from "../lib/customerNotifications";
+import { normalizedSalesOptions, pluralUnit } from "../lib/salesOptions";
+import { updateCustomerOrderNotificationPreferences } from "../lib/cloud";
 
 const filters = ["Pending", "Completed", "All"];
 
@@ -50,11 +53,11 @@ function localInputValue(value) {
   return new Date(date.getTime() - date.getTimezoneOffset() * 60 * 1000).toISOString().slice(0, 16);
 }
 
-function capacityError(status, requestedLoaves) {
+function capacityError(status, requestedSlots) {
   if (!status.key) return "Choose a pickup date and time.";
   if (status.feedReserved) return "That day is locked for feeding starter for the next full bake day.";
-  if (status.full) return "That pickup day already has six loaves booked.";
-  if (requestedLoaves > status.remaining) return `Only ${status.remaining} loaf${status.remaining === 1 ? "" : "s"} remain for that day.`;
+  if (status.full) return "That pickup day already has all six bake slots booked.";
+  if (requestedSlots > status.remaining) return `Only ${status.remaining} bake slot${status.remaining === 1 ? "" : "s"} remain for that day.`;
   return "";
 }
 
@@ -84,13 +87,25 @@ export default function OrdersPage({
   const [detailError, setDetailError] = useState("");
   const [completing, setCompleting] = useState(false);
   const [progressSaving, setProgressSaving] = useState("");
-  const [detailForm, setDetailForm] = useState({ status: "New", notes: "", pickupAt: "" });
+  const [detailForm, setDetailForm] = useState({
+    status: "New",
+    notes: "",
+    pickupAt: "",
+    customerEmail: "",
+    customerPhone: "",
+    notifyEmail: false,
+    notifySms: false,
+  });
   const [detailProgress, setDetailProgress] = useState(() => normalizedBakeProgress());
   const [form, setForm] = useState({
     customer: "",
     product: recipes[0]?.name || "",
-    quantity: 1,
-    total: 13,
+    saleOptionId: normalizedSalesOptions(recipes[0] || {})[0]?.id || "default",
+    packageCount: 1,
+    customerEmail: "",
+    customerPhone: "",
+    notifyEmail: false,
+    notifySms: false,
     pickupAt: defaultPickupInput(),
     status: "New",
   });
@@ -110,7 +125,12 @@ export default function OrdersPage({
   const bookedRevenue = orders.reduce((sum, order) => sum + order.total, 0);
   const sampleOrderCount = orders.filter(isSampleOrder).length;
   const selectedOrder = orders.find((order) => order.id === selectedOrderId);
-  const addCapacity = orderCapacityForDate(orders, form.pickupAt, form.quantity);
+  const formRecipe = recipes.find((recipe) => recipe.name === form.product) || recipes[0];
+  const formSaleOptions = normalizedSalesOptions(formRecipe || {});
+  const formSaleOption = formSaleOptions.find((option) => option.id === form.saleOptionId) || formSaleOptions[0];
+  const formCapacityUnits = Number(formSaleOption?.capacityUnits || 1) * Number(form.packageCount || 1);
+  const formTotal = Number(formSaleOption?.price || 0) * Number(form.packageCount || 1);
+  const addCapacity = orderCapacityForDate(orders, form.pickupAt, formCapacityUnits);
   const detailCapacity = selectedOrder
     ? orderCapacityForDate(orders, detailForm.pickupAt, selectedOrder.quantity, selectedOrder.id)
     : null;
@@ -121,6 +141,10 @@ export default function OrdersPage({
       status: selectedOrder.status,
       notes: selectedOrder.notes || "",
       pickupAt: localInputValue(selectedOrder.pickupAt || orderPickupDate(selectedOrder)),
+      customerEmail: selectedOrder.customerEmail || "",
+      customerPhone: selectedOrder.customerPhone || "",
+      notifyEmail: Boolean(selectedOrder.notifyEmail),
+      notifySms: Boolean(selectedOrder.notifySms),
     });
     setDetailProgress(normalizedBakeProgress(selectedOrder.bakeProgress));
     setConfirmDelete(false);
@@ -132,21 +156,36 @@ export default function OrdersPage({
     setForm((current) => ({
       ...current,
       product: recipes[0].name,
-      total: Number(recipes[0].price || current.total),
+      saleOptionId: normalizedSalesOptions(recipes[0])[0].id,
     }));
   }, [form.product, recipes]);
 
   function submitOrder(event) {
     event.preventDefault();
     if (!form.customer.trim()) return;
-    const nextCapacity = orderCapacityForDate(orders, form.pickupAt, form.quantity);
-    const nextError = capacityError(nextCapacity, form.quantity);
+    const selectedRecipe = formRecipe;
+    const selectedOption = formSaleOption;
+    const nextCapacity = orderCapacityForDate(orders, form.pickupAt, formCapacityUnits);
+    const nextError = capacityError(nextCapacity, formCapacityUnits);
     if (nextError) {
       setAddError(nextError);
       return;
     }
     onAddOrder({
       ...form,
+      product: `${selectedRecipe.name} · ${selectedOption.label}`,
+      quantity: formCapacityUnits,
+      totalUnits: Number(selectedOption.units || 1) * Number(form.packageCount || 1),
+      itemSummary: `${form.packageCount} × ${selectedOption.label} ${selectedRecipe.name}`,
+      total: formTotal,
+      items: [{
+        product_name: selectedRecipe.name,
+        quantity: Number(form.packageCount || 1),
+        sale_option_id: selectedOption.id,
+        sale_option_label: selectedOption.label,
+        units_per_pack: selectedOption.units,
+        capacity_units: formCapacityUnits,
+      }],
       due: pickupDueLabel(form.pickupAt),
       pickupAt: form.pickupAt ? new Date(form.pickupAt).toISOString() : null,
     });
@@ -155,8 +194,12 @@ export default function OrdersPage({
     setForm({
       customer: "",
       product: recipes[0]?.name || "",
-      quantity: 1,
-      total: Number(recipes[0]?.price || 13),
+      saleOptionId: normalizedSalesOptions(recipes[0] || {})[0]?.id || "default",
+      packageCount: 1,
+      customerEmail: "",
+      customerPhone: "",
+      notifyEmail: false,
+      notifySms: false,
       pickupAt: defaultPickupInput(),
       status: "New",
     });
@@ -172,10 +215,17 @@ export default function OrdersPage({
     }
     const changes = {
       notes: detailForm.notes.trim(),
+      customerEmail: detailForm.customerEmail.trim(),
+      customerPhone: detailForm.customerPhone.trim(),
+      notifyEmail: Boolean(detailForm.notifyEmail && detailForm.customerEmail.trim()),
+      notifySms: Boolean(detailForm.notifySms && detailForm.customerPhone.trim()),
       pickupAt: detailForm.pickupAt ? new Date(detailForm.pickupAt).toISOString() : null,
       due: pickupDueLabel(detailForm.pickupAt),
     };
     try {
+      if (selectedOrder.cloudOrderId) {
+        await updateCustomerOrderNotificationPreferences(selectedOrder.cloudOrderId, changes);
+      }
       if (detailForm.status === "Completed" && selectedOrder.status !== "Completed") {
         await onCompleteOrder(selectedOrder.id, changes);
         setFilter("Completed");
@@ -211,8 +261,20 @@ export default function OrdersPage({
     setCompleting(true);
     setDetailError("");
     try {
+      if (selectedOrder.cloudOrderId) {
+        await updateCustomerOrderNotificationPreferences(selectedOrder.cloudOrderId, {
+          customerEmail: detailForm.customerEmail,
+          customerPhone: detailForm.customerPhone,
+          notifyEmail: detailForm.notifyEmail,
+          notifySms: detailForm.notifySms,
+        });
+      }
       await onCompleteOrder(selectedOrder.id, {
         notes: detailForm.notes.trim(),
+        customerEmail: detailForm.customerEmail.trim(),
+        customerPhone: detailForm.customerPhone.trim(),
+        notifyEmail: Boolean(detailForm.notifyEmail && detailForm.customerEmail.trim()),
+        notifySms: Boolean(detailForm.notifySms && detailForm.customerPhone.trim()),
         pickupAt: detailForm.pickupAt ? new Date(detailForm.pickupAt).toISOString() : null,
         due: pickupDueLabel(detailForm.pickupAt),
       });
@@ -319,7 +381,7 @@ export default function OrdersPage({
                 <h3>{order.customer}</h3>
                 <strong>${order.total}</strong>
               </div>
-              <p>{order.quantity} × {order.product}</p>
+              <p>{order.itemSummary || `${order.quantity} × ${order.product}`}</p>
               <div className="order-meta">
                 <span className="order-due">
                   {order.due}
@@ -354,7 +416,7 @@ export default function OrdersPage({
                 setForm({
                   ...form,
                   product: event.target.value,
-                  total: Number(selectedRecipe?.price || form.total) * Number(form.quantity || 1),
+                  saleOptionId: normalizedSalesOptions(selectedRecipe || {})[0]?.id || "default",
                 });
               }}>
                 {recipes.map((recipe) => <option key={recipe.id}>{recipe.name}</option>)}
@@ -362,32 +424,33 @@ export default function OrdersPage({
             </label>
             <div className="form-grid">
               <label>
-                Loaves
+                Package
+                <select value={form.saleOptionId} onChange={(event) => setForm({ ...form, saleOptionId: event.target.value })}>
+                  {formSaleOptions.map((option) => <option key={option.id} value={option.id}>{option.label} · {option.units} {pluralUnit(formRecipe?.unitName || "item", option.units)} · ${option.price.toFixed(2)}</option>)}
+                </select>
+              </label>
+              <label>
+                Packages
                 <input
                   type="number"
                   min="1"
-                  max={MAX_DAILY_LOAVES}
-                  value={form.quantity}
-                  onChange={(event) => {
-                    const quantity = Number(event.target.value);
-                    const selectedRecipe = recipes.find((recipe) => recipe.name === form.product);
-                    setForm({
-                      ...form,
-                      quantity,
-                      total: Number(selectedRecipe?.price || 0) * quantity,
-                    });
-                  }}
+                  max="24"
+                  value={form.packageCount}
+                  onChange={(event) => setForm({ ...form, packageCount: Number(event.target.value) })}
                 />
               </label>
-              <label>
-                Total
-                <input
-                  type="number"
-                  min="0"
-                  value={form.total}
-                  onChange={(event) => setForm({ ...form, total: Number(event.target.value) })}
-                />
-              </label>
+            </div>
+            <div className="order-package-summary">
+              <span><strong>{form.packageCount} × {formSaleOption?.label}</strong><small>{Number(formSaleOption?.units || 1) * Number(form.packageCount || 1)} total {pluralUnit(formRecipe?.unitName || "item", Number(formSaleOption?.units || 1) * Number(form.packageCount || 1))} · {formCapacityUnits} bake slot{formCapacityUnits === 1 ? "" : "s"}</small></span>
+              <strong>${formTotal.toFixed(2)}</strong>
+            </div>
+            <div className="form-grid">
+              <label>Email<input type="email" value={form.customerEmail} onChange={(event) => setForm({ ...form, customerEmail: event.target.value })} placeholder="Optional" /></label>
+              <label>Phone<input value={form.customerPhone} onChange={(event) => setForm({ ...form, customerPhone: event.target.value })} placeholder="Optional" /></label>
+            </div>
+            <div className="local-notification-options">
+              <label><input type="checkbox" disabled={!form.customerEmail.trim()} checked={form.notifyEmail && Boolean(form.customerEmail.trim())} onChange={(event) => setForm({ ...form, notifyEmail: event.target.checked })} /> Email status updates</label>
+              <label><input type="checkbox" disabled={!form.customerPhone.trim()} checked={form.notifySms && Boolean(form.customerPhone.trim())} onChange={(event) => setForm({ ...form, notifySms: event.target.checked })} /> Text status updates</label>
             </div>
             <div className="form-grid">
               <label>Pickup<input type="datetime-local" value={form.pickupAt} onChange={(event) => {
@@ -404,7 +467,7 @@ export default function OrdersPage({
               </label>
             </div>
             <div className={`order-capacity-note ${addCapacity.full || addCapacity.feedReserved ? "locked" : ""}`}>
-              <strong>{addCapacity.feedReserved ? "Starter-feed day locked" : `${addCapacity.booked} of ${MAX_DAILY_LOAVES} loaves booked`}</strong>
+              <strong>{addCapacity.feedReserved ? "Starter-feed day locked" : `${addCapacity.booked} of ${MAX_DAILY_LOAVES} bake slots booked`}</strong>
               <span>{addCapacity.feedReserved ? "Choose another pickup day." : `${addCapacity.remaining} remaining before this day closes.`}</span>
             </div>
             {addError ? <p className="form-error" role="alert">{addError}</p> : null}
@@ -418,9 +481,9 @@ export default function OrdersPage({
           <form className="form-stack" onSubmit={saveDetails}>
             <div className="order-detail-summary">
               <div><span>Bread</span><strong>{selectedOrder.product}</strong></div>
-              <div><span>Loaves</span><strong>{selectedOrder.quantity}</strong></div>
+              <div><span>Ordered</span><strong>{selectedOrder.itemSummary || `${selectedOrder.quantity} item${selectedOrder.quantity === 1 ? "" : "s"}`}</strong></div>
               <div><span>Total</span><strong>${selectedOrder.total}</strong></div>
-              <div><span>Due</span><strong>{selectedOrder.due}</strong></div>
+              <div><span>Bake capacity</span><strong>{selectedOrder.quantity} slot{selectedOrder.quantity === 1 ? "" : "s"}</strong></div>
             </div>
             <label>
               Pickup date and time
@@ -456,6 +519,40 @@ export default function OrdersPage({
                 placeholder="Pickup details, scoring request, allergies, payment reminder…"
               />
             </label>
+            <section className="order-notification-panel" aria-label="Customer status notifications">
+              <div className="section-title-line">
+                <div><strong>Customer notifications</strong><small>These buttons open your phone’s email or text app with the status message filled in. You still tap Send.</small></div>
+                <Send size={18} />
+              </div>
+              <div className="form-grid">
+                <label>Email<input type="email" value={detailForm.customerEmail} onChange={(event) => setDetailForm({ ...detailForm, customerEmail: event.target.value })} placeholder="Customer email" /></label>
+                <label>Phone<input value={detailForm.customerPhone} onChange={(event) => setDetailForm({ ...detailForm, customerPhone: event.target.value })} placeholder="Customer phone" /></label>
+              </div>
+              <div className="local-notification-options">
+                <label><input type="checkbox" disabled={!detailForm.customerEmail.trim()} checked={detailForm.notifyEmail && Boolean(detailForm.customerEmail.trim())} onChange={(event) => setDetailForm({ ...detailForm, notifyEmail: event.target.checked })} /> Email updates requested</label>
+                <label><input type="checkbox" disabled={!detailForm.customerPhone.trim()} checked={detailForm.notifySms && Boolean(detailForm.customerPhone.trim())} onChange={(event) => setDetailForm({ ...detailForm, notifySms: event.target.checked })} /> Text updates requested</label>
+              </div>
+              <div className="notification-action-grid">
+                <a
+                  className={!detailForm.notifyEmail || !detailForm.customerEmail.trim() ? "disabled" : ""}
+                  aria-disabled={!detailForm.notifyEmail || !detailForm.customerEmail.trim()}
+                  href={detailForm.notifyEmail && detailForm.customerEmail.trim() ? emailNotificationHref({
+                    ...selectedOrder,
+                    ...detailForm,
+                    customerEmail: detailForm.customerEmail.trim(),
+                  }, detailProgress) : undefined}
+                ><Mail size={16} /> Email status</a>
+                <a
+                  className={!detailForm.notifySms || !detailForm.customerPhone.trim() ? "disabled" : ""}
+                  aria-disabled={!detailForm.notifySms || !detailForm.customerPhone.trim()}
+                  href={detailForm.notifySms && detailForm.customerPhone.trim() ? smsNotificationHref({
+                    ...selectedOrder,
+                    ...detailForm,
+                    customerPhone: detailForm.customerPhone.trim(),
+                  }, detailProgress) : undefined}
+                ><MessageSquareText size={16} /> Text status</a>
+              </div>
+            </section>
             <section className="baker-progress-panel" aria-label="Customer-visible bake progress">
               <div><strong>Customer bake tracker</strong><small>Check each phase to update the customer’s order lookup.</small></div>
               <div className="baker-progress-grid">

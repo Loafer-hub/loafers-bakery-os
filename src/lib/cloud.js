@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { normalizedSalesOptions } from "./salesOptions";
 
 const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL || "").trim();
 const supabaseKey = (import.meta.env.VITE_SUPABASE_ANON_KEY || "").trim();
@@ -132,26 +133,37 @@ export async function downloadCloudSnapshot(bakeryId) {
 }
 
 export async function publishRecipeCatalog(bakeryId, recipes) {
-  const products = recipes.map((recipe, index) => ({
-    bakery_id: bakeryId,
-    recipe_id: String(recipe.id),
-    name: recipe.name,
-    description: recipe.note || "",
-    price_cents: Math.max(0, Math.round(Number(recipe.price || 0) * 100)),
-    recipe_details: {
-      yield: Math.max(1, Number(recipe.yield || 1)),
-      hydration: Number(recipe.hydration || 0),
-      ingredients: (recipe.ingredients || []).map((ingredient) => ({
-        name: ingredient.name,
-        weight: Number(ingredient.weight || 0),
-        percent: Number(ingredient.percent || 0),
-        category: ingredient.category || "",
-        flourType: ingredient.flourType || "",
+  const products = recipes.map((recipe, index) => {
+    const salesOptions = normalizedSalesOptions(recipe);
+    return {
+      bakery_id: bakeryId,
+      recipe_id: String(recipe.id),
+      name: recipe.name,
+      description: recipe.note || "",
+      price_cents: Math.min(...salesOptions.map((option) => Math.round(option.price * 100))),
+      sales_options: salesOptions.map((option) => ({
+        id: option.id,
+        label: option.label,
+        units: option.units,
+        price_cents: Math.round(option.price * 100),
+        capacity_units: option.capacityUnits,
       })),
-    },
-    active: true,
-    sort_order: index,
-  }));
+      recipe_details: {
+        yield: Math.max(1, Number(recipe.yield || 1)),
+        unitName: recipe.unitName || "loaf",
+        hydration: Number(recipe.hydration || 0),
+        ingredients: (recipe.ingredients || []).map((ingredient) => ({
+          name: ingredient.name,
+          weight: Number(ingredient.weight || 0),
+          percent: Number(ingredient.percent || 0),
+          category: ingredient.category || "",
+          flourType: ingredient.flourType || "",
+        })),
+      },
+      active: true,
+      sort_order: index,
+    };
+  });
 
   if (products.length) {
     const { error } = await requireClient()
@@ -195,7 +207,7 @@ export async function loadPublicStorefront(slug) {
   const [productsResult, shelfResult, reviewsResult] = await Promise.all([
     requireClient()
       .from("products")
-      .select("id, recipe_id, name, description, price_cents, recipe_details, sort_order")
+      .select("id, recipe_id, name, description, price_cents, sales_options, recipe_details, sort_order")
       .eq("bakery_id", bakery.id)
       .eq("active", true)
       .order("sort_order"),
@@ -270,6 +282,7 @@ export async function submitPublicOrder({
   paymentMethod,
   allergies,
   notes,
+  notifications,
 }) {
   const { data, error } = await requireClient().rpc("submit_public_order", {
     p_slug: slug,
@@ -279,6 +292,7 @@ export async function submitPublicOrder({
     p_payment_method: paymentMethod || "Cash",
     p_allergies: allergies || "",
     p_notes: notes || "",
+    p_notifications: notifications || {},
   });
   throwIfError(error);
   return data;
@@ -296,6 +310,8 @@ export async function listCustomerOrderRequests(bakeryId, status = "requested") 
       customer_name,
       customer_email,
       customer_phone,
+      notify_email,
+      notify_sms,
       payment_method,
       pickup_location,
       allergies,
@@ -303,7 +319,7 @@ export async function listCustomerOrderRequests(bakeryId, status = "requested") 
       baker_notes,
       bake_progress,
       created_at,
-      customer_order_items(id, product_name, unit_price_cents, quantity)
+      customer_order_items(id, product_name, unit_price_cents, quantity, sale_option_id, sale_option_label, units_per_pack, capacity_units)
     `)
     .eq("bakery_id", bakeryId)
     .eq("status", status)
@@ -363,6 +379,25 @@ export async function updateCustomerOrderBakeProgress(orderId, bakeProgress) {
     .from("customer_orders")
     .update({
       bake_progress: bakeProgress,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", orderId);
+  throwIfError(error);
+}
+
+export async function updateCustomerOrderNotificationPreferences(orderId, {
+  customerEmail,
+  customerPhone,
+  notifyEmail,
+  notifySms,
+}) {
+  const { error } = await requireClient()
+    .from("customer_orders")
+    .update({
+      customer_email: customerEmail.trim().toLowerCase(),
+      customer_phone: customerPhone.trim(),
+      notify_email: Boolean(notifyEmail && customerEmail.trim()),
+      notify_sms: Boolean(notifySms && customerPhone.trim()),
       updated_at: new Date().toISOString(),
     })
     .eq("id", orderId);

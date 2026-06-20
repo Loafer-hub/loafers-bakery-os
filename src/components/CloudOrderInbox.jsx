@@ -182,13 +182,19 @@ export function CloudOrderInbox({ cloudAccount, orders, onImportOrder }) {
                     <span><strong>{request.customer_name}</strong><small>{isRejected ? "Rejected" : "Request"} {request.request_code}</small></span>
                     <strong>${(request.subtotal_cents / 100).toFixed(2)}</strong>
                   </div>
-                  <p>{items.map((item) => `${item.quantity} × ${item.product_name}`).join(" · ")}</p>
+                  <p>{items.map((item) => `${item.quantity} × ${item.sale_option_label || item.product_name}${item.sale_option_label ? ` ${item.product_name}` : ""}`).join(" · ")}</p>
                   <dl>
                     <div><dt>Pickup</dt><dd>{pickupLabel(request.pickup_at)}</dd></div>
                     <div><dt>Contact</dt><dd>{request.customer_email || request.customer_phone}</dd></div>
                     <div><dt>Payment</dt><dd>{request.payment_method || "Arrange later"}</dd></div>
                     <div><dt>Location</dt><dd>{request.pickup_location || "Three Bears, Delta Junction, AK"}</dd></div>
                   </dl>
+                  {(request.notify_email || request.notify_sms) ? (
+                    <div className="cloud-notification-preferences">
+                      <strong>Status updates requested:</strong>
+                      <span>{[request.notify_email ? "Email" : "", request.notify_sms ? "Text" : ""].filter(Boolean).join(" + ")}</span>
+                    </div>
+                  ) : null}
                   {request.customer_notes ? <blockquote>{request.customer_notes}</blockquote> : null}
                   {request.allergies ? <div className="cloud-allergy-alert"><strong>Allergies</strong><span>{request.allergies}</span></div> : null}
                   {isRejected ? (

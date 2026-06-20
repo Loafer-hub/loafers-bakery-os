@@ -2,6 +2,7 @@ import {
   ChevronRight,
   CircleDollarSign,
   Droplets,
+  Package,
   Pencil,
   Plus,
   Search,
@@ -13,6 +14,12 @@ import { PageHeading } from "../components/AppChrome";
 import { FlourBlendScience } from "../components/FlourScience";
 import { EmptyState, Modal } from "../components/Primitives";
 import { FLOUR_PROFILES, getFlourProfile } from "../data/flourProfiles";
+import {
+  lowestSalesPrice,
+  normalizedSalesOptions,
+  pluralUnit,
+  SALES_OPTION_PRESETS,
+} from "../lib/salesOptions";
 
 const INGREDIENT_CATEGORIES = [
   { value: "flour", label: "Flour" },
@@ -57,7 +64,15 @@ function recipeForm(recipe) {
       name: "",
       note: "",
       yield: 4,
+      unitName: "loaf",
       price: 13,
+      salesOptions: [{
+        id: `sale-option-${stamp}`,
+        label: "Loaf",
+        units: 1,
+        price: 13,
+        capacityUnits: 1,
+      }],
       flourWeight: 2400,
       isNew: true,
       ingredients: DEFAULT_INGREDIENTS.map((ingredient) => ({
@@ -69,6 +84,11 @@ function recipeForm(recipe) {
   return {
     ...recipe,
     isNew: false,
+    unitName: recipe.unitName || "loaf",
+    salesOptions: normalizedSalesOptions(recipe).map((option, index) => ({
+      ...option,
+      id: option.id || `sale-option-${index}-${stamp}`,
+    })),
     flourWeight: flourWeightFor(recipe),
     ingredients: recipe.ingredients.map((ingredient, index) => ({
       ...ingredient,
@@ -141,8 +161,16 @@ export default function RecipesPage({ inventory, recipes, onDeleteRecipe, onSave
       name: form.name.trim(),
       note: form.note.trim() || "Your custom house formula",
       yield: Number(form.yield),
+      unitName: form.unitName.trim() || "item",
       hydration: liquidTotal,
-      price: Number(form.price),
+      salesOptions: form.salesOptions.map((option, index) => ({
+        id: option.id || `sale-option-${index + 1}`,
+        label: option.label.trim() || `Option ${index + 1}`,
+        units: Math.max(0.5, Number(option.units || 1)),
+        price: Math.max(0, Number(option.price || 0)),
+        capacityUnits: Math.max(1, Math.min(6, Number(option.capacityUnits || 1))),
+      })),
+      price: Math.min(...form.salesOptions.map((option) => Math.max(0, Number(option.price || 0)))),
       flourWeight,
       ingredients: form.ingredients.map(({ id, key, ...ingredient }) => ({
         ...ingredient,
@@ -165,7 +193,8 @@ export default function RecipesPage({ inventory, recipes, onDeleteRecipe, onSave
     const batchCost = selected.ingredients.reduce((sum, ingredient) => (
       sum + inventoryCostForIngredient(ingredient, Number(ingredient.weight) * factor, inventory)
     ), 0);
-    const price = Number(selected.price || 0);
+    const salesOptions = normalizedSalesOptions(selected);
+    const price = lowestSalesPrice(selected);
     const ingredientCostPerLoaf = batchCost / Math.max(1, loaves);
     return (
       <main className="page recipe-detail">
@@ -176,9 +205,23 @@ export default function RecipesPage({ inventory, recipes, onDeleteRecipe, onSave
         </div>
         <div className="recipe-facts">
           <span><Droplets size={17} /> {selected.hydration}% hydration</span>
-          <span>${price.toFixed(2)} per loaf</span>
+          <span>From ${price.toFixed(2)}</span>
           <button className="inline-edit-button" type="button" onClick={() => openEditor(selected)}><Pencil size={14} /> Edit recipe</button>
         </div>
+        <section className="recipe-package-pricing">
+          <div className="section-title-line">
+            <div><span className="eyebrow-label dark">Customer menu</span><h2>Package pricing</h2></div>
+            <Package size={19} />
+          </div>
+          <div className="recipe-package-list">
+            {salesOptions.map((option) => (
+              <div key={option.id}>
+                <span><strong>{option.label}</strong><small>{option.units} {pluralUnit(selected.unitName || "item", option.units)} · {option.capacityUnits} bake slot{option.capacityUnits === 1 ? "" : "s"}</small></span>
+                <strong>${option.price.toFixed(2)}</strong>
+              </div>
+            ))}
+          </div>
+        </section>
         <div className="section-title-line">
           <h2>Formula</h2>
           <div className="compact-stepper">
@@ -202,8 +245,8 @@ export default function RecipesPage({ inventory, recipes, onDeleteRecipe, onSave
           <CircleDollarSign size={20} />
           <div>
             <span>Matched inventory cost</span>
-            <strong>${batchCost.toFixed(2)} batch · ${ingredientCostPerLoaf.toFixed(2)} / loaf</strong>
-            <small>Estimated gross margin ${(price - ingredientCostPerLoaf).toFixed(2)} per loaf. Ingredients match inventory by name.</small>
+            <strong>${batchCost.toFixed(2)} batch · ${ingredientCostPerLoaf.toFixed(2)} / {selected.unitName || "item"}</strong>
+            <small>Estimated gross margin from ${(price - ingredientCostPerLoaf).toFixed(2)} per base unit. Ingredients match inventory by name.</small>
           </div>
         </section>
         <section className="recipe-flour-science">
@@ -275,7 +318,7 @@ export default function RecipesPage({ inventory, recipes, onDeleteRecipe, onSave
             <span className="recipe-copy">
               <strong>{recipe.name}</strong>
               <small>{recipe.note}</small>
-              <span>{recipe.hydration}% hydration · {recipe.yield}-loaf base</span>
+              <span>{recipe.hydration}% hydration · {recipe.yield} {pluralUnit(recipe.unitName || "loaf", recipe.yield)} per base batch · from ${lowestSalesPrice(recipe).toFixed(2)}</span>
             </span>
             <ChevronRight size={19} />
           </button>
@@ -321,8 +364,78 @@ function RecipeEditor({ form, formError, onClose, onSubmit, setForm, updateIngre
           <input value={form.note} onChange={(event) => setForm({ ...form, note: event.target.value })} placeholder="Fragrant · savory · weekend loaf" />
         </label>
         <div className="form-grid">
-          <label>Base yield<input type="number" min="1" max="40" value={form.yield} onChange={(event) => setForm({ ...form, yield: Number(event.target.value) })} /></label>
-          <label>Price per loaf<input type="number" min="0" step="0.25" value={form.price} onChange={(event) => setForm({ ...form, price: Number(event.target.value) })} /></label>
+          <label>Base batch yield<input type="number" min="1" max="120" value={form.yield} onChange={(event) => setForm({ ...form, yield: Number(event.target.value) })} /></label>
+          <label>Item name<input value={form.unitName} onChange={(event) => setForm({ ...form, unitName: event.target.value })} placeholder="loaf, bagel, bun" /></label>
+        </div>
+        <div className="package-pricing-editor">
+          <div className="ingredient-editor-heading">
+            <div><strong>Package pricing</strong><small>Offer singles, half dozens, dozens, loaves, or custom packs.</small></div>
+            <button type="button" onClick={() => setForm((current) => ({
+              ...current,
+              salesOptions: [...current.salesOptions, {
+                id: `sale-option-${Date.now()}`,
+                label: "Half dozen",
+                units: 6,
+                price: 15,
+                capacityUnits: 1,
+              }],
+            }))}><Plus size={15} /> Package</button>
+          </div>
+          <div className="package-pricing-list">
+            {form.salesOptions.map((option) => (
+              <div className="package-pricing-row" key={option.id}>
+                <label>
+                  Package
+                  <select value={SALES_OPTION_PRESETS.some((preset) => preset.label === option.label) ? option.label : "Custom pack"} onChange={(event) => {
+                    const preset = SALES_OPTION_PRESETS.find((item) => item.label === event.target.value);
+                    setForm((current) => ({
+                      ...current,
+                      salesOptions: current.salesOptions.map((item) => item.id === option.id ? {
+                        ...item,
+                        label: preset.label,
+                        units: preset.units,
+                      } : item),
+                    }));
+                  }}>
+                    {SALES_OPTION_PRESETS.map((preset) => <option key={preset.label}>{preset.label}</option>)}
+                  </select>
+                </label>
+                <label>
+                  Label
+                  <input value={option.label} onChange={(event) => setForm((current) => ({
+                    ...current,
+                    salesOptions: current.salesOptions.map((item) => item.id === option.id ? { ...item, label: event.target.value } : item),
+                  }))} />
+                </label>
+                <label>
+                  Items
+                  <input type="number" min="0.5" max="120" step="0.5" value={option.units} onChange={(event) => setForm((current) => ({
+                    ...current,
+                    salesOptions: current.salesOptions.map((item) => item.id === option.id ? { ...item, units: Number(event.target.value) } : item),
+                  }))} />
+                </label>
+                <label>
+                  Price
+                  <input type="number" min="0" step="0.25" value={option.price} onChange={(event) => setForm((current) => ({
+                    ...current,
+                    salesOptions: current.salesOptions.map((item) => item.id === option.id ? { ...item, price: Number(event.target.value) } : item),
+                  }))} />
+                </label>
+                <label>
+                  Bake slots
+                  <input type="number" min="1" max="6" value={option.capacityUnits} onChange={(event) => setForm((current) => ({
+                    ...current,
+                    salesOptions: current.salesOptions.map((item) => item.id === option.id ? { ...item, capacityUnits: Number(event.target.value) } : item),
+                  }))} />
+                </label>
+                <button type="button" className="remove-ingredient-button" aria-label={`Remove ${option.label} package`} disabled={form.salesOptions.length <= 1} onClick={() => setForm((current) => ({
+                  ...current,
+                  salesOptions: current.salesOptions.filter((item) => item.id !== option.id),
+                }))}><Trash2 size={15} /></button>
+              </div>
+            ))}
+          </div>
+          <p className="form-help">“Bake slots” controls the six-per-day capacity. Example: one half-dozen bagel package can use one bake slot.</p>
         </div>
         <label>Total flour in base batch (g)<input type="number" min="100" step="50" value={form.flourWeight} onChange={(event) => setForm({ ...form, flourWeight: Number(event.target.value) })} /></label>
         <div className="ingredient-editor-heading">

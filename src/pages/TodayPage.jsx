@@ -65,7 +65,8 @@ export default function TodayPage({
     && order.status !== "Completed"
     && (pickupDateKey(order.pickupAt) === todayKey || (!order.pickupAt && order.due === "Today"))
   ));
-  const totalLoaves = todayOrders.reduce((sum, order) => sum + order.quantity, 0);
+  const totalLoaves = todayOrders.reduce((sum, order) => sum + Number(order.quantity || 0), 0);
+  const totalItems = todayOrders.reduce((sum, order) => sum + Number(order.totalUnits || order.quantity || 0), 0);
   const revenue = todayOrders.reduce((sum, order) => sum + order.total, 0);
   const capacityUsed = Math.min(MAX_DAILY_LOAVES, totalLoaves);
   const starter = starters[0];
@@ -123,7 +124,7 @@ export default function TodayPage({
         <div className="panel-heading">
           <span><ShoppingBag size={21} /> Order summary</span>
           <button onClick={() => setActive("orders")}>
-            {totalLoaves} loaves&nbsp; / &nbsp;${revenue}
+            {totalItems} items&nbsp; / &nbsp;${revenue}
             <ChevronRight size={18} />
           </button>
         </div>
@@ -133,7 +134,7 @@ export default function TodayPage({
               <span className={`avatar avatar-${order.accent}`}>{order.initials}</span>
               <span className="order-preview-copy">
                 <strong>{order.customer}</strong>
-                <small>{order.quantity} × {order.product}</small>
+                <small>{order.itemSummary || `${order.quantity} × ${order.product}`}</small>
               </span>
               <span className="order-preview-price">
                 <strong>${order.total}</strong>
@@ -145,11 +146,11 @@ export default function TodayPage({
         </div>
         <div className="capacity-row">
           <Gauge size={21} />
-          <span><b>{totalLoaves}</b> of {MAX_DAILY_LOAVES} loaves today</span>
+          <span><b>{totalLoaves}</b> of {MAX_DAILY_LOAVES} bake slots today</span>
           <span
             className="capacity-track"
             style={{ gridTemplateColumns: `repeat(${MAX_DAILY_LOAVES}, 1fr)` }}
-            aria-label={`${totalLoaves} of ${MAX_DAILY_LOAVES} loaves booked today`}
+            aria-label={`${totalLoaves} of ${MAX_DAILY_LOAVES} bake slots booked today`}
           >
             {Array.from({ length: MAX_DAILY_LOAVES }, (_, index) => (
               <i key={index} className={index < capacityUsed ? "filled" : ""} />

@@ -112,9 +112,14 @@ export default function App() {
 
   function importCloudOrder(request) {
     const items = request.customer_order_items || [];
-    const quantity = items.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+    const quantity = items.reduce((sum, item) => (
+      sum + Number(item.capacity_units ?? item.quantity ?? 0)
+    ), 0);
+    const totalUnits = items.reduce((sum, item) => (
+      sum + Number(item.quantity || 0) * Number(item.units_per_pack || 1)
+    ), 0);
     const product = items.map((item) => (
-      item.quantity > 1 ? `${item.product_name} × ${item.quantity}` : item.product_name
+      `${item.product_name}${item.sale_option_label ? ` · ${item.sale_option_label}` : ""}${item.quantity > 1 ? ` × ${item.quantity}` : ""}`
     )).join(", ");
     const pickup = request.pickup_at ? new Date(request.pickup_at) : null;
     const due = pickup && !Number.isNaN(pickup.getTime())
@@ -148,9 +153,16 @@ export default function App() {
       cloudOrderId: request.id,
       createdAt: request.created_at,
       customer: request.customer_name,
+      customerEmail: request.customer_email,
+      customerPhone: request.customer_phone,
+      notifyEmail: Boolean(request.notify_email),
+      notifySms: Boolean(request.notify_sms),
+      requestCode: request.request_code,
       initials,
       product: product || "Online bread request",
       quantity,
+      totalUnits,
+      itemSummary: items.map((item) => `${item.quantity} × ${item.sale_option_label || item.product_name}`).join(" · "),
       total: Number(request.subtotal_cents || 0) / 100,
       status: "New",
       due,
@@ -159,6 +171,10 @@ export default function App() {
       items: items.map((item) => ({
         product_name: item.product_name,
         quantity: Number(item.quantity || 1),
+        sale_option_id: item.sale_option_id,
+        sale_option_label: item.sale_option_label,
+        units_per_pack: Number(item.units_per_pack || 1),
+        capacity_units: Number(item.capacity_units ?? item.quantity ?? 1),
       })),
       pickupLocation: request.pickup_location,
       allergies: request.allergies,

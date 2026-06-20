@@ -136,7 +136,7 @@ export function ProductionPlanner({
       ) : (
         <div id="production-sheet">
           <section className="production-summary-grid">
-            <div><Wheat /><strong>{planner.totalLoaves}</strong><span>loaves queued</span></div>
+            <div><Wheat /><strong>{planner.totalLoaves}</strong><span>items queued</span></div>
             <div><ClipboardList /><strong>{planner.batches.length}</strong><span>production batches</span></div>
             <div className={planner.shortages.length ? "warning" : ""}><PackageSearch /><strong>{planner.shortages.length}</strong><span>stock warnings</span></div>
           </section>
@@ -151,7 +151,7 @@ export function ProductionPlanner({
               <article className="production-batch-card" key={batch.key}>
                 <div className="production-batch-heading">
                   <span><strong>{batch.recipeName}</strong><small>{batch.customers.join(" · ")}</small></span>
-                  <span><strong>{batch.loaves}</strong><small>loaves</small></span>
+                  <span><strong>{batch.loaves}</strong><small>{batch.recipe?.unitName || "items"}</small></span>
                 </div>
                 <div className="production-batch-facts">
                   <span><small>Pickup</small><strong>{dateTimeLabel(batch.pickupAt)}</strong></span>

@@ -131,7 +131,7 @@ export function CustomerOrderLookup({
           </div>
           <div className="customer-status-facts">
             <span><small>Pickup</small><strong>{pickupLabel(lookup.pickup_at)}</strong></span>
-            <span><small>Order</small><strong>{(lookup.items || []).map((item) => `${item.quantity} × ${item.product_name}`).join(" · ")}</strong></span>
+            <span><small>Order</small><strong>{(lookup.items || []).map((item) => `${item.quantity} × ${item.sale_option_label || item.product_name}${item.sale_option_label ? ` ${item.product_name}` : ""}`).join(" · ")}</strong></span>
             <span><small>Location</small><strong>{lookup.pickup_location}</strong></span>
           </div>
           {lookup.baker_notes ? <aside className="customer-baker-comment"><MessageCircle size={17} /><span><small>Baker comment</small><strong>{lookup.baker_notes}</strong></span></aside> : null}
