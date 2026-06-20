@@ -9,6 +9,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { PageHeading } from "../components/AppChrome";
 import { BakeCalendar } from "../components/BakeCalendar";
+import { ProductionPlanner } from "../components/ProductionPlanner";
 import { StarterLab } from "../components/StarterLab";
 import { EmptyState } from "../components/Primitives";
 import {
@@ -65,6 +66,8 @@ function sameCalendarDay(a, b) {
 
 export default function BakePage({
   cloudAccount,
+  productionAutomation,
+  inventory,
   recipes,
   bakePlans,
   orders,
@@ -72,8 +75,10 @@ export default function BakePage({
   starterLogs,
   onDeleteBakePlan,
   onDeleteStarter,
+  onChangeProductionAutomation,
   onSaveBakePlan,
   onSaveStarter,
+  onSyncProductionPlans,
   onStarterLogged,
 }) {
   const [view, setView] = useState("plan");
@@ -241,9 +246,17 @@ export default function BakePage({
     }
   }
 
-  const headingTitle = view === "plan" ? (editingPlanId ? "Change bake plan" : "Dynamic bake plan") : view === "calendar" ? "Bake calendar" : "Starters";
+  const headingTitle = view === "plan"
+    ? (editingPlanId ? "Change bake plan" : "Dynamic bake plan")
+    : view === "production"
+      ? "Production planner"
+      : view === "calendar"
+        ? "Bake calendar"
+        : "Starters";
   const headingSubtitle = view === "calendar"
     ? `${bakePlans.length} planned · ${acceptedOrderBakes.length} accepted`
+    : view === "production"
+      ? "Automatic batches, stock checks, timing, and bake sheets"
     : view === "starter"
       ? `${starters.length} ${starters.length === 1 ? "starter profile" : "starter profiles"}`
       : model
@@ -255,9 +268,23 @@ export default function BakePage({
       <PageHeading title={headingTitle} subtitle={headingSubtitle} />
       <div className="view-switch bake-view-switch">
         <button className={view === "plan" ? "selected" : ""} onClick={() => setView("plan")}>Planner</button>
+        <button className={view === "production" ? "selected" : ""} onClick={() => setView("production")}>Production</button>
         <button className={view === "calendar" ? "selected" : ""} onClick={() => setView("calendar")}>Bakes</button>
         <button className={view === "starter" ? "selected" : ""} onClick={() => setView("starter")}>Starters</button>
       </div>
+
+      {view === "production" ? (
+        <ProductionPlanner
+          automation={productionAutomation}
+          inventory={inventory}
+          orders={orders}
+          recipes={recipes}
+          starters={starters}
+          starterLogs={starterLogs}
+          onChangeAutomation={onChangeProductionAutomation}
+          onSyncProductionPlans={onSyncProductionPlans}
+        />
+      ) : null}
 
       {view === "plan" ? (
         recipe && starter && model ? (

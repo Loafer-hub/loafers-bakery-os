@@ -88,7 +88,7 @@ export default function OrdersPage({
   const [detailProgress, setDetailProgress] = useState(() => normalizedBakeProgress());
   const [form, setForm] = useState({
     customer: "",
-    product: "Country Sourdough",
+    product: recipes[0]?.name || "",
     quantity: 1,
     total: 13,
     pickupAt: defaultPickupInput(),
@@ -127,6 +127,15 @@ export default function OrdersPage({
     setDetailError("");
   }, [selectedOrder]);
 
+  useEffect(() => {
+    if (!recipes.length || recipes.some((recipe) => recipe.name === form.product)) return;
+    setForm((current) => ({
+      ...current,
+      product: recipes[0].name,
+      total: Number(recipes[0].price || current.total),
+    }));
+  }, [form.product, recipes]);
+
   function submitOrder(event) {
     event.preventDefault();
     if (!form.customer.trim()) return;
@@ -145,9 +154,9 @@ export default function OrdersPage({
     setAddError("");
     setForm({
       customer: "",
-      product: "Country Sourdough",
+      product: recipes[0]?.name || "",
       quantity: 1,
-      total: 13,
+      total: Number(recipes[0]?.price || 13),
       pickupAt: defaultPickupInput(),
       status: "New",
     });
@@ -340,11 +349,15 @@ export default function OrdersPage({
             </label>
             <label>
               Bread
-              <select value={form.product} onChange={(event) => setForm({ ...form, product: event.target.value })}>
-                <option>Country Sourdough</option>
-                <option>Whole Wheat</option>
-                <option>Seeded Sourdough</option>
-                <option>Cheddar Jalapeño</option>
+              <select value={form.product} onChange={(event) => {
+                const selectedRecipe = recipes.find((recipe) => recipe.name === event.target.value);
+                setForm({
+                  ...form,
+                  product: event.target.value,
+                  total: Number(selectedRecipe?.price || form.total) * Number(form.quantity || 1),
+                });
+              }}>
+                {recipes.map((recipe) => <option key={recipe.id}>{recipe.name}</option>)}
               </select>
             </label>
             <div className="form-grid">
@@ -355,7 +368,15 @@ export default function OrdersPage({
                   min="1"
                   max={MAX_DAILY_LOAVES}
                   value={form.quantity}
-                  onChange={(event) => setForm({ ...form, quantity: Number(event.target.value) })}
+                  onChange={(event) => {
+                    const quantity = Number(event.target.value);
+                    const selectedRecipe = recipes.find((recipe) => recipe.name === form.product);
+                    setForm({
+                      ...form,
+                      quantity,
+                      total: Number(selectedRecipe?.price || 0) * quantity,
+                    });
+                  }}
                 />
               </label>
               <label>

@@ -17,6 +17,10 @@ import {
   updateCustomerOrderBakeProgress,
 } from "./lib/cloud";
 import { BAKE_PHASES, normalizedBakeProgress } from "./lib/bakeProgress";
+import {
+  deductInventoryForOrder,
+  DEFAULT_PRODUCTION_AUTOMATION,
+} from "./lib/productionPlanner";
 import BakePage from "./pages/BakePage";
 import CustomerOrderPortal from "./pages/CustomerOrderPortal";
 import MorePage from "./pages/MorePage";
@@ -40,6 +44,10 @@ export default function App() {
   const [inventory, setInventory] = usePersistentState("loafers-inventory-v1", seedInventory);
   const [expenses, setExpenses] = usePersistentState("loafers-expenses-v1", seedExpenses);
   const [bakePlans, setBakePlans] = usePersistentState("loafers-bake-plans-v1", []);
+  const [storedProductionAutomation, setProductionAutomation] = usePersistentState(
+    "loafers-production-automation-v1",
+    DEFAULT_PRODUCTION_AUTOMATION,
+  );
   const [starters, setStarters] = usePersistentState("loafers-starter-profiles-v1", seedStarters);
   const [starterLogs, setStarterLogs] = usePersistentState("loafers-starter-v1", []);
   const [storageMeta, setStorageMeta] = usePersistentState("loafers-storage-meta-v1", {
@@ -59,6 +67,10 @@ export default function App() {
   });
   const Page = pages[active];
   const cloudAccount = useCloudAccount();
+  const productionAutomation = {
+    ...DEFAULT_PRODUCTION_AUTOMATION,
+    ...(storedProductionAutomation || {}),
+  };
   const orderSlug = new URLSearchParams(window.location.search).get("order");
 
   useEffect(() => {
@@ -144,6 +156,10 @@ export default function App() {
       due,
       pickupAt: request.pickup_at,
       paymentMethod: request.payment_method,
+      items: items.map((item) => ({
+        product_name: item.product_name,
+        quantity: Number(item.quantity || 1),
+      })),
       pickupLocation: request.pickup_location,
       allergies: request.allergies,
       bakeProgress: normalizedBakeProgress(request.bake_progress),
@@ -169,6 +185,21 @@ export default function App() {
       await updateCustomerOrderBakeProgress(order.cloudOrderId, completedProgress);
       await completeCustomerOrder(order.cloudOrderId);
     }
+    let inventoryDeduction = null;
+    if (
+      productionAutomation.enabled
+      && productionAutomation.autoDeductInventory
+      && !order.inventoryDeductedAt
+      && order.status !== "Completed"
+    ) {
+      inventoryDeduction = deductInventoryForOrder(
+        order,
+        recipes,
+        inventory,
+        productionAutomation,
+      );
+      if (inventoryDeduction.deductions.length) setInventory(inventoryDeduction.inventory);
+    }
     setOrders((current) => current.map((item) => (
       item.id === id
         ? {
@@ -177,11 +208,17 @@ export default function App() {
           status: "Completed",
           bakeProgress: completedProgress,
           completedAt: new Date().toISOString(),
+          ...(inventoryDeduction?.deductions.length ? {
+            inventoryDeductedAt: new Date().toISOString(),
+            inventoryDeductions: inventoryDeduction.deductions,
+          } : {}),
         }
         : item
     )));
     setSelectedOrderId(null);
-    setToast("Bake completed and moved to Completed");
+    setToast(inventoryDeduction?.deductions.length
+      ? `Bake completed · ${inventoryDeduction.deductions.length} stock item${inventoryDeduction.deductions.length === 1 ? "" : "s"} deducted${inventoryDeduction.shortages.length ? " · shortage flagged" : ""}`
+      : "Bake completed and moved to Completed");
   }
 
   async function updateOrderProgress(id, bakeProgress) {
@@ -329,6 +366,13 @@ export default function App() {
     setToast("Planned bake deleted");
   }
 
+  function syncProductionPlans(generatedPlans) {
+    setBakePlans((current) => {
+      const manualPlans = current.filter((plan) => !plan.generatedByProduction);
+      return [...manualPlans, ...generatedPlans];
+    });
+  }
+
   function applyStorageData(data) {
     setOrders(data.orders);
     setRecipes(data.recipes);
@@ -355,6 +399,7 @@ export default function App() {
 
   const sharedProps = {
     cloudAccount,
+    productionAutomation,
     orders,
     recipes,
     bakePlans,
@@ -371,6 +416,7 @@ export default function App() {
     onDeleteInventoryItem: deleteInventoryItem,
     onDeleteRecipe: deleteRecipe,
     onDeleteStarter: deleteStarter,
+    onChangeProductionAutomation: setProductionAutomation,
     onOpenOrder: openOrder,
     onImportCloudOrder: importCloudOrder,
     onLogExpense: logExpense,
@@ -387,6 +433,7 @@ export default function App() {
     onSaveInventoryItem: saveInventoryItem,
     onSaveRecipe: saveRecipe,
     onSaveStarter: saveStarter,
+    onSyncProductionPlans: syncProductionPlans,
     selectedOrderId,
     starterLogs,
   };
