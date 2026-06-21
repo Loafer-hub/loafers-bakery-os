@@ -98,7 +98,7 @@ export default function TodayPage({
     <main className="page today-page">
       <BrandHeader onOpenStorage={onOpenStorage} />
       <section className="greeting">
-        <h1>Good morning, Joshua</h1>
+        <h1>Good morning</h1>
         <p>{today.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}</p>
       </section>
 
