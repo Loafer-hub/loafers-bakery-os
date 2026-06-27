@@ -166,13 +166,32 @@ Deno.serve(async (request) => {
   const bakeryId = String(body.bakeryId || "");
   if (!bakeryId) return jsonResponse({ error: "Bakery is required." }, 400);
 
-  const { data: membership } = await admin
+  const { data: bakery, error: bakeryError } = await admin
+    .from("bakeries")
+    .select("id, owner_id, name, pickup_location")
+    .eq("id", bakeryId)
+    .single();
+  if (bakeryError || !bakery) return jsonResponse({ error: bakeryError?.message || "Bakery not found." }, 400);
+
+  const { data: membership, error: membershipError } = await admin
     .from("bakery_members")
     .select("role")
     .eq("bakery_id", bakeryId)
     .eq("user_id", userData.user.id)
     .maybeSingle();
-  if (!membership) return jsonResponse({ error: "You do not have access to this bakery." }, 403);
+  if (membershipError) return jsonResponse({ error: membershipError.message }, 400);
+
+  const ownsBakery = bakery.owner_id === userData.user.id;
+  if (!membership && ownsBakery) {
+    await admin
+      .from("bakery_members")
+      .upsert({
+        bakery_id: bakeryId,
+        user_id: userData.user.id,
+        role: "owner",
+      }, { onConflict: "bakery_id,user_id" });
+  }
+  if (!membership && !ownsBakery) return jsonResponse({ error: "You do not have access to this bakery." }, 403);
 
   const resendApiKey = Deno.env.get("RESEND_API_KEY") || "";
   const fromEmail = Deno.env.get("RESEND_FROM_EMAIL") || "";
@@ -185,13 +204,6 @@ Deno.serve(async (request) => {
       hasFromEmail: Boolean(fromEmail),
     });
   }
-
-  const { data: bakery, error: bakeryError } = await admin
-    .from("bakeries")
-    .select("id, name, pickup_location")
-    .eq("id", bakeryId)
-    .single();
-  if (bakeryError) return jsonResponse({ error: bakeryError.message }, 400);
 
   if (action === "test") {
     const recipient = String(body.recipient || "").trim().toLowerCase();
