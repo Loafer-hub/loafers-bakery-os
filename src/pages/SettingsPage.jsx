@@ -89,8 +89,8 @@ export default function SettingsPage({
       if (!active) return;
       setEmailProvider(status);
       setEmailDeliveries(deliveries);
-    }).catch(() => {
-      if (active) setEmailProvider({ configured: false });
+    }).catch((nextError) => {
+      if (active) setEmailProvider({ configured: false, error: nextError.message });
     });
     return () => {
       active = false;
@@ -121,6 +121,7 @@ export default function SettingsPage({
         ? "Settings saved to this device and your bakery cloud."
         : "Settings saved on this device.");
     } catch (nextError) {
+      setEmailProvider({ configured: false, error: nextError.message });
       setError(nextError.message);
     } finally {
       setBusy("");
@@ -185,6 +186,26 @@ export default function SettingsPage({
   const testSmsHref = testContact.phone.trim()
     ? `sms:${testContact.phone.replace(/[^\d+]/g, "")}?&body=${testMessage}`
     : undefined;
+  const hasCloudWorkspace = Boolean(cloudAccount.workspace?.bakeryId);
+  const emailStatusTitle = !hasCloudWorkspace
+    ? "Sign into bakery cloud first"
+    : emailProvider?.configured
+      ? "Automatic email connected"
+      : emailProvider?.error
+        ? "Email service check failed"
+        : "Resend connection required";
+  const emailStatusNote = !hasCloudWorkspace
+    ? "Automatic email needs your bakery cloud workspace. Open storage, sign in, then check Resend again."
+    : emailProvider?.configured
+      ? "Loafers can deliver opted-in customer emails without opening your mail app."
+      : emailProvider?.error
+        ? emailProvider.error
+        : emailProvider && (!emailProvider.hasApiKey || !emailProvider.hasFromEmail)
+          ? `Missing ${[
+            !emailProvider.hasApiKey ? "Resend API key" : "",
+            !emailProvider.hasFromEmail ? "verified sender email" : "",
+          ].filter(Boolean).join(" and ")} in Supabase secrets.`
+          : "The app is ready. Add the Resend API key and verified sender in Supabase to start delivery.";
 
   return (
     <main className="page settings-page">
@@ -244,10 +265,8 @@ export default function SettingsPage({
           <div className={`automatic-email-status ${emailProvider?.configured ? "connected" : ""}`}>
             <Mail size={19} />
             <span>
-              <strong>{emailProvider?.configured ? "Automatic email connected" : "Resend connection required"}</strong>
-              <small>{emailProvider?.configured
-                ? "Loafers can deliver opted-in customer emails without opening your mail app."
-                : "The app is ready. Add the Resend API key and verified sender in Supabase to start delivery."}</small>
+              <strong>{emailStatusTitle}</strong>
+              <small>{emailStatusNote}</small>
             </span>
             <button type="button" onClick={refreshAutomaticEmail} disabled={!cloudAccount.workspace?.bakeryId || busy === "email-status"}><RefreshCw className={busy === "email-status" ? "spin" : ""} size={15} /> Check</button>
           </div>
@@ -282,7 +301,10 @@ export default function SettingsPage({
             {emailDeliveries.map((delivery) => (
               <div className={`email-delivery-row status-${delivery.status}`} key={delivery.id}>
                 <span><strong>{delivery.event_type === "bakeProgress" ? "Bake progress" : delivery.event_type}</strong><small>{delivery.recipient}</small></span>
-                <span><strong>{delivery.status}</strong><small>{new Date(delivery.created_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</small></span>
+                <span>
+                  <strong>{delivery.status}</strong>
+                  <small>{delivery.error_message || new Date(delivery.created_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</small>
+                </span>
               </div>
             ))}
           </div>
