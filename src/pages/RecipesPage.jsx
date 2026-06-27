@@ -26,8 +26,26 @@ const INGREDIENT_CATEGORIES = [
   { value: "liquid", label: "Liquid" },
   { value: "starter", label: "Starter / preferment" },
   { value: "salt", label: "Salt" },
+  { value: "sweetener", label: "Sweetener" },
+  { value: "fat", label: "Fat / oil" },
+  { value: "acid", label: "Acid / vinegar" },
+  { value: "spice", label: "Spice / herb" },
+  { value: "produce", label: "Fruit / vegetable" },
+  { value: "culture", label: "Culture / ferment" },
   { value: "inclusion", label: "Inclusion" },
   { value: "other", label: "Other" },
+];
+
+const PRODUCT_TYPES = [
+  { value: "bread", label: "Bread", unitName: "loaf", formulaMode: "bakers", icon: "🥖" },
+  { value: "bagel", label: "Bagels", unitName: "bagel", formulaMode: "bakers", icon: "🥯" },
+  { value: "bun", label: "Buns / rolls", unitName: "bun", formulaMode: "bakers", icon: "🍞" },
+  { value: "cake", label: "Cakes", unitName: "cake", formulaMode: "bakers", icon: "🍰" },
+  { value: "pastry", label: "Pastries", unitName: "pastry", formulaMode: "bakers", icon: "🥐" },
+  { value: "hot_sauce", label: "Hot sauces", unitName: "bottle", formulaMode: "batch", icon: "🌶️" },
+  { value: "vinegar", label: "Vinegars", unitName: "bottle", formulaMode: "batch", icon: "🍾" },
+  { value: "infused_oil", label: "Infused oils", unitName: "bottle", formulaMode: "batch", icon: "🫒" },
+  { value: "other", label: "Other item", unitName: "item", formulaMode: "batch", icon: "🏷️" },
 ];
 
 const DEFAULT_INGREDIENTS = [
@@ -36,6 +54,181 @@ const DEFAULT_INGREDIENTS = [
   { key: "starter", name: "Starter", category: "starter", percent: 20 },
   { key: "salt", name: "Salt", category: "salt", percent: 2 },
 ];
+
+const PRODUCT_TEMPLATES = {
+  bread: DEFAULT_INGREDIENTS,
+  bagel: [
+    { key: "flour", name: "Bread flour", category: "flour", percent: 100 },
+    { key: "water", name: "Water", category: "liquid", percent: 58 },
+    { key: "starter", name: "Starter", category: "starter", percent: 18 },
+    { key: "salt", name: "Salt", category: "salt", percent: 2 },
+    { key: "malt", name: "Malt syrup", category: "sweetener", percent: 3 },
+  ],
+  bun: [
+    { key: "flour", name: "Bread flour", category: "flour", percent: 100 },
+    { key: "milk", name: "Milk", category: "liquid", percent: 62 },
+    { key: "butter", name: "Butter", category: "fat", percent: 12 },
+    { key: "sugar", name: "Sugar", category: "sweetener", percent: 8 },
+    { key: "starter", name: "Starter", category: "starter", percent: 15 },
+    { key: "salt", name: "Salt", category: "salt", percent: 2 },
+  ],
+  cake: [
+    { key: "flour", name: "All-purpose flour", category: "flour", percent: 100 },
+    { key: "sugar", name: "Sugar", category: "sweetener", percent: 85 },
+    { key: "butter", name: "Butter", category: "fat", percent: 55 },
+    { key: "eggs", name: "Eggs", category: "liquid", percent: 50 },
+    { key: "milk", name: "Milk", category: "liquid", percent: 45 },
+    { key: "salt", name: "Salt", category: "salt", percent: 1.5 },
+  ],
+  pastry: [
+    { key: "flour", name: "Bread flour", category: "flour", percent: 100 },
+    { key: "butter", name: "Butter", category: "fat", percent: 55 },
+    { key: "water", name: "Water", category: "liquid", percent: 45 },
+    { key: "sugar", name: "Sugar", category: "sweetener", percent: 8 },
+    { key: "salt", name: "Salt", category: "salt", percent: 2 },
+  ],
+  hot_sauce: [
+    { key: "peppers", name: "Chiles / peppers", category: "produce", percent: 55 },
+    { key: "vinegar", name: "Vinegar", category: "acid", percent: 30 },
+    { key: "garlic", name: "Garlic", category: "spice", percent: 5 },
+    { key: "sweetener", name: "Honey or sugar", category: "sweetener", percent: 7 },
+    { key: "salt", name: "Salt", category: "salt", percent: 3 },
+  ],
+  vinegar: [
+    { key: "base", name: "Fruit, cider, or wine base", category: "liquid", percent: 92 },
+    { key: "culture", name: "Raw vinegar starter", category: "culture", percent: 8 },
+  ],
+  infused_oil: [
+    { key: "oil", name: "Olive oil", category: "fat", percent: 92 },
+    { key: "herbs", name: "Herbs, chiles, or garlic", category: "spice", percent: 8 },
+  ],
+  other: [
+    { key: "main", name: "Main ingredient", category: "other", percent: 100 },
+  ],
+};
+
+const TYPE_DEFAULT_UNITS = new Set(PRODUCT_TYPES.map((type) => type.unitName.toLowerCase()));
+
+function productTypeFor(recipe = {}) {
+  return PRODUCT_TYPES.find((type) => type.value === recipe.productType) || PRODUCT_TYPES[0];
+}
+
+function productTypeLabel(value) {
+  return productTypeFor({ productType: value }).label;
+}
+
+function productTypeIcon(recipe = {}) {
+  return productTypeFor(recipe).icon;
+}
+
+function unitNameFor(recipe = {}) {
+  return recipe.unitName || productTypeFor(recipe).unitName || "item";
+}
+
+function defaultIngredientsForType(productType, stamp = Date.now()) {
+  const template = PRODUCT_TEMPLATES[productType] || PRODUCT_TEMPLATES.other;
+  return template.map((ingredient) => ({
+    ...ingredient,
+    id: `ingredient-${ingredient.key}-${stamp}`,
+  }));
+}
+
+function isUntouchedDefaultFormula(recipe) {
+  if (!recipe.isNew) return false;
+  if (recipe.ingredients.length !== DEFAULT_INGREDIENTS.length) return false;
+  return DEFAULT_INGREDIENTS.every((ingredient, index) => (
+    recipe.ingredients[index]?.name === ingredient.name
+    && recipe.ingredients[index]?.category === ingredient.category
+    && Number(recipe.ingredients[index]?.percent) === Number(ingredient.percent)
+  ));
+}
+
+function formulaModeFor(recipe = {}) {
+  return recipe.formulaMode || productTypeFor(recipe).formulaMode || "bakers";
+}
+
+function baseWeightFor(recipe) {
+  if (formulaModeFor(recipe) === "batch") {
+    return Number(recipe.baseWeight || recipe.flourWeight) || Number(recipe.yield || 1) * 250;
+  }
+  return flourWeightFor(recipe);
+}
+
+function ratioLabelFor(recipe) {
+  if (formulaModeFor(recipe) === "batch") return "Batch %";
+  return `${Number(recipe.hydration || 0).toFixed(0)}% hydration`;
+}
+
+function defaultMethodNotes(recipe) {
+  const type = productTypeFor(recipe).value;
+  if (type === "hot_sauce") {
+    return [
+      ["Prep", "Wash, trim, and weigh peppers and aromatics."],
+      ["Blend", "Blend with vinegar and seasonings until the texture is consistent."],
+      ["Cook or ferment", "Cook gently for a shelf-stable style, or ferment safely before blending."],
+      ["Bottle", "Bottle cleanly, label the batch date, and refrigerate if needed."],
+    ];
+  }
+  if (type === "vinegar") {
+    return [
+      ["Start", "Combine the base with raw vinegar culture in a clean vessel."],
+      ["Ferment", "Cover with breathable cloth and ferment away from direct sun."],
+      ["Taste", "Check acidity and aroma regularly before bottling."],
+      ["Bottle", "Strain, bottle, date, and store according to your process."],
+    ];
+  }
+  if (type === "infused_oil") {
+    return [
+      ["Prep", "Use dry herbs, chiles, or aromatics to reduce water activity."],
+      ["Infuse", "Steep gently, then strain for a clean finish."],
+      ["Bottle", "Bottle in sanitized containers and label the batch date."],
+      ["Store", "Follow safe storage guidance for oil infusions."],
+    ];
+  }
+  if (type === "cake") {
+    return [
+      ["Prep", "Scale ingredients, prepare pans, and bring butter or eggs to the right temperature."],
+      ["Mix", "Cream or combine according to the cake style; avoid overmixing after flour."],
+      ["Bake", "Bake until the center is set and a tester comes out clean."],
+      ["Cool", "Cool fully before frosting, packing, or slicing."],
+    ];
+  }
+  return [
+    ["Mix", "Rest flour and 90% of water for 30 minutes."],
+    ["Develop", "Add starter and salt. Four folds over two hours."],
+    ["Shape", "Shape at roughly 50% bulk rise, then cold proof."],
+    ["Bake", "475°F covered, then finish uncovered at 450°F."],
+  ];
+}
+
+function resizeImageFile(file) {
+  return new Promise((resolve, reject) => {
+    if (!file?.type?.startsWith("image/")) {
+      reject(new Error("Choose an image file for the recipe photo."));
+      return;
+    }
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("That image could not be read."));
+    reader.onload = () => {
+      const image = new Image();
+      image.onerror = () => reject(new Error("That image could not be prepared."));
+      image.onload = () => {
+        const maxSide = 1100;
+        const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
+        const width = Math.max(1, Math.round(image.width * scale));
+        const height = Math.max(1, Math.round(image.height * scale));
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const context = canvas.getContext("2d");
+        context.drawImage(image, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", 0.78));
+      };
+      image.src = String(reader.result || "");
+    };
+    reader.readAsDataURL(file);
+  });
+}
 
 function ingredientCategory(ingredient) {
   if (ingredient.category) return ingredient.category;
@@ -63,6 +256,10 @@ function recipeForm(recipe) {
       id: `recipe-${stamp}`,
       name: "",
       note: "",
+      productType: "bread",
+      formulaMode: "bakers",
+      photoUrl: "",
+      photoAlt: "",
       yield: 4,
       unitName: "loaf",
       price: 13,
@@ -74,22 +271,30 @@ function recipeForm(recipe) {
         capacityUnits: 1,
       }],
       flourWeight: 2400,
+      baseWeight: 2400,
       isNew: true,
-      ingredients: DEFAULT_INGREDIENTS.map((ingredient) => ({
-        ...ingredient,
-        id: `ingredient-${ingredient.key}-${stamp}`,
-      })),
+      ingredients: defaultIngredientsForType("bread", stamp),
     };
   }
+  const productType = recipe.productType || "bread";
+  const formulaMode = recipe.formulaMode || productTypeFor({ productType }).formulaMode;
+  const baseWeight = formulaMode === "batch"
+    ? Number(recipe.baseWeight || recipe.flourWeight) || Number(recipe.yield || 1) * 250
+    : flourWeightFor(recipe);
   return {
     ...recipe,
     isNew: false,
-    unitName: recipe.unitName || "loaf",
+    productType,
+    formulaMode,
+    photoUrl: recipe.photoUrl || "",
+    photoAlt: recipe.photoAlt || "",
+    unitName: unitNameFor({ productType, unitName: recipe.unitName }),
     salesOptions: normalizedSalesOptions(recipe).map((option, index) => ({
       ...option,
       id: option.id || `sale-option-${index}-${stamp}`,
     })),
-    flourWeight: flourWeightFor(recipe),
+    flourWeight: baseWeight,
+    baseWeight,
     ingredients: recipe.ingredients.map((ingredient, index) => ({
       ...ingredient,
       id: ingredient.id || `ingredient-${index}-${stamp}`,
@@ -111,6 +316,19 @@ function inventoryCostForIngredient(ingredient, weight, inventory) {
   if (["lb", "pound", "pounds"].includes(unit)) return weight / 453.592 * Number(matched.unitCost);
   if (["oz", "ounce", "ounces"].includes(unit)) return weight / 28.3495 * Number(matched.unitCost);
   return 0;
+}
+
+function RecipeVisual({ recipe, large = false }) {
+  const photoUrl = String(recipe.photoUrl || "").trim();
+  const className = large ? "recipe-visual large" : "recipe-visual";
+  if (photoUrl) {
+    return (
+      <span className={className}>
+        <img src={photoUrl} alt={recipe.photoAlt || recipe.name} />
+      </span>
+    );
+  }
+  return <span className={`${className} empty`} aria-hidden="true">{productTypeIcon(recipe)}</span>;
 }
 
 export default function RecipesPage({ inventory, recipes, onDeleteRecipe, onSaveRecipe }) {
@@ -145,21 +363,31 @@ export default function RecipesPage({ inventory, recipes, onDeleteRecipe, onSave
   function submitRecipe(event) {
     event.preventDefault();
     if (!form.name.trim()) return;
+    const formulaMode = formulaModeFor(form);
     const flourTotal = form.ingredients.reduce((sum, ingredient) => (
       ingredient.category === "flour" ? sum + Number(ingredient.percent || 0) : sum
     ), 0);
-    if (Math.abs(flourTotal - 100) > 0.1) {
+    const batchTotal = form.ingredients.reduce((sum, ingredient) => sum + Number(ingredient.percent || 0), 0);
+    if (formulaMode === "bakers" && Math.abs(flourTotal - 100) > 0.1) {
       setFormError(`Flour percentages must total 100%. They currently total ${flourTotal.toFixed(1)}%.`);
+      return;
+    }
+    if (formulaMode === "batch" && Math.abs(batchTotal - 100) > 0.1) {
+      setFormError(`Batch percentages must total 100%. They currently total ${batchTotal.toFixed(1)}%.`);
       return;
     }
     const liquidTotal = form.ingredients.reduce((sum, ingredient) => (
       ingredient.category === "liquid" ? sum + Number(ingredient.percent || 0) : sum
     ), 0);
-    const flourWeight = Number(form.flourWeight);
+    const baseWeight = Math.max(1, Number(form.baseWeight || form.flourWeight));
     onSaveRecipe({
       ...form,
       name: form.name.trim(),
       note: form.note.trim() || "Your custom house formula",
+      productType: form.productType || "bread",
+      formulaMode,
+      photoUrl: form.photoUrl?.trim() || "",
+      photoAlt: form.photoAlt?.trim() || form.name.trim(),
       yield: Number(form.yield),
       unitName: form.unitName.trim() || "item",
       hydration: liquidTotal,
@@ -171,7 +399,8 @@ export default function RecipesPage({ inventory, recipes, onDeleteRecipe, onSave
         capacityUnits: Math.max(1, Math.min(6, Number(option.capacityUnits || 1))),
       })),
       price: Math.min(...form.salesOptions.map((option) => Math.max(0, Number(option.price || 0)))),
-      flourWeight,
+      flourWeight: baseWeight,
+      baseWeight,
       ingredients: form.ingredients.map(({ id, key, ...ingredient }) => ({
         ...ingredient,
         name: ingredient.category === "flour"
@@ -181,13 +410,15 @@ export default function RecipesPage({ inventory, recipes, onDeleteRecipe, onSave
           ? getFlourProfile(ingredient.flourType || ingredient.name).name
           : undefined,
         percent: Number(ingredient.percent),
-        weight: Math.round(flourWeight * Number(ingredient.percent) / 100),
+        weight: Math.round(baseWeight * Number(ingredient.percent) / 100),
       })),
     });
     setShowEditor(false);
   }
 
   if (selected) {
+    const formulaMode = formulaModeFor(selected);
+    const unitName = unitNameFor(selected);
     const factor = loaves / selected.yield;
     const total = selected.ingredients.reduce((sum, item) => sum + Math.round(item.weight * factor), 0);
     const batchCost = selected.ingredients.reduce((sum, ingredient) => (
@@ -196,16 +427,19 @@ export default function RecipesPage({ inventory, recipes, onDeleteRecipe, onSave
     const salesOptions = normalizedSalesOptions(selected);
     const price = lowestSalesPrice(selected);
     const ingredientCostPerLoaf = batchCost / Math.max(1, loaves);
+    const selectedFlours = selected.ingredients.filter((ingredient) => ingredientCategory(ingredient) === "flour");
+    const methodNotes = defaultMethodNotes(selected);
     return (
       <main className="page recipe-detail">
         <button className="text-back" onClick={() => setSelectedId(null)}>← Recipes</button>
         <div className="recipe-detail-heading">
-          <span className="recipe-icon"><Wheat /></span>
-          <div><h1>{selected.name}</h1><p>{selected.note}</p></div>
+          <RecipeVisual recipe={selected} large />
+          <div><span className="recipe-type-pill">{productTypeLabel(selected.productType)}</span><h1>{selected.name}</h1><p>{selected.note}</p></div>
         </div>
         <div className="recipe-facts">
-          <span><Droplets size={17} /> {selected.hydration}% hydration</span>
+          <span><Droplets size={17} /> {ratioLabelFor(selected)}</span>
           <span>From ${price.toFixed(2)}</span>
+          <span>{selected.yield} {pluralUnit(unitName, selected.yield)} / base batch</span>
           <button className="inline-edit-button" type="button" onClick={() => openEditor(selected)}><Pencil size={14} /> Edit recipe</button>
         </div>
         <section className="recipe-package-pricing">
@@ -216,22 +450,22 @@ export default function RecipesPage({ inventory, recipes, onDeleteRecipe, onSave
           <div className="recipe-package-list">
             {salesOptions.map((option) => (
               <div key={option.id}>
-                <span><strong>{option.label}</strong><small>{option.units} {pluralUnit(selected.unitName || "item", option.units)} · {option.capacityUnits} bake slot{option.capacityUnits === 1 ? "" : "s"}</small></span>
+                <span><strong>{option.label}</strong><small>{option.units} {pluralUnit(unitName, option.units)} · {option.capacityUnits} bake slot{option.capacityUnits === 1 ? "" : "s"}</small></span>
                 <strong>${option.price.toFixed(2)}</strong>
               </div>
             ))}
           </div>
         </section>
         <div className="section-title-line">
-          <h2>Formula</h2>
+          <h2>{formulaMode === "batch" ? "Batch formula" : "Formula"}</h2>
           <div className="compact-stepper">
             <button onClick={() => setLoaves((value) => Math.max(1, value - 1))}>−</button>
-            <span>{loaves} {loaves === 1 ? "loaf" : "loaves"}</span>
+            <span>{loaves} {pluralUnit(unitName, loaves)}</span>
             <button onClick={() => setLoaves((value) => Math.min(40, value + 1))}>+</button>
           </div>
         </div>
         <div className="formula-table large">
-          <div className="formula-head"><span>Ingredient</span><span>Weight</span><span>Baker’s %</span></div>
+          <div className="formula-head"><span>Ingredient</span><span>Weight</span><span>{formulaMode === "batch" ? "Batch %" : "Baker’s %"}</span></div>
           {selected.ingredients.map((item, index) => (
             <div className="formula-row" key={`${item.name}-${index}`}>
               <span>{item.name}</span>
@@ -245,24 +479,23 @@ export default function RecipesPage({ inventory, recipes, onDeleteRecipe, onSave
           <CircleDollarSign size={20} />
           <div>
             <span>Matched inventory cost</span>
-            <strong>${batchCost.toFixed(2)} batch · ${ingredientCostPerLoaf.toFixed(2)} / {selected.unitName || "item"}</strong>
+            <strong>${batchCost.toFixed(2)} batch · ${ingredientCostPerLoaf.toFixed(2)} / {unitName}</strong>
             <small>Estimated gross margin from ${(price - ingredientCostPerLoaf).toFixed(2)} per base unit. Ingredients match inventory by name.</small>
           </div>
         </section>
-        <section className="recipe-flour-science">
-          <div className="section-title-line">
-            <div><span className="eyebrow-label dark">Research-informed tendencies</span><h2>Flour behavior</h2></div>
-          </div>
-          <FlourBlendScience flours={selected.ingredients.filter((ingredient) => ingredientCategory(ingredient) === "flour").map((ingredient) => ingredient.flourType || ingredient.name)} />
-          <p className="model-note">The multipliers are planning heuristics. Your flour brand, extraction, crop, milling, temperature, and starter ecology can shift the result.</p>
-        </section>
+        {selectedFlours.length ? (
+          <section className="recipe-flour-science">
+            <div className="section-title-line">
+              <div><span className="eyebrow-label dark">Research-informed tendencies</span><h2>Flour behavior</h2></div>
+            </div>
+            <FlourBlendScience flours={selectedFlours.map((ingredient) => ingredient.flourType || ingredient.name)} />
+            <p className="model-note">The multipliers are planning heuristics. Your flour brand, extraction, crop, milling, temperature, and starter ecology can shift the result.</p>
+          </section>
+        ) : null}
         <section className="method-notes">
-          <h2>Method notes</h2>
+          <h2>Production notes</h2>
           <ol>
-            <li><b>Mix</b><span>Rest flour and 90% of water for 30 minutes.</span></li>
-            <li><b>Develop</b><span>Add starter and salt. Four folds over two hours.</span></li>
-            <li><b>Shape</b><span>Shape at roughly 50% bulk rise, then cold proof.</span></li>
-            <li><b>Bake</b><span>475°F covered, then finish uncovered at 450°F.</span></li>
+            {methodNotes.map(([step, note]) => <li key={step}><b>{step}</b><span>{note}</span></li>)}
           </ol>
         </section>
         {confirmDelete ? (
@@ -289,6 +522,7 @@ export default function RecipesPage({ inventory, recipes, onDeleteRecipe, onSave
             formError={formError}
             onClose={() => setShowEditor(false)}
             onSubmit={submitRecipe}
+            setFormError={setFormError}
             setForm={setForm}
             updateIngredient={updateIngredient}
           />
@@ -301,7 +535,7 @@ export default function RecipesPage({ inventory, recipes, onDeleteRecipe, onSave
     <main className="page">
       <PageHeading
         title="Recipes"
-        subtitle="Every ingredient is editable. Your flour total stays at 100%."
+        subtitle="Bread, cakes, sauces, vinegars, oils, and any other small-batch item you want to sell."
         action={<button className="round-action" onClick={() => openEditor()} aria-label="Add recipe"><Plus size={21} /></button>}
       />
       <label className="search-field full">
@@ -314,11 +548,12 @@ export default function RecipesPage({ inventory, recipes, onDeleteRecipe, onSave
             setSelectedId(recipe.id);
             setLoaves(recipe.yield);
           }}>
-            <span className="recipe-icon"><Wheat size={24} /></span>
+            <RecipeVisual recipe={recipe} />
             <span className="recipe-copy">
+              <em>{productTypeLabel(recipe.productType)}</em>
               <strong>{recipe.name}</strong>
               <small>{recipe.note}</small>
-              <span>{recipe.hydration}% hydration · {recipe.yield} {pluralUnit(recipe.unitName || "loaf", recipe.yield)} per base batch · from ${lowestSalesPrice(recipe).toFixed(2)}</span>
+              <span>{ratioLabelFor(recipe)} · {recipe.yield} {pluralUnit(unitNameFor(recipe), recipe.yield)} per base batch · from ${lowestSalesPrice(recipe).toFixed(2)}</span>
             </span>
             <ChevronRight size={19} />
           </button>
@@ -328,7 +563,7 @@ export default function RecipesPage({ inventory, recipes, onDeleteRecipe, onSave
         <Droplets size={21} />
         <div>
           <h3>Baker’s percentage, without the math headache</h3>
-          <p>Add flours, liquids, inclusions, salt, or preferments. Loafers recalculates every gram when you change the loaf count.</p>
+          <p>Add flours, liquids, inclusions, salt, cultures, oils, produce, and spices. Bread can stay in baker’s %, while non-bread items can use batch %.</p>
         </div>
       </aside>
       {showEditor ? (
@@ -337,6 +572,7 @@ export default function RecipesPage({ inventory, recipes, onDeleteRecipe, onSave
           formError={formError}
           onClose={() => setShowEditor(false)}
           onSubmit={submitRecipe}
+          setFormError={setFormError}
           setForm={setForm}
           updateIngredient={updateIngredient}
         />
@@ -345,13 +581,36 @@ export default function RecipesPage({ inventory, recipes, onDeleteRecipe, onSave
   );
 }
 
-function RecipeEditor({ form, formError, onClose, onSubmit, setForm, updateIngredient }) {
+function RecipeEditor({ form, formError, onClose, onSubmit, setForm, setFormError, updateIngredient }) {
+  const formulaMode = formulaModeFor(form);
   const flourTotal = form.ingredients.reduce((sum, ingredient) => (
     ingredient.category === "flour" ? sum + Number(ingredient.percent || 0) : sum
   ), 0);
+  const batchTotal = form.ingredients.reduce((sum, ingredient) => sum + Number(ingredient.percent || 0), 0);
   const hydration = form.ingredients.reduce((sum, ingredient) => (
     ingredient.category === "liquid" ? sum + Number(ingredient.percent || 0) : sum
   ), 0);
+  const productType = productTypeFor(form);
+  const photoUrl = String(form.photoUrl || "").trim();
+
+  async function handlePhotoFile(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    try {
+      setFormError("");
+      const photoDataUrl = await resizeImageFile(file);
+      setForm((current) => ({
+        ...current,
+        photoUrl: photoDataUrl,
+        photoAlt: current.photoAlt || current.name || file.name.replace(/\.[^.]+$/, ""),
+      }));
+    } catch (error) {
+      setFormError(error.message);
+    } finally {
+      event.target.value = "";
+    }
+  }
+
   return (
     <Modal title={form.isNew ? "Add a recipe" : `Edit ${form.name}`} onClose={onClose}>
       <form className="form-stack recipe-editor-form" onSubmit={onSubmit}>
@@ -363,6 +622,66 @@ function RecipeEditor({ form, formError, onClose, onSubmit, setForm, updateIngre
           Short note
           <input value={form.note} onChange={(event) => setForm({ ...form, note: event.target.value })} placeholder="Fragrant · savory · weekend loaf" />
         </label>
+        <div className="form-grid">
+          <label>
+            Product category
+            <select value={form.productType || "bread"} onChange={(event) => {
+              const nextType = productTypeFor({ productType: event.target.value });
+              setForm((current) => {
+                const shouldSwapTemplate = isUntouchedDefaultFormula(current);
+                const currentUnit = String(current.unitName || "").toLowerCase();
+                const shouldUseTypeUnit = !currentUnit || TYPE_DEFAULT_UNITS.has(currentUnit);
+                const nextSalesOptions = current.salesOptions.map((option, index) => (
+                  index === 0 && shouldUseTypeUnit ? {
+                    ...option,
+                    label: nextType.unitName === "loaf" ? "Loaf" : `Each ${nextType.unitName}`,
+                  } : option
+                ));
+                return {
+                  ...current,
+                  productType: nextType.value,
+                  formulaMode: nextType.formulaMode,
+                  unitName: shouldUseTypeUnit ? nextType.unitName : current.unitName,
+                  salesOptions: nextSalesOptions,
+                  ingredients: shouldSwapTemplate ? defaultIngredientsForType(nextType.value) : current.ingredients,
+                };
+              });
+            }}>
+              {PRODUCT_TYPES.map((type) => <option key={type.value} value={type.value}>{type.icon} {type.label}</option>)}
+            </select>
+          </label>
+          <label>
+            Formula style
+            <select value={formulaMode} onChange={(event) => setForm((current) => ({ ...current, formulaMode: event.target.value }))}>
+              <option value="bakers">Baker’s % — flours total 100%</option>
+              <option value="batch">Batch % — all ingredients total 100%</option>
+            </select>
+          </label>
+        </div>
+        <div className="recipe-photo-editor">
+          <div className="recipe-photo-preview">
+            {photoUrl ? <img src={photoUrl} alt={form.photoAlt || form.name || "Recipe preview"} /> : <span>{productType.icon}</span>}
+          </div>
+          <div className="recipe-photo-fields">
+            <label>
+              Recipe photo URL
+              <input
+                value={photoUrl.startsWith("data:") ? "" : photoUrl}
+                onChange={(event) => setForm({ ...form, photoUrl: event.target.value })}
+                placeholder="https://… or upload below"
+              />
+            </label>
+            <label>
+              Upload photo
+              <input type="file" accept="image/*" onChange={handlePhotoFile} />
+            </label>
+            <label>
+              Photo description
+              <input value={form.photoAlt || ""} onChange={(event) => setForm({ ...form, photoAlt: event.target.value })} placeholder="Chocolate cake on a cooling rack" />
+            </label>
+            {photoUrl ? <button type="button" className="small-action-button" onClick={() => setForm({ ...form, photoUrl: "", photoAlt: "" })}>Clear photo</button> : null}
+          </div>
+        </div>
         <div className="form-grid">
           <label>Base batch yield<input type="number" min="1" max="120" value={form.yield} onChange={(event) => setForm({ ...form, yield: Number(event.target.value) })} /></label>
           <label>Item name<input value={form.unitName} onChange={(event) => setForm({ ...form, unitName: event.target.value })} placeholder="loaf, bagel, bun" /></label>
@@ -437,9 +756,25 @@ function RecipeEditor({ form, formError, onClose, onSubmit, setForm, updateIngre
           </div>
           <p className="form-help">“Bake slots” controls the six-per-day capacity. Example: one half-dozen bagel package can use one bake slot.</p>
         </div>
-        <label>Total flour in base batch (g)<input type="number" min="100" step="50" value={form.flourWeight} onChange={(event) => setForm({ ...form, flourWeight: Number(event.target.value) })} /></label>
+        <label>
+          {formulaMode === "batch" ? "Total base batch weight (g)" : "Total flour in base batch (g)"}
+          <input
+            type="number"
+            min="100"
+            step="50"
+            value={form.baseWeight || form.flourWeight}
+            onChange={(event) => setForm({ ...form, baseWeight: Number(event.target.value), flourWeight: Number(event.target.value) })}
+          />
+        </label>
         <div className="ingredient-editor-heading">
-          <div><strong>Ingredients</strong><small>Flours total {flourTotal.toFixed(1)}% · hydration {hydration.toFixed(1)}%</small></div>
+          <div>
+            <strong>Ingredients</strong>
+            <small>
+              {formulaMode === "batch"
+                ? `Batch total ${batchTotal.toFixed(1)}%`
+                : `Flours total ${flourTotal.toFixed(1)}% · hydration ${hydration.toFixed(1)}%`}
+            </small>
+          </div>
           <span className="ingredient-add-actions">
             <button type="button" aria-label="Add flour" onClick={() => setForm((current) => ({
               ...current,
@@ -456,8 +791,8 @@ function RecipeEditor({ form, formError, onClose, onSubmit, setForm, updateIngre
               ingredients: [...current.ingredients, {
                 id: `ingredient-${Date.now()}`,
                 name: "",
-                category: "inclusion",
-                percent: 5,
+                category: formulaMode === "batch" ? "other" : "inclusion",
+                percent: formulaMode === "batch" ? Math.max(0, 100 - batchTotal) : 5,
               }],
             }))}><Plus size={15} /> Other</button>
           </span>
@@ -478,7 +813,7 @@ function RecipeEditor({ form, formError, onClose, onSubmit, setForm, updateIngre
               })}>
                 {INGREDIENT_CATEGORIES.map((category) => <option key={category.value} value={category.value}>{category.label}</option>)}
               </select>
-              <label><span>Baker’s %</span><input aria-label={`${ingredient.name || "Ingredient"} baker's percent`} type="number" min="0" step="0.1" value={ingredient.percent} onChange={(event) => updateIngredient(ingredient.id, { percent: Number(event.target.value) })} /></label>
+              <label><span>{formulaMode === "batch" ? "Batch %" : "Baker’s %"}</span><input aria-label={`${ingredient.name || "Ingredient"} percent`} type="number" min="0" step="0.1" value={ingredient.percent} onChange={(event) => updateIngredient(ingredient.id, { percent: Number(event.target.value) })} /></label>
               <button type="button" className="remove-ingredient-button" aria-label={`Remove ${ingredient.name || "ingredient"}`} disabled={form.ingredients.length <= 1} onClick={() => setForm((current) => ({
                 ...current,
                 ingredients: current.ingredients.filter((item) => item.id !== ingredient.id),
@@ -486,12 +821,16 @@ function RecipeEditor({ form, formError, onClose, onSubmit, setForm, updateIngre
             </div>
           ))}
         </div>
-        <div className="recipe-builder-science">
+        {form.ingredients.some((ingredient) => ingredient.category === "flour") ? <div className="recipe-builder-science">
           <div className="section-title-line"><h3>What these flours change</h3><span>Dough + starter</span></div>
           <FlourBlendScience compact flours={form.ingredients.filter((ingredient) => ingredient.category === "flour").map((ingredient) => ingredient.flourType || ingredient.name)} />
-        </div>
+        </div> : null}
         {formError ? <p className="form-error" role="alert">{formError}</p> : null}
-        <p className="form-help">Mark every flour as “Flour.” Those flour percentages must total 100%; all other ingredients use that flour weight as their baker’s-percentage base.</p>
+        <p className="form-help">
+          {formulaMode === "batch"
+            ? "Batch % is best for hot sauces, vinegars, oils, and non-flour items. All ingredient percentages should total 100%."
+            : "Mark every flour as “Flour.” Those flour percentages must total 100%; all other ingredients use that flour weight as their baker’s-percentage base."}
+        </p>
         <button className="primary-button" type="submit">{form.isNew ? "Add recipe" : "Save recipe changes"}</button>
       </form>
     </Modal>
