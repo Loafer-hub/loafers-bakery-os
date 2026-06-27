@@ -35,6 +35,22 @@ function throwIfError(error) {
   if (error) throw new Error(error.message || "The cloud request failed.");
 }
 
+const PRODUCT_UNIT_NAMES = {
+  bread: "loaf",
+  bagel: "bagel",
+  bun: "bun",
+  cake: "cake",
+  pastry: "pastry",
+  hot_sauce: "bottle",
+  vinegar: "bottle",
+  infused_oil: "bottle",
+  other: "item",
+};
+
+function unitNameForRecipe(recipe = {}) {
+  return recipe.unitName || PRODUCT_UNIT_NAMES[recipe.productType] || "item";
+}
+
 export async function getCloudSession() {
   if (!cloudConfigured) return null;
   const { data, error } = await requireClient().auth.getSession();
@@ -188,7 +204,11 @@ export async function publishRecipeCatalog(bakeryId, recipes) {
       })),
       recipe_details: {
         yield: Math.max(1, Number(recipe.yield || 1)),
-        unitName: recipe.unitName || "loaf",
+        unitName: unitNameForRecipe(recipe),
+        productType: recipe.productType || "bread",
+        formulaMode: recipe.formulaMode || "bakers",
+        photoUrl: recipe.photoUrl || "",
+        photoAlt: recipe.photoAlt || recipe.name || "",
         hydration: Number(recipe.hydration || 0),
         ingredients: (recipe.ingredients || []).map((ingredient) => ({
           name: ingredient.name,
