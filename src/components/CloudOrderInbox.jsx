@@ -29,6 +29,7 @@ export function CloudOrderInbox({ cloudAccount, orders, onImportOrder }) {
   const [view, setView] = useState("pending");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [emailMessage, setEmailMessage] = useState("");
   const [comments, setComments] = useState({});
   const [rejectingId, setRejectingId] = useState(null);
   const [deletingFeedbackId, setDeletingFeedbackId] = useState(null);
@@ -71,9 +72,18 @@ export function CloudOrderInbox({ cloudAccount, orders, onImportOrder }) {
     setError("");
     try {
       const requestWithComment = { ...request, baker_notes: comments[request.id] || "" };
-      await acceptCustomerOrderRequest(request.id, comments[request.id] || "");
+      const emailResult = await acceptCustomerOrderRequest(
+        request.id,
+        comments[request.id] || "",
+        bakeryId,
+      );
       onImportOrder(requestWithComment);
       setRequests((current) => current.filter((item) => item.id !== request.id));
+      setEmailMessage(emailResult.sent
+        ? "Order accepted and the customer email was sent."
+        : emailResult.error
+          ? `Order accepted, but email was not sent: ${emailResult.error}`
+          : "Order accepted. No automatic email was needed.");
     } catch (nextError) {
       setError(nextError.message);
     } finally {
@@ -85,10 +95,19 @@ export function CloudOrderInbox({ cloudAccount, orders, onImportOrder }) {
     setLoading(true);
     setError("");
     try {
-      await commentCustomerOrderRequest(request.id, comments[request.id] || "");
+      const emailResult = await commentCustomerOrderRequest(
+        request.id,
+        comments[request.id] || "",
+        bakeryId,
+      );
       setRequests((current) => current.map((item) => (
         item.id === request.id ? { ...item, baker_notes: comments[request.id] || "" } : item
       )));
+      setEmailMessage(emailResult.sent
+        ? "Comment saved and emailed to the customer."
+        : emailResult.error
+          ? `Comment saved, but email was not sent: ${emailResult.error}`
+          : "Comment saved. No automatic email was needed.");
     } catch (nextError) {
       setError(nextError.message);
     } finally {
@@ -100,7 +119,11 @@ export function CloudOrderInbox({ cloudAccount, orders, onImportOrder }) {
     setLoading(true);
     setError("");
     try {
-      await rejectCustomerOrderRequest(request.id, comments[request.id] || "");
+      const emailResult = await rejectCustomerOrderRequest(
+        request.id,
+        comments[request.id] || "",
+        bakeryId,
+      );
       setRequests((current) => current.filter((item) => item.id !== request.id));
       setRejected((current) => [{
         ...request,
@@ -108,6 +131,11 @@ export function CloudOrderInbox({ cloudAccount, orders, onImportOrder }) {
         baker_notes: comments[request.id] || "",
       }, ...current]);
       setRejectingId(null);
+      setEmailMessage(emailResult.sent
+        ? "Request rejected and the customer email was sent."
+        : emailResult.error
+          ? `Request rejected, but email was not sent: ${emailResult.error}`
+          : "Request rejected. No automatic email was needed.");
     } catch (nextError) {
       setError(nextError.message);
     } finally {
@@ -152,6 +180,7 @@ export function CloudOrderInbox({ cloudAccount, orders, onImportOrder }) {
             </div>
             <button className="storage-file-button" type="button" onClick={refresh} disabled={loading}><RefreshCw size={15} /> Refresh requests</button>
             {error ? <p className="form-error" role="alert">{error}</p> : null}
+            {emailMessage ? <div className="settings-success">{emailMessage}</div> : null}
             {view === "pending" && !requests.length && !loading ? <p className="cloud-empty-copy">No new requests. Shared customer orders will appear here.</p> : null}
             {view === "rejected" && !rejected.length && !loading ? <p className="cloud-empty-copy">No rejected requests yet.</p> : null}
             {view === "feedback" && !feedback.length && !loading ? <p className="cloud-empty-copy">No customer suggestions or reviews yet.</p> : null}

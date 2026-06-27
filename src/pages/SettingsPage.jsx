@@ -6,6 +6,7 @@ import {
   Mail,
   MessageSquareText,
   PackageCheck,
+  RefreshCw,
   Save,
   Send,
   Settings2,
@@ -14,7 +15,12 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { PageHeading } from "../components/AppChrome";
-import { publishRecipeCatalog } from "../lib/cloud";
+import {
+  getAutomaticEmailStatus,
+  listEmailNotificationDeliveries,
+  publishRecipeCatalog,
+  sendAutomaticEmailTest,
+} from "../lib/cloud";
 import { normalizedBakerySettings } from "../lib/bakerySettings";
 
 function ToggleRow({ checked, label, note, onChange }) {
@@ -43,6 +49,7 @@ const notificationEvents = [
   ["comments", "Baker comments", "Pickup notes, payment reminders, or other personal updates."],
   ["ready", "Ready for pickup", "The order is packed and ready at the pickup location."],
   ["rejected", "Order rejected", "A polite decline with your saved baker comment."],
+  ["completed", "Order completed", "Final confirmation after you mark the bake complete."],
 ];
 
 export default function SettingsPage({
@@ -60,10 +67,35 @@ export default function SettingsPage({
   const [busy, setBusy] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [emailProvider, setEmailProvider] = useState(null);
+  const [emailDeliveries, setEmailDeliveries] = useState([]);
 
   useEffect(() => {
     setDraft(normalizedBakerySettings(bakerySettings));
   }, [bakerySettings]);
+
+  useEffect(() => {
+    const bakeryId = cloudAccount.workspace?.bakeryId;
+    if (!bakeryId) {
+      setEmailProvider(null);
+      setEmailDeliveries([]);
+      return;
+    }
+    let active = true;
+    Promise.all([
+      getAutomaticEmailStatus(bakeryId),
+      listEmailNotificationDeliveries(bakeryId, 8),
+    ]).then(([status, deliveries]) => {
+      if (!active) return;
+      setEmailProvider(status);
+      setEmailDeliveries(deliveries);
+    }).catch(() => {
+      if (active) setEmailProvider({ configured: false });
+    });
+    return () => {
+      active = false;
+    };
+  }, [cloudAccount.workspace?.bakeryId]);
 
   function update(key, value) {
     setDraft((current) => ({ ...current, [key]: value }));
@@ -110,10 +142,46 @@ export default function SettingsPage({
     }
   }
 
+  async function refreshAutomaticEmail() {
+    const bakeryId = cloudAccount.workspace?.bakeryId;
+    if (!bakeryId) return;
+    setBusy("email-status");
+    setError("");
+    try {
+      const [status, deliveries] = await Promise.all([
+        getAutomaticEmailStatus(bakeryId),
+        listEmailNotificationDeliveries(bakeryId, 8),
+      ]);
+      setEmailProvider(status);
+      setEmailDeliveries(deliveries);
+      setMessage(status.configured
+        ? "Automatic email is connected."
+        : "Automatic email still needs a Resend API key and verified sender.");
+    } catch (nextError) {
+      setError(nextError.message);
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function sendEmailTest() {
+    const bakeryId = cloudAccount.workspace?.bakeryId;
+    if (!bakeryId || !testContact.email.trim()) return;
+    setBusy("email-test");
+    setMessage("");
+    setError("");
+    try {
+      await sendAutomaticEmailTest(bakeryId, testContact.email);
+      setMessage(`Automatic test email sent to ${testContact.email.trim()}.`);
+      setEmailDeliveries(await listEmailNotificationDeliveries(bakeryId, 8));
+    } catch (nextError) {
+      setError(nextError.message);
+    } finally {
+      setBusy("");
+    }
+  }
+
   const testMessage = encodeURIComponent("Loafers test: customer status notifications are ready on this device.");
-  const testEmailHref = testContact.email.trim()
-    ? `mailto:${encodeURIComponent(testContact.email.trim())}?subject=${encodeURIComponent("Loafers notification test")}&body=${testMessage}`
-    : undefined;
   const testSmsHref = testContact.phone.trim()
     ? `sms:${testContact.phone.replace(/[^\d+]/g, "")}?&body=${testMessage}`
     : undefined;
@@ -170,8 +238,20 @@ export default function SettingsPage({
           <div className="section-title-line"><div><span className="eyebrow-label dark">Status messages</span><h2>Customer notifications</h2></div><BellRing size={20} /></div>
           <div className="settings-toggle-list">
             <ToggleRow checked={draft.emailNotifications} label="Email updates" note="Let customers opt into email and enable baker email actions." onChange={(value) => update("emailNotifications", value)} />
+            <ToggleRow checked={draft.automaticEmailNotifications} label="Send email automatically" note="Send enabled order updates immediately after your baker action." onChange={(value) => update("automaticEmailNotifications", value)} />
             <ToggleRow checked={draft.smsNotifications} label="Text updates" note="Let customers opt into text messages and enable baker text actions." onChange={(value) => update("smsNotifications", value)} />
           </div>
+          <div className={`automatic-email-status ${emailProvider?.configured ? "connected" : ""}`}>
+            <Mail size={19} />
+            <span>
+              <strong>{emailProvider?.configured ? "Automatic email connected" : "Resend connection required"}</strong>
+              <small>{emailProvider?.configured
+                ? "Loafers can deliver opted-in customer emails without opening your mail app."
+                : "The app is ready. Add the Resend API key and verified sender in Supabase to start delivery."}</small>
+            </span>
+            <button type="button" onClick={refreshAutomaticEmail} disabled={!cloudAccount.workspace?.bakeryId || busy === "email-status"}><RefreshCw className={busy === "email-status" ? "spin" : ""} size={15} /> Check</button>
+          </div>
+          <label>Reply-to email<input type="email" value={draft.emailReplyTo} onChange={(event) => update("emailReplyTo", event.target.value)} placeholder="Your bakery email customers may reply to" /></label>
           <div className="settings-event-list">
             <strong>Message events</strong>
             <p>Choose the status templates available when you contact a customer.</p>
@@ -187,13 +267,24 @@ export default function SettingsPage({
           </div>
           <aside className="settings-provider-note">
             <Send size={18} />
-            <span><strong>Safe send mode</strong><small>Loafers opens a filled-in email or text on your phone. You review it and tap Send. Fully automatic delivery needs a future email/SMS provider connection.</small></span>
+            <span><strong>Automatic email with manual fallback</strong><small>Connected email sends immediately and records the result. The Email Status button on each order remains available if you ever want to compose a message yourself.</small></span>
           </aside>
           <div className="settings-test-grid">
             <label>Test email<input type="email" value={testContact.email} onChange={(event) => setTestContact({ ...testContact, email: event.target.value })} placeholder="you@example.com" /></label>
             <label>Test phone<input value={testContact.phone} onChange={(event) => setTestContact({ ...testContact, phone: event.target.value })} placeholder="9075550101" /></label>
-            <a className={!draft.emailNotifications || !testEmailHref ? "disabled" : ""} href={draft.emailNotifications ? testEmailHref : undefined}><Mail size={16} /> Test email</a>
+            <button className="settings-test-button" type="button" disabled={!draft.emailNotifications || !emailProvider?.configured || !testContact.email.trim() || busy === "email-test"} onClick={sendEmailTest}>
+              <Mail size={16} /> {busy === "email-test" ? "Sending…" : "Send automatic test"}
+            </button>
             <a className={!draft.smsNotifications || !testSmsHref ? "disabled" : ""} href={draft.smsNotifications ? testSmsHref : undefined}><MessageSquareText size={16} /> Test text</a>
+          </div>
+          <div className="email-delivery-history">
+            <div><strong>Recent email delivery</strong><small>{emailDeliveries.length ? "Latest automatic and test messages" : "No email attempts recorded yet."}</small></div>
+            {emailDeliveries.map((delivery) => (
+              <div className={`email-delivery-row status-${delivery.status}`} key={delivery.id}>
+                <span><strong>{delivery.event_type === "bakeProgress" ? "Bake progress" : delivery.event_type}</strong><small>{delivery.recipient}</small></span>
+                <span><strong>{delivery.status}</strong><small>{new Date(delivery.created_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</small></span>
+              </div>
+            ))}
           </div>
         </section>
 

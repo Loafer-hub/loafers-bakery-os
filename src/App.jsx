@@ -216,9 +216,16 @@ export default function App() {
     const order = orders.find((item) => item.id === id);
     if (!order) return;
     const completedProgress = Object.fromEntries(BAKE_PHASES.map((phase) => [phase.id, true]));
+    let emailResult = null;
     if (order.cloudOrderId) {
-      await updateCustomerOrderBakeProgress(order.cloudOrderId, completedProgress);
-      await completeCustomerOrder(order.cloudOrderId);
+      const bakeryId = cloudAccount.workspace?.bakeryId || "";
+      await updateCustomerOrderBakeProgress(
+        order.cloudOrderId,
+        completedProgress,
+        bakeryId,
+        { notify: false },
+      );
+      emailResult = await completeCustomerOrder(order.cloudOrderId, bakeryId);
     }
     let inventoryDeduction = null;
     if (
@@ -251,19 +258,34 @@ export default function App() {
         : item
     )));
     setSelectedOrderId(null);
+    const emailSuffix = emailResult?.sent
+      ? " · customer emailed"
+      : emailResult?.error
+        ? " · email failed"
+        : "";
     setToast(inventoryDeduction?.deductions.length
-      ? `Bake completed · ${inventoryDeduction.deductions.length} stock item${inventoryDeduction.deductions.length === 1 ? "" : "s"} deducted${inventoryDeduction.shortages.length ? " · shortage flagged" : ""}`
-      : "Bake completed and moved to Completed");
+      ? `Bake completed · ${inventoryDeduction.deductions.length} stock item${inventoryDeduction.deductions.length === 1 ? "" : "s"} deducted${inventoryDeduction.shortages.length ? " · shortage flagged" : ""}${emailSuffix}`
+      : `Bake completed and moved to Completed${emailSuffix}`);
   }
 
   async function updateOrderProgress(id, bakeProgress) {
     const order = orders.find((item) => item.id === id);
     if (!order) return;
-    if (order.cloudOrderId) await updateCustomerOrderBakeProgress(order.cloudOrderId, bakeProgress);
+    const emailResult = order.cloudOrderId
+      ? await updateCustomerOrderBakeProgress(
+        order.cloudOrderId,
+        bakeProgress,
+        cloudAccount.workspace?.bakeryId || "",
+      )
+      : null;
     setOrders((current) => current.map((item) => (
       item.id === id ? { ...item, bakeProgress } : item
     )));
-    setToast("Customer bake progress updated");
+    setToast(emailResult?.sent
+      ? "Customer bake progress updated · email sent"
+      : emailResult?.error
+        ? "Bake progress saved · email failed"
+        : "Customer bake progress updated");
   }
 
   function deleteOrder(id) {

@@ -340,6 +340,56 @@ export async function submitPublicOrder({
   return data;
 }
 
+async function invokeOrderEmail(body, { throwOnError = false } = {}) {
+  try {
+    const { data, error } = await requireClient().functions.invoke("send-order-email", { body });
+    if (error) {
+      if (throwOnError) throw new Error(error.message || "The email service could not be reached.");
+      return { sent: false, error: error.message || "The email service could not be reached." };
+    }
+    if (data?.error) {
+      if (throwOnError) throw new Error(data.error);
+      return { sent: false, error: data.error };
+    }
+    return data || { sent: false };
+  } catch (error) {
+    if (throwOnError) throw error;
+    return { sent: false, error: error.message || "The automatic email could not be sent." };
+  }
+}
+
+export async function getAutomaticEmailStatus(bakeryId) {
+  return invokeOrderEmail({ action: "status", bakeryId }, { throwOnError: true });
+}
+
+export async function sendAutomaticEmailTest(bakeryId, recipient) {
+  return invokeOrderEmail({
+    action: "test",
+    bakeryId,
+    recipient: recipient.trim().toLowerCase(),
+  }, { throwOnError: true });
+}
+
+export async function sendAutomaticOrderEmail(bakeryId, orderId, eventType) {
+  return invokeOrderEmail({
+    action: "send",
+    bakeryId,
+    orderId,
+    eventType,
+  });
+}
+
+export async function listEmailNotificationDeliveries(bakeryId, limit = 20) {
+  const { data, error } = await requireClient()
+    .from("email_notification_deliveries")
+    .select("id, order_id, event_type, recipient, subject, status, provider_message_id, error_message, created_at, sent_at")
+    .eq("bakery_id", bakeryId)
+    .order("created_at", { ascending: false })
+    .limit(Math.max(1, Math.min(100, Number(limit || 20))));
+  throwIfError(error);
+  return data || [];
+}
+
 export async function listCustomerOrderRequests(bakeryId, status = "requested") {
   const { data, error } = await requireClient()
     .from("customer_orders")
@@ -370,7 +420,7 @@ export async function listCustomerOrderRequests(bakeryId, status = "requested") 
   return data || [];
 }
 
-export async function acceptCustomerOrderRequest(orderId, bakerNotes = "") {
+export async function acceptCustomerOrderRequest(orderId, bakerNotes = "", bakeryId = "") {
   const { error } = await requireClient()
     .from("customer_orders")
     .update({
@@ -380,9 +430,10 @@ export async function acceptCustomerOrderRequest(orderId, bakerNotes = "") {
     })
     .eq("id", orderId);
   throwIfError(error);
+  return bakeryId ? sendAutomaticOrderEmail(bakeryId, orderId, "accepted") : { sent: false };
 }
 
-export async function commentCustomerOrderRequest(orderId, bakerNotes) {
+export async function commentCustomerOrderRequest(orderId, bakerNotes, bakeryId = "") {
   const { error } = await requireClient()
     .from("customer_orders")
     .update({
@@ -391,9 +442,12 @@ export async function commentCustomerOrderRequest(orderId, bakerNotes) {
     })
     .eq("id", orderId);
   throwIfError(error);
+  return bakeryId && bakerNotes.trim()
+    ? sendAutomaticOrderEmail(bakeryId, orderId, "comments")
+    : { sent: false, skipped: true };
 }
 
-export async function rejectCustomerOrderRequest(orderId, bakerNotes) {
+export async function rejectCustomerOrderRequest(orderId, bakerNotes, bakeryId = "") {
   const { error } = await requireClient()
     .from("customer_orders")
     .update({
@@ -403,9 +457,10 @@ export async function rejectCustomerOrderRequest(orderId, bakerNotes) {
     })
     .eq("id", orderId);
   throwIfError(error);
+  return bakeryId ? sendAutomaticOrderEmail(bakeryId, orderId, "rejected") : { sent: false };
 }
 
-export async function completeCustomerOrder(orderId) {
+export async function completeCustomerOrder(orderId, bakeryId = "") {
   const { error } = await requireClient()
     .from("customer_orders")
     .update({
@@ -414,9 +469,15 @@ export async function completeCustomerOrder(orderId) {
     })
     .eq("id", orderId);
   throwIfError(error);
+  return bakeryId ? sendAutomaticOrderEmail(bakeryId, orderId, "completed") : { sent: false };
 }
 
-export async function updateCustomerOrderBakeProgress(orderId, bakeProgress) {
+export async function updateCustomerOrderBakeProgress(
+  orderId,
+  bakeProgress,
+  bakeryId = "",
+  { notify = true } = {},
+) {
   const { error } = await requireClient()
     .from("customer_orders")
     .update({
@@ -425,6 +486,12 @@ export async function updateCustomerOrderBakeProgress(orderId, bakeProgress) {
     })
     .eq("id", orderId);
   throwIfError(error);
+  if (!bakeryId || !notify) return { sent: false };
+  return sendAutomaticOrderEmail(
+    bakeryId,
+    orderId,
+    bakeProgress?.ready ? "ready" : "bakeProgress",
+  );
 }
 
 export async function updateCustomerOrderNotificationPreferences(orderId, {

@@ -4,6 +4,8 @@ export const DEFAULT_BAKERY_SETTINGS = {
   feedbackEnabled: true,
   readyShelfEnabled: true,
   emailNotifications: true,
+  automaticEmailNotifications: true,
+  emailReplyTo: "",
   smsNotifications: true,
   dailyCapacity: 6,
   orderWindowDays: 30,
@@ -24,6 +26,7 @@ export const DEFAULT_BAKERY_SETTINGS = {
     comments: true,
     ready: true,
     rejected: true,
+    completed: true,
   },
 };
 
@@ -56,6 +59,8 @@ export function normalizedBakerySettings(value = {}) {
     feedbackEnabled: Boolean(settings.feedbackEnabled),
     readyShelfEnabled: Boolean(settings.readyShelfEnabled),
     emailNotifications: Boolean(settings.emailNotifications),
+    automaticEmailNotifications: Boolean(settings.automaticEmailNotifications),
+    emailReplyTo: String(settings.emailReplyTo || "").trim().toLowerCase(),
     smsNotifications: Boolean(settings.smsNotifications),
     dailyCapacity: Math.max(1, Math.min(24, Number(settings.dailyCapacity || 6))),
     orderWindowDays: Math.max(1, Math.min(90, Number(settings.orderWindowDays || 30))),
@@ -78,5 +83,6 @@ export function notificationEventOptions(settings) {
     { id: "comments", label: "Baker comment" },
     { id: "ready", label: "Ready for pickup" },
     { id: "rejected", label: "Order rejected" },
+    { id: "completed", label: "Order completed" },
   ].filter((event) => normalized.notificationEvents[event.id]);
 }
