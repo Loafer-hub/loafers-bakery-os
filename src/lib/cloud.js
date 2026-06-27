@@ -360,12 +360,39 @@ export async function submitPublicOrder({
   return data;
 }
 
+async function edgeFunctionErrorMessage(error, fallback = "The email service could not be reached.") {
+  const response = error?.context;
+  if (response?.status === 404) {
+    return "The send-order-email Edge Function is not deployed in Supabase yet.";
+  }
+  if (response?.clone) {
+    try {
+      const contentType = response.headers?.get?.("content-type") || "";
+      const clone = response.clone();
+      const payload = contentType.includes("application/json")
+        ? await clone.json()
+        : await clone.text();
+      const message = typeof payload === "string"
+        ? payload
+        : payload?.error || payload?.message || payload?.msg;
+      if (message === "Supabase service configuration is missing.") {
+        return "Supabase service configuration is missing. Add the SUPABASE_SERVICE_ROLE_KEY secret for the send-order-email Edge Function.";
+      }
+      if (message) return String(message);
+    } catch {
+      // Keep the fallback below if the response body has already been consumed.
+    }
+  }
+  return error?.message || fallback;
+}
+
 async function invokeOrderEmail(body, { throwOnError = false } = {}) {
   try {
     const { data, error } = await requireClient().functions.invoke("send-order-email", { body });
     if (error) {
-      if (throwOnError) throw new Error(error.message || "The email service could not be reached.");
-      return { sent: false, error: error.message || "The email service could not be reached." };
+      const message = await edgeFunctionErrorMessage(error);
+      if (throwOnError) throw new Error(message);
+      return { sent: false, error: message };
     }
     if (data?.error) {
       if (throwOnError) throw new Error(data.error);
