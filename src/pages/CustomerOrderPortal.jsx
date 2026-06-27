@@ -43,6 +43,28 @@ const PAYMENT_DETAILS = {
   Zelle: "9076161025",
   Cash: "Pay at pickup",
 };
+const PRODUCT_TYPE_LABELS = {
+  bread: "Bread",
+  bagel: "Bagels",
+  bun: "Buns / rolls",
+  cake: "Cakes",
+  pastry: "Pastries",
+  hot_sauce: "Hot sauces",
+  vinegar: "Vinegars",
+  infused_oil: "Infused oils",
+  other: "Small-batch item",
+};
+const PRODUCT_TYPE_ICONS = {
+  bread: "🥖",
+  bagel: "🥯",
+  bun: "🍞",
+  cake: "🍰",
+  pastry: "🥐",
+  hot_sauce: "🌶️",
+  vinegar: "🍾",
+  infused_oil: "🫒",
+  other: "🏷️",
+};
 
 function dollars(cents) {
   return `$${(Number(cents || 0) / 100).toFixed(2)}`;
@@ -65,6 +87,20 @@ function productSalesOptions(product) {
     price_cents: Number(product.price_cents || 0),
     capacity_units: 1,
   }];
+}
+
+function productTypeLabel(product) {
+  const value = product?.recipe_details?.productType || "bread";
+  return PRODUCT_TYPE_LABELS[value] || PRODUCT_TYPE_LABELS.other;
+}
+
+function productTypeIcon(product) {
+  const value = product?.recipe_details?.productType || "bread";
+  return PRODUCT_TYPE_ICONS[value] || PRODUCT_TYPE_ICONS.other;
+}
+
+function productPhotoUrl(product) {
+  return String(product?.recipe_details?.photoUrl || "").trim();
 }
 
 export default function CustomerOrderPortal({
@@ -117,6 +153,10 @@ export default function CustomerOrderPortal({
           recipe_details: {
             yield: recipe.yield,
             unitName: recipe.unitName || "loaf",
+            productType: recipe.productType || "bread",
+            formulaMode: recipe.formulaMode || "bakers",
+            photoUrl: recipe.photoUrl || "",
+            photoAlt: recipe.photoAlt || recipe.name || "",
             hydration: recipe.hydration,
             ingredients: recipe.ingredients,
           },
@@ -251,7 +291,7 @@ export default function CustomerOrderPortal({
       return;
     }
     if (!selectedItems.length) {
-      setError("Choose at least one loaf.");
+      setError("Choose at least one item.");
       return;
     }
     if (!form.pickupDate) {
@@ -297,7 +337,7 @@ export default function CustomerOrderPortal({
   }
 
   if (loading) {
-    return <main className="customer-portal customer-loading"><Wheat size={31} /><p>Opening the bread shelf…</p></main>;
+    return <main className="customer-portal customer-loading"><Wheat size={31} /><p>Opening the order shelf…</p></main>;
   }
 
   if (!storefront) {
@@ -453,7 +493,7 @@ export default function CustomerOrderPortal({
         ) : null}
 
         <section className="customer-menu">
-          <div className="customer-section-heading"><div><h2>Choose your loaves</h2><p>Requests are confirmed by the baker before they become final orders.</p></div></div>
+          <div className="customer-section-heading"><div><h2>Choose your items</h2><p>Requests are confirmed by the baker before they become final orders.</p></div></div>
           <div className="customer-product-list">
             {storefront.products.map((product) => (
               <CustomerProductCard
@@ -570,11 +610,15 @@ function CustomerProductCard({
   const selected = options.some((option) => Number(quantities[`product-${product.id}-${option.id}`] || 0) > 0);
   const unitName = product.recipe_details?.unitName || "item";
   const unitsLabel = pluralUnit(unitName, selectedOption.units);
+  const photoUrl = productPhotoUrl(product);
   return (
     <article className={selected ? "customer-product selected" : "customer-product"}>
       <div className="customer-product-main">
+        <span className={photoUrl ? "customer-product-photo" : "customer-product-photo empty"}>
+          {photoUrl ? <img src={photoUrl} alt={product.recipe_details?.photoAlt || product.name} /> : productTypeIcon(product)}
+        </span>
         <button className="customer-product-info" type="button" onClick={onShowDetails} aria-label={`View details for ${product.name}`}>
-          <span><Info size={13} /> View recipe details</span>
+          <span><Info size={13} /> {productTypeLabel(product)} · View details</span>
           <h3>{product.name}</h3>
           <p>{product.description}</p>
         </button>
@@ -611,6 +655,8 @@ function CustomerRecipeDetails({ product, onClose }) {
   const baseYield = Math.max(1, Number(details.yield || 1));
   const unitName = details.unitName || "item";
   const loafStyle = unitName.toLowerCase().includes("loaf");
+  const formulaMode = details.formulaMode || "bakers";
+  const photoUrl = productPhotoUrl(product);
   const salesOptions = productSalesOptions(product);
   const nutrition = ingredients.length ? estimateRecipeNutrition({
     yield: baseYield,
@@ -620,10 +666,13 @@ function CustomerRecipeDetails({ product, onClose }) {
   return (
     <Modal title={product.name} onClose={onClose}>
       <div className="customer-recipe-detail">
+        <div className={photoUrl ? "customer-recipe-photo" : "customer-recipe-photo empty"}>
+          {photoUrl ? <img src={photoUrl} alt={details.photoAlt || product.name} /> : productTypeIcon(product)}
+        </div>
         <div className="customer-recipe-summary">
           <span><small>Starting price</small><strong>{dollars(Math.min(...salesOptions.map((option) => option.price_cents)))}</strong></span>
-          <span><small>Hydration</small><strong>{Number(details.hydration || 0).toFixed(0)}%</strong></span>
-          <span><small>Published formula</small><strong>{baseYield}-loaf batch</strong></span>
+          <span><small>Category</small><strong>{productTypeLabel(product)}</strong></span>
+          <span><small>Published formula</small><strong>{baseYield} {pluralUnit(unitName, baseYield)}</strong></span>
         </div>
         <p>{product.description || "Small-batch naturally leavened bread."}</p>
         <div className="customer-recipe-heading"><h3>Package sizes</h3><small>Choose on the order card</small></div>
@@ -638,9 +687,9 @@ function CustomerRecipeDetails({ product, onClose }) {
 
         {ingredients.length ? (
           <>
-            <div className="customer-recipe-heading"><h3>Ingredients & formula</h3><small>Weights shown per loaf</small></div>
+            <div className="customer-recipe-heading"><h3>Ingredients & formula</h3><small>Weights shown per {unitName}</small></div>
             <div className="customer-formula-table">
-              <div><strong>Ingredient</strong><strong>Weight</strong><strong>Baker’s %</strong></div>
+              <div><strong>Ingredient</strong><strong>Weight</strong><strong>{formulaMode === "batch" ? "Batch %" : "Baker’s %"}</strong></div>
               {ingredients.map((ingredient, index) => (
                 <div key={`${ingredient.name}-${index}`}>
                   <span>{ingredient.name}</span>
