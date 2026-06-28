@@ -26,6 +26,7 @@ import {
 } from "./lib/productionPlanner";
 import BakePage from "./pages/BakePage";
 import CustomerOrderPortal from "./pages/CustomerOrderPortal";
+import LiquidPage from "./pages/LiquidPage";
 import MorePage from "./pages/MorePage";
 import OrdersPage from "./pages/OrdersPage";
 import RecipesPage from "./pages/RecipesPage";
@@ -36,6 +37,7 @@ const pages = {
   today: TodayPage,
   orders: OrdersPage,
   bake: BakePage,
+  liquid: LiquidPage,
   recipes: RecipesPage,
   more: MorePage,
   settings: SettingsPage,
