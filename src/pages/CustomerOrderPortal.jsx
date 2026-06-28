@@ -5,6 +5,7 @@ import {
   Clock3,
   Info,
   LockKeyhole,
+  Megaphone,
   Minus,
   PackageCheck,
   Plus,
@@ -65,6 +66,17 @@ const PRODUCT_TYPE_ICONS = {
   infused_oil: "🫒",
   other: "🏷️",
 };
+const PRODUCT_TYPE_ORDER = [
+  "bread",
+  "bagel",
+  "bun",
+  "cake",
+  "pastry",
+  "hot_sauce",
+  "vinegar",
+  "infused_oil",
+  "other",
+];
 
 function dollars(cents) {
   return `$${(Number(cents || 0) / 100).toFixed(2)}`;
@@ -90,13 +102,17 @@ function productSalesOptions(product) {
 }
 
 function productTypeLabel(product) {
-  const value = product?.recipe_details?.productType || "bread";
+  const value = productTypeValue(product);
   return PRODUCT_TYPE_LABELS[value] || PRODUCT_TYPE_LABELS.other;
 }
 
 function productTypeIcon(product) {
-  const value = product?.recipe_details?.productType || "bread";
+  const value = productTypeValue(product);
   return PRODUCT_TYPE_ICONS[value] || PRODUCT_TYPE_ICONS.other;
+}
+
+function productTypeValue(product) {
+  return product?.recipe_details?.productType || "bread";
 }
 
 function productPhotoUrl(product) {
@@ -115,6 +131,7 @@ export default function CustomerOrderPortal({
   const [success, setSuccess] = useState(null);
   const [quantities, setQuantities] = useState({});
   const [selectedOptions, setSelectedOptions] = useState({});
+  const [activeCatalogTab, setActiveCatalogTab] = useState("all");
   const [accountOpen, setAccountOpen] = useState(false);
   const [accountMode, setAccountMode] = useState("signin");
   const [accountForm, setAccountForm] = useState({ name: "", email: "", password: "" });
@@ -227,6 +244,49 @@ export default function CustomerOrderPortal({
   ], [quantities, storefront]);
   const total = selectedItems.reduce((sum, item) => sum + item.price_cents * item.quantity, 0);
   const rules = normalizedBakerySettings(storefront?.settings || bakerySettings);
+  const storefrontProducts = storefront?.products || [];
+  const readyShelfItems = rules.readyShelfEnabled ? (storefront?.shelf || []) : [];
+  const catalogTabs = useMemo(() => {
+    const availableTypes = new Set(storefrontProducts.map(productTypeValue));
+    const orderedTypes = [
+      ...PRODUCT_TYPE_ORDER.filter((type) => availableTypes.has(type)),
+      ...[...availableTypes].filter((type) => !PRODUCT_TYPE_ORDER.includes(type)),
+    ];
+    return [
+      {
+        id: "all",
+        icon: "🧺",
+        label: "All goods",
+        count: storefrontProducts.length + readyShelfItems.length,
+      },
+      ...(readyShelfItems.length ? [{
+        id: "ready",
+        icon: "✅",
+        label: "Ready now",
+        count: readyShelfItems.length,
+      }] : []),
+      ...orderedTypes.map((type) => ({
+        id: type,
+        icon: PRODUCT_TYPE_ICONS[type] || PRODUCT_TYPE_ICONS.other,
+        label: PRODUCT_TYPE_LABELS[type] || PRODUCT_TYPE_LABELS.other,
+        count: storefrontProducts.filter((product) => productTypeValue(product) === type).length,
+      })),
+    ].filter((tab) => tab.count > 0 || tab.id === "all");
+  }, [readyShelfItems, storefrontProducts]);
+  const visibleShelfItems = activeCatalogTab === "all" || activeCatalogTab === "ready"
+    ? readyShelfItems
+    : [];
+  const visibleProducts = activeCatalogTab === "all"
+    ? storefrontProducts
+    : activeCatalogTab === "ready"
+      ? []
+      : storefrontProducts.filter((product) => productTypeValue(product) === activeCatalogTab);
+  const customerAnnouncement = rules.announcementEnabled && rules.announcementText
+    ? {
+      title: rules.announcementTitle || "From the baker",
+      text: rules.announcementText,
+    }
+    : null;
   const packageCount = selectedItems.reduce((sum, item) => sum + item.quantity, 0);
   const itemCount = selectedItems.reduce((sum, item) => (
     sum + item.quantity * Number(item.saleOption?.units || 1)
@@ -239,6 +299,12 @@ export default function CustomerOrderPortal({
     .reduce((sum, item) => sum + item.quantity, 0);
   const pickupOptions = pickupTimeOptions(form.pickupDate, rules);
   const trackedCode = new URLSearchParams(window.location.search).get("track") || "";
+
+  useEffect(() => {
+    if (!catalogTabs.some((tab) => tab.id === activeCatalogTab)) {
+      setActiveCatalogTab("all");
+    }
+  }, [activeCatalogTab, catalogTabs]);
 
   function changeQuantity(item, change) {
     const quantityKey = item.quantityKey || `${item.itemType}-${item.id}`;
@@ -378,6 +444,7 @@ export default function CustomerOrderPortal({
         <header className="customer-header">
           <div className="brand-lockup"><span className="brand-mark"><Wheat size={23} /></span><span className="brand-name">{storefront.bakery.name}</span></div>
         </header>
+        {customerAnnouncement ? <CustomerAnnouncement announcement={customerAnnouncement} /> : null}
         <section className="customer-hero">
           <span className="eyebrow-label dark">Small-batch sourdough</span>
           <h1>Online ordering is paused.</h1>
@@ -409,6 +476,7 @@ export default function CustomerOrderPortal({
       </header>
 
       {!cloudAccount.configured ? <div className="portal-preview-banner"><LockKeyhole size={15} /> Preview only · cloud connection still needed</div> : null}
+      {customerAnnouncement ? <CustomerAnnouncement announcement={customerAnnouncement} /> : null}
 
       {accountOpen ? (
         <section className="customer-account-card">
@@ -463,50 +531,76 @@ export default function CustomerOrderPortal({
       />
 
       <form onSubmit={submitOrder}>
-        {rules.readyShelfEnabled && (storefront.shelf || []).length ? (
-          <section className="customer-ready-shelf">
-            <div className="customer-section-heading">
-              <div><h2>Ready-to-go shelf</h2><p>Already baked and available while the quantity lasts. Shelf loaves do not use future bake capacity.</p></div>
-            </div>
-            <div className="customer-product-list">
-              {storefront.shelf.map((item) => {
-                const quantityKey = `shelf-${item.id}`;
-                const orderItem = { ...item, itemType: "shelf" };
-                return (
-                  <article className={quantities[quantityKey] ? "customer-product shelf-product selected" : "customer-product shelf-product"} key={item.id}>
-                    <div>
-                      <span className="shelf-product-label"><PackageCheck size={14} /> {shelfAgeLabel(item.baked_on)} · {item.quantity} ready</span>
-                      <h3>{item.name}</h3>
-                      <p>{item.description || "Freshly baked and ready for pickup."}</p>
-                      <strong>{dollars(item.price_cents)}</strong>
-                    </div>
-                    <div className="customer-quantity">
-                      <button type="button" aria-label={`Remove one ${item.name}`} onClick={() => changeQuantity(orderItem, -1)}><Minus size={15} /></button>
-                      <span>{quantities[quantityKey] || 0}</span>
-                      <button type="button" aria-label={`Add one ${item.name}`} onClick={() => changeQuantity(orderItem, 1)} disabled={Number(quantities[quantityKey] || 0) >= Number(item.quantity || 0)}><Plus size={15} /></button>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-          </section>
-        ) : null}
-
         <section className="customer-menu">
-          <div className="customer-section-heading"><div><h2>Choose your items</h2><p>Requests are confirmed by the baker before they become final orders.</p></div></div>
-          <div className="customer-product-list">
-            {storefront.products.map((product) => (
-              <CustomerProductCard
-                key={product.id}
-                product={product}
-                quantities={quantities}
-                selectedOptionId={selectedOptions[product.id]}
-                onChangeOption={(optionId) => setSelectedOptions((current) => ({ ...current, [product.id]: optionId }))}
-                onChangeQuantity={changeQuantity}
-                onShowDetails={() => setSelectedProduct(product)}
-              />
+          <div className="customer-section-heading"><div><h2>Choose your items</h2><p>Browse by category, ready shelf, or all goods. Requests are confirmed by the baker before they become final orders.</p></div></div>
+          <div className="customer-menu-tabs" role="tablist" aria-label="Goods categories">
+            {catalogTabs.map((tab) => (
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeCatalogTab === tab.id}
+                className={activeCatalogTab === tab.id ? "selected" : ""}
+                key={tab.id}
+                onClick={() => setActiveCatalogTab(tab.id)}
+              >
+                <span>{tab.icon}</span>
+                <strong>{tab.label}</strong>
+                <small>{tab.count}</small>
+              </button>
             ))}
           </div>
+
+          {visibleShelfItems.length ? (
+            <div className="customer-tab-panel">
+              <div className="customer-tab-heading"><PackageCheck size={16} /><span><strong>Ready-to-go shelf</strong><small>Already baked and available while quantity lasts. These do not use future bake capacity.</small></span></div>
+              <div className="customer-product-list">
+                {visibleShelfItems.map((item) => {
+                  const quantityKey = `shelf-${item.id}`;
+                  const orderItem = { ...item, itemType: "shelf" };
+                  return (
+                    <article className={quantities[quantityKey] ? "customer-product shelf-product selected" : "customer-product shelf-product"} key={item.id}>
+                      <div>
+                        <span className="shelf-product-label"><PackageCheck size={14} /> {shelfAgeLabel(item.baked_on)} · {item.quantity} ready</span>
+                        <h3>{item.name}</h3>
+                        <p>{item.description || "Freshly baked and ready for pickup."}</p>
+                        <strong>{dollars(item.price_cents)}</strong>
+                      </div>
+                      <div className="customer-quantity">
+                        <button type="button" aria-label={`Remove one ${item.name}`} onClick={() => changeQuantity(orderItem, -1)}><Minus size={15} /></button>
+                        <span>{quantities[quantityKey] || 0}</span>
+                        <button type="button" aria-label={`Add one ${item.name}`} onClick={() => changeQuantity(orderItem, 1)} disabled={Number(quantities[quantityKey] || 0) >= Number(item.quantity || 0)}><Plus size={15} /></button>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
+
+          {visibleProducts.length ? (
+            <div className="customer-tab-panel">
+              <div className="customer-product-list">
+                {visibleProducts.map((product) => (
+                  <CustomerProductCard
+                    key={product.id}
+                    product={product}
+                    quantities={quantities}
+                    selectedOptionId={selectedOptions[product.id]}
+                    onChangeOption={(optionId) => setSelectedOptions((current) => ({ ...current, [product.id]: optionId }))}
+                    onChangeQuantity={changeQuantity}
+                    onShowDetails={() => setSelectedProduct(product)}
+                  />
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {!visibleShelfItems.length && !visibleProducts.length ? (
+            <div className="customer-empty-tab">
+              <strong>Nothing in this tab yet.</strong>
+              <span>Try All goods or check back after the baker republishes the menu.</span>
+            </div>
+          ) : null}
         </section>
 
         <section className="customer-details">
@@ -593,6 +687,18 @@ export default function CustomerOrderPortal({
 
       {selectedProduct ? <CustomerRecipeDetails product={selectedProduct} onClose={() => setSelectedProduct(null)} /> : null}
     </main>
+  );
+}
+
+function CustomerAnnouncement({ announcement }) {
+  return (
+    <section className="customer-announcement" aria-label="Bakery announcement">
+      <span><Megaphone size={19} /></span>
+      <div>
+        <small>{announcement.title}</small>
+        <p>{announcement.text}</p>
+      </div>
+    </section>
   );
 }
 
