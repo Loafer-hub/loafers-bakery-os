@@ -231,8 +231,14 @@ export default function SettingsPage({
             <ToggleRow checked={draft.readyShelfEnabled} label="Ready-to-go shelf" note="Show prebaked inventory on the customer order page." onChange={(value) => update("readyShelfEnabled", value)} />
             <ToggleRow checked={draft.reviewsVisible} label="Public reviews" note="Display verified customer reviews on the storefront." onChange={(value) => update("reviewsVisible", value)} />
             <ToggleRow checked={draft.feedbackEnabled} label="Suggestions and reviews" note="Allow verified customers to submit feedback from order lookup." onChange={(value) => update("feedbackEnabled", value)} />
+            <ToggleRow checked={draft.announcementEnabled} label="Owner announcement" note="Show a short baker note at the top of the customer order page." onChange={(value) => update("announcementEnabled", value)} />
           </div>
           <label>Customer page introduction<textarea value={draft.orderingIntro} onChange={(event) => update("orderingIntro", event.target.value)} /></label>
+          <div className="settings-announcement-fields">
+            <label>Announcement title<input disabled={!draft.announcementEnabled} value={draft.announcementTitle} onChange={(event) => update("announcementTitle", event.target.value)} placeholder="From the baker" /></label>
+            <label>Announcement message<textarea disabled={!draft.announcementEnabled} value={draft.announcementText} onChange={(event) => update("announcementText", event.target.value)} placeholder="Example: Bagels are available this Saturday, and pickup will be at Three Bears." /></label>
+            <small>Leave the message blank to hide the announcement without changing the rest of your storefront.</small>
+          </div>
           <label>Pickup location<input value={draft.pickupLocation} onChange={(event) => update("pickupLocation", event.target.value)} /></label>
         </section>
 
