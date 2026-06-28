@@ -494,7 +494,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   position: relative;
   z-index: 5;
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   align-items: start;
   padding: 11px 8px max(8px, env(safe-area-inset-bottom));
   border-top: 1px solid var(--line);
@@ -1980,6 +1980,261 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   color: var(--muted);
   font-size: 8px;
   line-height: 1.45;
+}
+
+.liquid-page {
+  --liquid-blue: #4c7786;
+  --liquid-blue-soft: #edf7f8;
+  --liquid-amber: #b97831;
+}
+
+.liquid-view-switch button {
+  min-width: 0;
+}
+
+.liquid-lab-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 48px;
+  align-items: center;
+  gap: 13px;
+  margin-bottom: 14px;
+  padding: 16px;
+  color: #315660;
+  border: 1px solid rgba(76,119,134,.28);
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at top right, rgba(119,174,187,.24), transparent 36%),
+    var(--liquid-blue-soft);
+}
+
+.liquid-lab-hero h2 {
+  margin: 2px 0 5px;
+  font-family: "Newsreader", Georgia, serif;
+  font-size: 28px;
+  font-weight: 500;
+  letter-spacing: -.03em;
+}
+
+.liquid-lab-hero p {
+  margin: 0;
+  color: #48646b;
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.liquid-lab-hero svg {
+  color: var(--liquid-blue);
+}
+
+.hot-sauce-hero {
+  color: #7e3328;
+  border-color: rgba(199,85,53,.28);
+  background:
+    radial-gradient(circle at top right, rgba(199,85,53,.18), transparent 36%),
+    #fff4ef;
+}
+
+.hot-sauce-hero p { color: #7b5147; }
+.hot-sauce-hero svg { color: #b34d35; }
+
+.vinegar-hero {
+  color: #315660;
+}
+
+.oil-hero {
+  color: #715025;
+  border-color: rgba(185,120,49,.28);
+  background:
+    radial-gradient(circle at top right, rgba(185,120,49,.18), transparent 36%),
+    #fff8e9;
+}
+
+.oil-hero p { color: #745f40; }
+.oil-hero svg { color: var(--liquid-amber); }
+
+.liquid-model-controls {
+  margin-bottom: 13px;
+}
+
+.liquid-result-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+  margin-bottom: 14px;
+}
+
+.liquid-result-card {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(255,255,255,.64);
+}
+
+.liquid-result-card.warning {
+  color: #8d342f;
+  border-color: #e1b3a9;
+  background: #fff2ee;
+}
+
+.liquid-result-card.safe {
+  color: #40593c;
+  border-color: #bed0b8;
+  background: #f4f8f1;
+}
+
+.liquid-result-card span,
+.liquid-result-card small {
+  display: block;
+}
+
+.liquid-result-card span {
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+}
+
+.liquid-result-card strong {
+  display: block;
+  overflow: hidden;
+  margin: 3px 0 2px;
+  font-family: "Newsreader", Georgia, serif;
+  font-size: 21px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.liquid-result-card small {
+  color: inherit;
+  opacity: .76;
+  font-size: 8px;
+  line-height: 1.4;
+}
+
+.liquid-science-card {
+  color: #315660;
+  border-color: rgba(76,119,134,.28);
+  background: var(--liquid-blue-soft);
+}
+
+.liquid-science-card .section-title-line svg {
+  color: var(--liquid-blue);
+}
+
+.liquid-effect-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.liquid-effect-card {
+  padding: 10px;
+  border: 1px solid rgba(76,119,134,.18);
+  border-radius: 8px;
+  background: rgba(255,255,255,.58);
+}
+
+.liquid-effect-card strong {
+  display: block;
+  margin-bottom: 3px;
+  font-size: 10px;
+}
+
+.liquid-effect-card p {
+  margin: 0;
+  color: inherit;
+  opacity: .78;
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+.liquid-meter-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 10px;
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+.liquid-meter {
+  height: 9px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(76,119,134,.15);
+}
+
+.liquid-meter i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #6b94a0, #c75535);
+}
+
+.liquid-meter.amber i {
+  background: linear-gradient(90deg, #d8b56e, #a95a25);
+}
+
+.liquid-safety-callout {
+  align-items: flex-start;
+  color: #8d342f;
+  border-color: #d9a399;
+  background: #fff4f0;
+}
+
+.liquid-safety-callout span {
+  line-height: 1.45;
+}
+
+.liquid-source-note {
+  margin-bottom: 14px;
+}
+
+.liquid-reference-card,
+.liquid-quick-science {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(255,255,255,.5);
+}
+
+.liquid-reference-card {
+  align-items: flex-start;
+  color: #6e4a32;
+}
+
+.liquid-reference-card svg {
+  flex: 0 0 auto;
+  color: var(--accent);
+}
+
+.liquid-reference-card p {
+  margin: 0;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.liquid-quick-science {
+  flex-direction: column;
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 700;
+}
+
+.liquid-quick-science span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .compact-formula {
@@ -6340,6 +6595,20 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
     box-shadow: none;
   }
 
+  .bottom-nav {
+    padding-inline: 5px;
+  }
+
+  .nav-item {
+    gap: 3px;
+    font-size: 8px;
+  }
+
+  .nav-item svg {
+    width: 19px;
+    height: 19px;
+  }
+
   .today-page .greeting {
     padding: 20px 2px 13px;
   }
@@ -6471,6 +6740,41 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 
   .bake-page .stepper-row {
     margin: 10px 0;
+  }
+
+  .liquid-page .page-heading {
+    align-items: center;
+    margin-bottom: 10px;
+  }
+
+  .liquid-page .page-heading h1 {
+    font-size: 34px;
+  }
+
+  .liquid-page .page-heading p {
+    font-size: 11px;
+  }
+
+  .liquid-page .view-switch {
+    margin-bottom: 10px;
+  }
+
+  .liquid-page .view-switch button {
+    padding: 7px 5px;
+    font-size: 10px;
+  }
+
+  .liquid-lab-hero {
+    padding: 13px;
+  }
+
+  .liquid-lab-hero h2 {
+    font-size: 24px;
+  }
+
+  .liquid-result-grid,
+  .liquid-effect-grid {
+    grid-template-columns: 1fr;
   }
 }
 
