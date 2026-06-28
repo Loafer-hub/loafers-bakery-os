@@ -44,6 +44,13 @@ function environmentJson(name: string) {
   }
 }
 
+function clientKey(request: Request) {
+  return Deno.env.get("SUPABASE_ANON_KEY")
+    || Deno.env.get("SUPABASE_PUBLISHABLE_KEY")
+    || request.headers.get("apikey")
+    || "";
+}
+
 function escapeHtml(value: unknown) {
   return String(value ?? "")
     .replaceAll("&", "&amp;")
@@ -145,14 +152,14 @@ Deno.serve(async (request) => {
   if (!token) return jsonResponse({ error: "Sign in to manage bakery email." }, 401);
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
-  const secretKeys = environmentJson("SUPABASE_SECRET_KEYS") as Record<string, string>;
-  const serviceRoleKey = secretKeys.default || Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-  if (!supabaseUrl || !serviceRoleKey) return jsonResponse({ error: "Supabase service configuration is missing." }, 500);
+  const publishableKey = clientKey(request);
+  if (!supabaseUrl || !publishableKey) return jsonResponse({ error: "Supabase client configuration is missing." }, 500);
 
-  const admin = createClient(supabaseUrl, serviceRoleKey, {
+  const db = createClient(supabaseUrl, publishableKey, {
+    global: { headers: { Authorization: `Bearer ${token}` } },
     auth: { autoRefreshToken: false, persistSession: false },
   });
-  const { data: userData, error: userError } = await admin.auth.getUser(token);
+  const { data: userData, error: userError } = await db.auth.getUser(token);
   if (userError || !userData.user) return jsonResponse({ error: "Your bakery session has expired." }, 401);
 
   let body: Record<string, any>;
@@ -166,32 +173,21 @@ Deno.serve(async (request) => {
   const bakeryId = String(body.bakeryId || "");
   if (!bakeryId) return jsonResponse({ error: "Bakery is required." }, 400);
 
-  const { data: bakery, error: bakeryError } = await admin
-    .from("bakeries")
-    .select("id, owner_id, name, pickup_location")
-    .eq("id", bakeryId)
-    .single();
-  if (bakeryError || !bakery) return jsonResponse({ error: bakeryError?.message || "Bakery not found." }, 400);
-
-  const { data: membership, error: membershipError } = await admin
+  const { data: membership, error: membershipError } = await db
     .from("bakery_members")
     .select("role")
     .eq("bakery_id", bakeryId)
     .eq("user_id", userData.user.id)
     .maybeSingle();
   if (membershipError) return jsonResponse({ error: membershipError.message }, 400);
+  if (!membership) return jsonResponse({ error: "You do not have access to this bakery." }, 403);
 
-  const ownsBakery = bakery.owner_id === userData.user.id;
-  if (!membership && ownsBakery) {
-    await admin
-      .from("bakery_members")
-      .upsert({
-        bakery_id: bakeryId,
-        user_id: userData.user.id,
-        role: "owner",
-      }, { onConflict: "bakery_id,user_id" });
-  }
-  if (!membership && !ownsBakery) return jsonResponse({ error: "You do not have access to this bakery." }, 403);
+  const { data: bakery, error: bakeryError } = await db
+    .from("bakeries")
+    .select("id, owner_id, name, pickup_location")
+    .eq("id", bakeryId)
+    .single();
+  if (bakeryError || !bakery) return jsonResponse({ error: bakeryError?.message || "Bakery not found." }, 400);
 
   const resendApiKey = Deno.env.get("RESEND_API_KEY") || "";
   const fromEmail = Deno.env.get("RESEND_FROM_EMAIL") || "";
@@ -226,7 +222,7 @@ Deno.serve(async (request) => {
       }),
     });
     const provider = await response.json();
-    await admin.from("email_notification_deliveries").insert({
+    await db.from("email_notification_deliveries").insert({
       bakery_id: bakeryId,
       event_type: "test",
       event_key: `test:${crypto.randomUUID()}`,
@@ -247,7 +243,7 @@ Deno.serve(async (request) => {
   if (!orderId || !eventHeadings[eventType]) return jsonResponse({ error: "Order and email event are required." }, 400);
 
   const [{ data: order, error: orderError }, { data: settingsRow }] = await Promise.all([
-    admin
+    db
       .from("customer_orders")
       .select(`
         id, bakery_id, request_code, status, pickup_at, customer_name, customer_email,
@@ -257,7 +253,7 @@ Deno.serve(async (request) => {
       .eq("id", orderId)
       .eq("bakery_id", bakeryId)
       .single(),
-    admin.from("bakery_settings").select("settings").eq("bakery_id", bakeryId).maybeSingle(),
+    db.from("bakery_settings").select("settings").eq("bakery_id", bakeryId).maybeSingle(),
   ]);
   if (orderError || !order) return jsonResponse({ error: orderError?.message || "Order not found." }, 404);
 
@@ -273,7 +269,7 @@ Deno.serve(async (request) => {
 
   if (!eligible || !providerConfigured) {
     const reason = !eligible ? "Automatic email is disabled or the customer did not opt in." : "Resend is not connected.";
-    const { error: skipError } = await admin.from("email_notification_deliveries").insert({
+    const { error: skipError } = await db.from("email_notification_deliveries").insert({
       bakery_id: bakeryId,
       order_id: order.id,
       event_type: eventType,
@@ -287,7 +283,7 @@ Deno.serve(async (request) => {
     return jsonResponse({ sent: false, skipped: true, reason, configured: providerConfigured });
   }
 
-  const { data: delivery, error: insertError } = await admin
+  const { data: delivery, error: insertError } = await db
     .from("email_notification_deliveries")
     .insert({
       bakery_id: bakeryId,
@@ -321,7 +317,7 @@ Deno.serve(async (request) => {
   });
   const provider = await providerResponse.json();
   const sent = providerResponse.ok;
-  await admin
+  await db
     .from("email_notification_deliveries")
     .update({
       status: sent ? "sent" : "failed",
