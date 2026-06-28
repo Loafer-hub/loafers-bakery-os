@@ -3,6 +3,7 @@ import {
   CalendarDays,
   ClipboardList,
   Croissant,
+  Droplets,
   House,
   LineChart,
   UserRound,
@@ -13,6 +14,7 @@ const navItems = [
   { id: "today", label: "Today", icon: House },
   { id: "orders", label: "Orders", icon: ClipboardList },
   { id: "bake", label: "Bake", icon: Croissant },
+  { id: "liquid", label: "Liquid", icon: Droplets },
   { id: "recipes", label: "Recipes", icon: BookOpen },
   { id: "more", label: "Trends", icon: LineChart },
 ];
