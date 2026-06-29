@@ -115,6 +115,7 @@ const PRODUCT_TEMPLATES = {
 
 const TYPE_DEFAULT_UNITS = new Set(PRODUCT_TYPES.map((type) => type.unitName.toLowerCase()));
 
+// recipe-type-collapse-v1
 const ASSISTANT_EXAMPLES = [
   "My kitchen is 68°F and my dough is sluggish.",
   "I accidentally added too much water.",
@@ -511,7 +512,7 @@ function AIBakeAssistant({ setActive, onLogStarter }) {
 }
 
 function FlourDatabase() {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
   const [selectedCategoryId, setSelectedCategoryId] = useState(FLOUR_DATABASE_CATEGORIES[0]?.id || "");
   const selectedCategory = FLOUR_DATABASE_CATEGORIES.find((category) => category.id === selectedCategoryId) || FLOUR_DATABASE_CATEGORIES[0];
   const [selectedId, setSelectedId] = useState(selectedCategory?.records[0]?.id || "");
@@ -532,7 +533,7 @@ function FlourDatabase() {
         <span>
           <small>Flour database</small>
           <strong>Type-first flour field guide</strong>
-          <em>{FLOUR_DATABASE_CATEGORIES.length} flour categories · brand records underneath each type</em>
+          <em>{isOpen ? `${FLOUR_DATABASE_CATEGORIES.length} flour categories · brand records underneath each type` : "Collapsed · tap to compare flour types, brands, protein, ash, absorption, and strength"}</em>
         </span>
         <ChevronDown size={20} />
       </button>
@@ -621,6 +622,37 @@ function FlourDatabase() {
   );
 }
 
+function RecipeTypeSection({ recipes, type, onOpenRecipe }) {
+  if (!recipes.length) return null;
+  return (
+    <details className="recipe-type-section">
+      <summary className="collapsible-section-header recipe-type-header">
+        <span className="recipe-type-symbol" aria-hidden="true">{type.icon}</span>
+        <span>
+          <small>Item type</small>
+          <strong>{type.label}</strong>
+          <em>{recipes.length} recipe{recipes.length === 1 ? "" : "s"} · {type.formulaMode === "bakers" ? "baker’s %" : "batch %"}</em>
+        </span>
+        <ChevronDown size={20} />
+      </summary>
+      <div className="recipe-type-body">
+        {recipes.map((recipe) => (
+          <button className="recipe-row" key={recipe.id} onClick={() => onOpenRecipe(recipe)}>
+            <RecipeVisual recipe={recipe} />
+            <span className="recipe-copy">
+              <em>{productTypeLabel(recipe.productType)}</em>
+              <strong>{recipe.name}</strong>
+              <small>{recipe.note}</small>
+              <span>{ratioLabelFor(recipe)} · {recipe.yield} {pluralUnit(unitNameFor(recipe), recipe.yield)} per base batch · from ${lowestSalesPrice(recipe).toFixed(2)}</span>
+            </span>
+            <ChevronRight size={19} />
+          </button>
+        ))}
+      </div>
+    </details>
+  );
+}
+
 export default function RecipesPage({ inventory, recipes, onDeleteRecipe, onSaveRecipe, setActive, onLogStarter }) {
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState(null);
@@ -634,6 +666,12 @@ export default function RecipesPage({ inventory, recipes, onDeleteRecipe, onSave
     () => recipes.filter((recipe) => recipe.name.toLowerCase().includes(query.toLowerCase())),
     [query, recipes],
   );
+  const groupedRecipes = useMemo(() => (
+    PRODUCT_TYPES.map((type) => ({
+      type,
+      recipes: filtered.filter((recipe) => productTypeFor(recipe).value === type.value),
+    })).filter((group) => group.recipes.length)
+  ), [filtered]);
 
   function openEditor(recipe) {
     setForm(recipeForm(recipe));
@@ -835,20 +873,16 @@ export default function RecipesPage({ inventory, recipes, onDeleteRecipe, onSave
       <AIBakeAssistant setActive={setActive} onLogStarter={onLogStarter} />
       <FlourDatabase />
       <section className="recipe-list">
-        {filtered.length ? filtered.map((recipe) => (
-          <button className="recipe-row" key={recipe.id} onClick={() => {
-            setSelectedId(recipe.id);
-            setLoaves(recipe.yield);
-          }}>
-            <RecipeVisual recipe={recipe} />
-            <span className="recipe-copy">
-              <em>{productTypeLabel(recipe.productType)}</em>
-              <strong>{recipe.name}</strong>
-              <small>{recipe.note}</small>
-              <span>{ratioLabelFor(recipe)} · {recipe.yield} {pluralUnit(unitNameFor(recipe), recipe.yield)} per base batch · from ${lowestSalesPrice(recipe).toFixed(2)}</span>
-            </span>
-            <ChevronRight size={19} />
-          </button>
+        {groupedRecipes.length ? groupedRecipes.map((group) => (
+          <RecipeTypeSection
+            key={group.type.value}
+            recipes={group.recipes}
+            type={group.type}
+            onOpenRecipe={(recipe) => {
+              setSelectedId(recipe.id);
+              setLoaves(recipe.yield);
+            }}
+          />
         )) : <EmptyState title={recipes.length ? "No matching recipes" : "No recipes yet"} body={recipes.length ? "Try another recipe name." : "Use the plus button to add your first formula."} />}
       </section>
       <aside className="bakers-percent-note">
