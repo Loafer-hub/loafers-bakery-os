@@ -1,0 +1,88 @@
+name: Deploy to Starlight VM
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+concurrency:
+  group: starlight-vm
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Build and replace Starlight site
+    if: ${{ vars.STARLIGHT_DEPLOY_ENABLED == 'true' || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    env:
+      STARLIGHT_HOST: ${{ secrets.STARLIGHT_HOST }}
+      STARLIGHT_USER: ${{ secrets.STARLIGHT_USER }}
+      STARLIGHT_PORT: ${{ secrets.STARLIGHT_PORT }}
+      STARLIGHT_WEB_ROOT: ${{ secrets.STARLIGHT_WEB_ROOT }}
+      STARLIGHT_BACKUP_ROOT: ${{ secrets.STARLIGHT_BACKUP_ROOT }}
+      STARLIGHT_KNOWN_HOSTS: ${{ secrets.STARLIGHT_KNOWN_HOSTS }}
+      STARLIGHT_PUBLIC_URL: ${{ secrets.STARLIGHT_PUBLIC_URL }}
+      STARLIGHT_SSH_PRIVATE_KEY: ${{ secrets.STARLIGHT_SSH_PRIVATE_KEY }}
+      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Loafers
+        run: npm run build
+
+      - name: Package build
+        run: tar -C dist -czf /tmp/loafers-dist.tgz .
+
+      - name: Deploy to VM
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          : "${STARLIGHT_HOST:?Missing STARLIGHT_HOST secret}"
+          : "${STARLIGHT_USER:?Missing STARLIGHT_USER secret}"
+          : "${STARLIGHT_WEB_ROOT:?Missing STARLIGHT_WEB_ROOT secret}"
+          : "${STARLIGHT_SSH_PRIVATE_KEY:?Missing STARLIGHT_SSH_PRIVATE_KEY secret}"
+
+          PORT="${STARLIGHT_PORT:-22}"
+          RELEASE_ID="${GITHUB_SHA::12}"
+          KEY_FILE="$RUNNER_TEMP/starlight_deploy_key"
+          REMOTE_ARCHIVE="/tmp/loafers-dist-${RELEASE_ID}.tgz"
+
+          mkdir -p "$HOME/.ssh"
+          printf "%s" "$STARLIGHT_SSH_PRIVATE_KEY" > "$KEY_FILE"
+          chmod 600 "$KEY_FILE"
+
+          if [[ -n "${STARLIGHT_KNOWN_HOSTS:-}" ]]; then
+            printf "%s\n" "$STARLIGHT_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          else
+            ssh-keyscan -p "$PORT" "$STARLIGHT_HOST" >> "$HOME/.ssh/known_hosts"
+          fi
+
+          scp -P "$PORT" -i "$KEY_FILE" /tmp/loafers-dist.tgz "${STARLIGHT_USER}@${STARLIGHT_HOST}:${REMOTE_ARCHIVE}"
+          ssh -p "$PORT" -i "$KEY_FILE" "${STARLIGHT_USER}@${STARLIGHT_HOST}" \
+            "bash -s -- '${STARLIGHT_WEB_ROOT}' '${REMOTE_ARCHIVE}' '${STARLIGHT_BACKUP_ROOT:-}' '${RELEASE_ID}'" \
+            < scripts/starlight-vm-deploy.sh
+
+      - name: Smoke test public URL
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${STARLIGHT_PUBLIC_URL:-}" ]]; then
+            echo "STARLIGHT_PUBLIC_URL not set; skipping public smoke test."
+            exit 0
+          fi
+
+          curl -fsSL "${STARLIGHT_PUBLIC_URL}?release=${GITHUB_SHA::12}" | grep -qi "Loafers"
+          echo "Starlight site responded with Loafers content."
