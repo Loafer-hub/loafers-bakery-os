@@ -47,6 +47,7 @@ export default function App() {
   const [active, setActive] = useState("today");
   const [selectedOrderId, setSelectedOrderId] = useState(null);
   const [orders, setOrders] = usePersistentState("loafers-orders-v1", seedOrders);
+  const [customerProfiles, setCustomerProfiles] = usePersistentState("loafers-customer-profiles-v1", []);
   const [recipes, setRecipes] = usePersistentState("loafers-recipes-v1", seedRecipes);
   const [inventory, setInventory] = usePersistentState("loafers-inventory-v1", seedInventory);
   const [expenses, setExpenses] = usePersistentState("loafers-expenses-v1", seedExpenses);
@@ -409,6 +410,22 @@ export default function App() {
     setToast("Expense removed");
   }
 
+  function saveCustomerProfile(profile) {
+    const savedProfile = {
+      ...profile,
+      id: profile.id || `customer-${Date.now()}`,
+      name: profile.name?.trim() || "Customer",
+      updatedAt: new Date().toISOString(),
+    };
+    setCustomerProfiles((current) => {
+      const exists = current.some((entry) => entry.id === savedProfile.id);
+      return exists
+        ? current.map((entry) => entry.id === savedProfile.id ? savedProfile : entry)
+        : [savedProfile, ...current];
+    });
+    setToast("Customer profile saved");
+  }
+
   function saveBakePlan(plan) {
     const { isNew, ...savedPlan } = plan;
     setBakePlans((current) => {
@@ -445,6 +462,7 @@ export default function App() {
 
   function applyStorageData(data) {
     setOrders(data.orders);
+    setCustomerProfiles(data.customerProfiles || []);
     setRecipes(data.recipes);
     setInventory(data.inventory);
     setExpenses(data.expenses);
@@ -475,6 +493,7 @@ export default function App() {
     recipes,
     bakePlans,
     starters,
+    customerProfiles,
     expenses,
     inventory,
     setActive: navigate,
@@ -489,6 +508,7 @@ export default function App() {
     onDeleteStarter: deleteStarter,
     onChangeProductionAutomation: setProductionAutomation,
     onSaveBakerySettings: updateBakerySettings,
+    onSaveCustomerProfile: saveCustomerProfile,
     onOpenOrder: openOrder,
     onImportCloudOrder: importCloudOrder,
     onLogExpense: logExpense,
@@ -560,6 +580,7 @@ export default function App() {
         <StorageCenter
           data={{
             orders,
+            customerProfiles,
             recipes,
             inventory,
             expenses,
