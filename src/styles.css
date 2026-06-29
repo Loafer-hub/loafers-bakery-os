@@ -3585,6 +3585,47 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 }
 
 .recipe-list {
+  display: grid;
+  gap: 11px;
+  margin-top: 14px;
+}
+
+/* recipe-type-collapse-v1 */
+.recipe-type-section {
+  padding: 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 15px;
+  background:
+    radial-gradient(circle at top left, rgba(102, 127, 88, .13), transparent 36%),
+    rgba(255,255,255,.5);
+}
+
+.recipe-type-section summary {
+  list-style: none;
+}
+
+.recipe-type-section summary::-webkit-details-marker {
+  display: none;
+}
+
+.recipe-type-header {
+  grid-template-columns: 46px minmax(0, 1fr) auto;
+}
+
+.recipe-type-symbol {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: #fbfaf6;
+  font-size: 22px;
+}
+
+.recipe-type-body {
+  margin-top: 13px;
+  padding-top: 2px;
   border-top: 1px solid var(--line);
 }
 
@@ -3600,6 +3641,11 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   border-bottom: 1px solid var(--line);
   background: transparent;
   cursor: pointer;
+}
+
+.recipe-type-body .recipe-row:last-child {
+  border-bottom: 0;
+  padding-bottom: 2px;
 }
 
 .recipe-icon,
@@ -3752,7 +3798,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 }
 
 .ai-bake-assistant.open .collapsible-section-header > svg:last-child,
-.flour-database-panel.open .collapsible-section-header > svg:last-child {
+.flour-database-panel.open .collapsible-section-header > svg:last-child,
+.recipe-type-section[open] .collapsible-section-header > svg:last-child {
   transform: rotate(180deg);
 }
 
