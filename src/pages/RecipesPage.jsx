@@ -1,11 +1,16 @@
 import {
+  Bot,
   ChevronRight,
   CircleDollarSign,
+  Database,
   Droplets,
+  Lightbulb,
   Package,
   Pencil,
   Plus,
+  Route,
   Search,
+  Sparkles,
   Trash2,
   Wheat,
 } from "lucide-react";
@@ -13,7 +18,7 @@ import { useMemo, useState } from "react";
 import { PageHeading } from "../components/AppChrome";
 import { FlourBlendScience } from "../components/FlourScience";
 import { EmptyState, Modal } from "../components/Primitives";
-import { FLOUR_PROFILES, getFlourProfile } from "../data/flourProfiles";
+import { FLOUR_BRAND_DATABASE, FLOUR_PROFILES, getFlourProfile } from "../data/flourProfiles";
 import {
   lowestSalesPrice,
   normalizedSalesOptions,
@@ -108,6 +113,112 @@ const PRODUCT_TEMPLATES = {
 };
 
 const TYPE_DEFAULT_UNITS = new Set(PRODUCT_TYPES.map((type) => type.unitName.toLowerCase()));
+
+const ASSISTANT_EXAMPLES = [
+  "My kitchen is 68°F and my dough is sluggish.",
+  "I accidentally added too much water.",
+  "My starter doubled in 5 hours. Is it ready?",
+  "Which flour should I use for bagels?",
+];
+
+function analyzeBakeQuestion(input) {
+  const text = String(input || "").toLowerCase();
+  const mentions = (...terms) => terms.some((term) => text.includes(term));
+
+  if (!text.trim()) {
+    return {
+      title: "Ask me what is happening with your dough",
+      summary: "Type like you would text another baker. I’ll route the problem to timing, starter, hydration, or flour behavior.",
+      steps: [
+        "Include temperature, dough feel, rise amount, and when you mixed if you know them.",
+        "If it is urgent, describe what you see first: slack, tearing, domed, collapsed, sticky, or not moving.",
+      ],
+      tool: "Try one of the examples above.",
+    };
+  }
+
+  if (mentions("sluggish", "slow", "not rising", "stalled", "cold", "68", "67", "66", "65")) {
+    return {
+      title: "Likely cold-room slowdown",
+      summary: "At roughly 68°F, sourdough can move a lot slower than a 75–78°F recipe schedule. The dough may be fine; the clock is probably lying.",
+      steps: [
+        "Give bulk more time and watch expansion, bubbles at the edge, and dough strength instead of the printed schedule.",
+        "Warm the dough gently: a turned-off oven with the light on, a warm water bath under the bowl, or a warmer shelf.",
+        "If the dough is high whole grain or rye, check sooner once it starts moving because activity can accelerate quickly.",
+      ],
+      tool: "Open the Bake planner and adjust dough temperature to recalculate the timeline.",
+      target: "bake",
+    };
+  }
+
+  if (mentions("too much water", "too wet", "wet dough", "sticky", "soupy", "accidentally added", "hydration")) {
+    return {
+      title: "Hydration rescue",
+      summary: "Do not panic-flour the dough immediately. A wet dough often tightens after a rest and folds, especially with bread flour or whole grain.",
+      steps: [
+        "Rest 20–30 minutes so flour can absorb water before judging the dough.",
+        "Use coil folds or stretch-and-folds every 30 minutes until it holds shape better.",
+        "If it is batter-thin, add a small measured flour correction and write down the new hydration so the recipe learns from it.",
+      ],
+      tool: "Use the recipe formula table to update the water percentage for next time.",
+      target: "recipes",
+    };
+  }
+
+  if (mentions("starter", "doubled", "ready", "float", "peak", "levain", "5 hours", "five hours")) {
+    return {
+      title: "Starter readiness check",
+      summary: "A starter doubling in about 5 hours is usually strong enough if it is bubbly, domed or just beginning to flatten, and smells pleasantly acidic.",
+      steps: [
+        "Use it near peak: after strong expansion but before it collapses back down.",
+        "Judge readiness by rise, bubbles, aroma, and texture. The float test can fail with some flour blends even when the starter is ready.",
+        "If your kitchen is cool, log the feed ratio and temperature so the app can calibrate future feed timing.",
+      ],
+      tool: "Log a starter check so future bake plans get smarter.",
+      target: "starter",
+    };
+  }
+
+  if (mentions("flour", "protein", "ash", "absorption", "king", "cairnspring", "central", "bob", "costco", "bagel", "pizza")) {
+    return {
+      title: "Flour behavior route",
+      summary: "Protein tells you potential gluten strength, ash hints at mineral/bran content, and absorption tells you how much water the flour can carry before the dough turns slack.",
+      steps: [
+        "For bagels and pizza, start with a stronger bread flour and lower hydration than a country loaf.",
+        "For Cairnspring-style high-extraction flour, expect more flavor, more water demand, and sometimes faster fermentation.",
+        "For Costco/AP flour, hold back water or blend with bread flour if you need taller free-form loaves.",
+      ],
+      tool: "Compare brands in the Flour database below.",
+      target: "flour",
+    };
+  }
+
+  if (mentions("overproof", "over proof", "collapsed", "flat", "deflated", "sour")) {
+    return {
+      title: "Possible over-fermentation",
+      summary: "If the dough was tall then collapsed, very loose, or sharply sour, it may have outrun its gluten structure.",
+      steps: [
+        "Shape gently and bake sooner rather than extending proof.",
+        "Use a pan if it cannot hold tension as a free-form loaf.",
+        "Next bake: lower dough temperature, shorten bulk, reduce starter percentage, or use stronger flour.",
+      ],
+      tool: "Use the visual fermentation gauge on Today to catch the next batch earlier.",
+      target: "today",
+    };
+  }
+
+  return {
+    title: "General bake triage",
+    summary: "I would check temperature, starter strength, hydration, flour strength, and actual rise in that order.",
+    steps: [
+      "Tell me the dough temperature, how long it has been fermenting, and roughly how much it has expanded.",
+      "If it feels slack, look at hydration and flour strength. If it feels tight but slow, look at temperature and starter activity.",
+      "When in doubt, make the next change small and record it so the recipe history stays useful.",
+    ],
+    tool: "For timing, use Bake. For formula changes, use Recipes. For active dough, watch Today’s fermentation visual.",
+    target: "bake",
+  };
+}
 
 function productTypeFor(recipe = {}) {
   return PRODUCT_TYPES.find((type) => type.value === recipe.productType) || PRODUCT_TYPES[0];
@@ -331,7 +442,137 @@ function RecipeVisual({ recipe, large = false }) {
   return <span className={`${className} empty`} aria-hidden="true">{productTypeIcon(recipe)}</span>;
 }
 
-export default function RecipesPage({ inventory, recipes, onDeleteRecipe, onSaveRecipe }) {
+function AIBakeAssistant({ setActive, onLogStarter }) {
+  const [assistantText, setAssistantText] = useState(ASSISTANT_EXAMPLES[0]);
+  const result = useMemo(() => analyzeBakeQuestion(assistantText), [assistantText]);
+
+  function routeAssistant() {
+    if (result.target === "starter" && onLogStarter) {
+      onLogStarter();
+      return;
+    }
+    if (result.target === "flour" && typeof document !== "undefined") {
+      document.getElementById("flour-database")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+    if (result.target && setActive) {
+      setActive(result.target);
+    }
+  }
+
+  return (
+    <section className="ai-bake-assistant" aria-label="AI Bake Assistant">
+      <div className="assistant-orb"><Bot size={24} /></div>
+      <div className="assistant-copy">
+        <span className="eyebrow-label dark">5. AI Bake Assistant</span>
+        <h2>Ask the bake problem in plain English</h2>
+        <p>Describe the dough, starter, flour, or mistake. The app translates that into timing advice, formula fixes, or the right tool to open.</p>
+        <div className="assistant-example-row" aria-label="Example bake questions">
+          {ASSISTANT_EXAMPLES.map((example) => (
+            <button type="button" key={example} onClick={() => setAssistantText(example)}>{example}</button>
+          ))}
+        </div>
+        <label className="assistant-input">
+          What’s happening?
+          <textarea
+            value={assistantText}
+            onChange={(event) => setAssistantText(event.target.value)}
+            placeholder="My kitchen is 68°F and my dough is sluggish."
+          />
+        </label>
+        <article className="assistant-result">
+          <div>
+            <span><Sparkles size={16} /> Smart route</span>
+            <h3>{result.title}</h3>
+            <p>{result.summary}</p>
+          </div>
+          <ol>
+            {result.steps.map((step) => <li key={step}>{step}</li>)}
+          </ol>
+          <div className="assistant-route">
+            <Route size={17} />
+            <span>{result.tool}</span>
+            {result.target ? <button type="button" onClick={routeAssistant}>Go there</button> : null}
+          </div>
+        </article>
+      </div>
+    </section>
+  );
+}
+
+function FlourDatabase() {
+  const [selectedId, setSelectedId] = useState(FLOUR_BRAND_DATABASE[0]?.id || "");
+  const selected = FLOUR_BRAND_DATABASE.find((flour) => flour.id === selectedId) || FLOUR_BRAND_DATABASE[0];
+  const profile = getFlourProfile(selected?.closestProfile);
+
+  if (!selected) return null;
+
+  return (
+    <section className="flour-database-panel" id="flour-database" aria-label="Flour database">
+      <div className="section-title-line">
+        <div>
+          <span className="eyebrow-label dark">Flour database</span>
+          <h2>Compare brands before changing a recipe</h2>
+        </div>
+        <Database size={21} />
+      </div>
+      <p className="flour-database-intro">
+        Protein, ash, absorption, and strength change fermentation speed, starter behavior, dough feel, and how much water a recipe can hold.
+      </p>
+      <div className="flour-brand-tabs" role="tablist" aria-label="Flour brands">
+        {FLOUR_BRAND_DATABASE.map((flour) => (
+          <button
+            type="button"
+            className={flour.id === selected.id ? "selected" : ""}
+            key={flour.id}
+            onClick={() => setSelectedId(flour.id)}
+            role="tab"
+            aria-selected={flour.id === selected.id}
+          >
+            <strong>{flour.brand}</strong>
+            <span>{flour.name}</span>
+          </button>
+        ))}
+      </div>
+      <div className="flour-database-detail">
+        <div className="flour-spec-card">
+          <Wheat size={24} />
+          <div>
+            <span>{selected.brand}</span>
+            <h3>{selected.name}</h3>
+            <p>{selected.style}</p>
+          </div>
+        </div>
+        <div className="flour-spec-grid">
+          <span><b>Protein</b>{selected.protein}</span>
+          <span><b>Ash</b>{selected.ash}</span>
+          <span><b>Absorption</b>{selected.absorption}</span>
+          <span><b>Strength</b>{selected.strength}</span>
+        </div>
+        <div className="flour-use-grid">
+          <article>
+            <h4><Lightbulb size={16} /> Recipe effect</h4>
+            <p>{selected.recipeEffect}</p>
+          </article>
+          <article>
+            <h4><Wheat size={16} /> Starter effect</h4>
+            <p>{selected.starterEffect}</p>
+          </article>
+          <article>
+            <h4><Droplets size={16} /> Adjustment</h4>
+            <p>{selected.adjustment}</p>
+          </article>
+        </div>
+        <div className="flour-database-footer">
+          <span>Use in recipe builder as <b>{profile.name}</b></span>
+          <small>{selected.sourceNote}</small>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export default function RecipesPage({ inventory, recipes, onDeleteRecipe, onSaveRecipe, setActive, onLogStarter }) {
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState(null);
   const [loaves, setLoaves] = useState(1);
@@ -542,6 +783,8 @@ export default function RecipesPage({ inventory, recipes, onDeleteRecipe, onSave
         <Search size={17} />
         <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search recipes" />
       </label>
+      <AIBakeAssistant setActive={setActive} onLogStarter={onLogStarter} />
+      <FlourDatabase />
       <section className="recipe-list">
         {filtered.length ? filtered.map((recipe) => (
           <button className="recipe-row" key={recipe.id} onClick={() => {
