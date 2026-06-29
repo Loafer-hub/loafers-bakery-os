@@ -171,7 +171,7 @@ export function StorageCenter({
             <div><span className="eyebrow-label dark">Recommended</span><h3>Make a backup</h3></div>
             <Download size={18} />
           </div>
-          <p>Download one file containing orders, recipes, inventory, expenses, bake plans, starters, and feed logs.</p>
+          <p>Download one file containing orders, customer profiles, recipes, inventory, expenses, bake plans, starters, and feed logs.</p>
           <button className="primary-button" type="button" onClick={exportBackup}><Download size={17} /> Download backup</button>
           <small>Last backup: {dateLabel(lastBackupAt)}</small>
         </section>
