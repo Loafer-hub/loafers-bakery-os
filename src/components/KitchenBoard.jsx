@@ -254,19 +254,24 @@ export function KitchenBoard({
 
   function addManualBake(event) {
     event.preventDefault();
-    if (!recipe || !starter) return;
+    const fields = new FormData(event.currentTarget);
+    const selectedRecipe = recipes.find((item) => item.id === fields.get("recipeId")) || recipe;
+    const selectedStarter = starters.find((item) => item.id === fields.get("starterId")) || starter;
+    if (!selectedRecipe || !selectedStarter) return;
+    const mixTime = String(fields.get("anchorDateTime") || form.anchorDateTime);
+    const bakeName = String(fields.get("name") || "").trim();
     saveNewBake({
-      name: form.name || `${recipe.name} · ${formatKitchenTime(form.anchorDateTime)}`,
-      recipeId: recipe.id,
-      recipeName: recipe.name,
-      loaves: Number(form.loaves || 1),
-      starterId: starter.id,
-      starterName: starter.name,
-      ratio: form.ratio,
-      doughTemperature: Number(form.doughTemperature || 76),
-      coldProofHours: Number(form.coldProofHours || 0),
+      name: bakeName || `${selectedRecipe.name} · ${formatKitchenTime(mixTime)}`,
+      recipeId: selectedRecipe.id,
+      recipeName: selectedRecipe.name,
+      loaves: Number(fields.get("loaves") || form.loaves || 1),
+      starterId: selectedStarter.id,
+      starterName: selectedStarter.name,
+      ratio: String(fields.get("ratio") || form.ratio),
+      doughTemperature: Number(fields.get("doughTemperature") || form.doughTemperature || 76),
+      coldProofHours: Number(fields.get("coldProofHours") || form.coldProofHours || 0),
       anchorMode: "start",
-      anchorDateTime: form.anchorDateTime,
+      anchorDateTime: mixTime,
     });
     setForm((current) => ({ ...current, name: "" }));
   }
@@ -327,17 +332,17 @@ export function KitchenBoard({
         icon={<Plus size={18} />}
       >
         <form className="kitchen-add-form" onSubmit={addManualBake}>
-          <label>Bake name<input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="Saturday country loaf #1" /></label>
+          <label>Bake name<input name="name" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="Saturday country loaf #1" /></label>
           <label>Recipe<select value={form.recipeId} onChange={(event) => {
             const nextRecipe = recipes.find((item) => item.id === event.target.value);
             setForm({ ...form, recipeId: event.target.value, loaves: nextRecipe?.yield || form.loaves });
-          }}>{recipes.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-          <label>Starter<select value={form.starterId} onChange={(event) => setForm({ ...form, starterId: event.target.value })}>{starters.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-          <label>Mix time<input type="datetime-local" value={form.anchorDateTime} onChange={(event) => setForm({ ...form, anchorDateTime: event.target.value })} /></label>
-          <label>Items<input type="number" min="1" max="60" value={form.loaves} onChange={(event) => setForm({ ...form, loaves: Number(event.target.value) })} /></label>
-          <label>Dough °F<input type="number" min="50" max="100" value={form.doughTemperature} onChange={(event) => setForm({ ...form, doughTemperature: Number(event.target.value) })} /></label>
-          <label>Cold proof<input type="number" min="0" max="48" step="0.5" value={form.coldProofHours} onChange={(event) => setForm({ ...form, coldProofHours: Number(event.target.value) })} /></label>
-          <label>Levain ratio<input value={form.ratio} onChange={(event) => setForm({ ...form, ratio: event.target.value })} /></label>
+          }} name="recipeId">{recipes.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+          <label>Starter<select name="starterId" value={form.starterId} onChange={(event) => setForm({ ...form, starterId: event.target.value })}>{starters.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+          <label>Mix time<input name="anchorDateTime" type="datetime-local" value={form.anchorDateTime} onChange={(event) => setForm({ ...form, anchorDateTime: event.target.value })} /></label>
+          <label>Items<input name="loaves" type="number" min="1" max="60" value={form.loaves} onChange={(event) => setForm({ ...form, loaves: Number(event.target.value) })} /></label>
+          <label>Dough °F<input name="doughTemperature" type="number" min="50" max="100" value={form.doughTemperature} onChange={(event) => setForm({ ...form, doughTemperature: Number(event.target.value) })} /></label>
+          <label>Cold proof<input name="coldProofHours" type="number" min="0" max="48" step="0.5" value={form.coldProofHours} onChange={(event) => setForm({ ...form, coldProofHours: Number(event.target.value) })} /></label>
+          <label>Levain ratio<input name="ratio" value={form.ratio} onChange={(event) => setForm({ ...form, ratio: event.target.value })} /></label>
           <button className="primary-button" type="submit" disabled={!recipe || !starter}>Add to Kitchen</button>
         </form>
 
