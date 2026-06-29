@@ -8272,8 +8272,15 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .settings-number-grid,
 .settings-hours-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+}
+
+.settings-number-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.settings-hours-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
 }
 
 .settings-number-grid label {
@@ -8296,6 +8303,13 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   border: 1px solid var(--line);
   border-radius: 15px;
   background: #f8f5ef;
+}
+
+.settings-time-window input[type="time"] {
+  min-width: 0;
+  box-sizing: border-box;
+  padding-inline: 8px;
+  text-align: center;
 }
 
 .settings-time-window > strong {
@@ -8507,6 +8521,12 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   .automatic-email-status button {
     grid-column: 1 / -1;
     justify-self: start;
+  }
+}
+
+@media (max-width: 360px) {
+  .settings-time-window {
+    grid-template-columns: 1fr;
   }
 }
 
