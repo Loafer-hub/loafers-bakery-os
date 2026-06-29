@@ -52,6 +52,8 @@ export default function App() {
   const [inventory, setInventory] = usePersistentState("loafers-inventory-v1", seedInventory);
   const [expenses, setExpenses] = usePersistentState("loafers-expenses-v1", seedExpenses);
   const [bakePlans, setBakePlans] = usePersistentState("loafers-bake-plans-v1", []);
+  const [kitchenBakes, setKitchenBakes] = usePersistentState("loafers-kitchen-bakes-v1", []);
+  const [selectedKitchenBakeId, setSelectedKitchenBakeId] = usePersistentState("loafers-selected-kitchen-bake-v1", "");
   const [storedProductionAutomation, setProductionAutomation] = usePersistentState(
     "loafers-production-automation-v1",
     DEFAULT_PRODUCTION_AUTOMATION,
@@ -442,6 +444,27 @@ export default function App() {
     setToast("Planned bake deleted");
   }
 
+  function saveKitchenBake(bake, options = {}) {
+    setKitchenBakes((current) => {
+      const exists = current.some((item) => item.id === bake.id);
+      return exists
+        ? current.map((item) => item.id === bake.id ? bake : item)
+        : [bake, ...current];
+    });
+    if (!options.silent) setToast(options.message || "Kitchen bake saved");
+  }
+
+  function deleteKitchenBake(id) {
+    setKitchenBakes((current) => current.filter((bake) => bake.id !== id));
+    if (selectedKitchenBakeId === id) setSelectedKitchenBakeId("");
+    setToast("Kitchen bake removed");
+  }
+
+  function selectKitchenBake(id) {
+    setSelectedKitchenBakeId(id || "planned");
+    setToast(id && id !== "planned" ? "Today visual set to this bake" : "Today visual set to next planned bake");
+  }
+
   function syncProductionPlans(generatedPlans) {
     setBakePlans((current) => {
       const manualPlans = current.filter((plan) => !plan.generatedByProduction);
@@ -467,6 +490,7 @@ export default function App() {
     setInventory(data.inventory);
     setExpenses(data.expenses);
     setBakePlans(data.bakePlans);
+    setKitchenBakes(data.kitchenBakes || []);
     setStarters(data.starters);
     setStarterLogs(data.starterLogs);
     setSelectedOrderId(null);
@@ -492,6 +516,8 @@ export default function App() {
     orders,
     recipes,
     bakePlans,
+    kitchenBakes,
+    selectedKitchenBakeId,
     starters,
     customerProfiles,
     expenses,
@@ -504,6 +530,7 @@ export default function App() {
     onDeleteBakePlan: deleteBakePlan,
     onDeleteExpense: deleteExpense,
     onDeleteInventoryItem: deleteInventoryItem,
+    onDeleteKitchenBake: deleteKitchenBake,
     onDeleteRecipe: deleteRecipe,
     onDeleteStarter: deleteStarter,
     onChangeProductionAutomation: setProductionAutomation,
@@ -523,8 +550,10 @@ export default function App() {
     onUpdateOrderProgress: updateOrderProgress,
     onSaveBakePlan: saveBakePlan,
     onSaveInventoryItem: saveInventoryItem,
+    onSaveKitchenBake: saveKitchenBake,
     onSaveRecipe: saveRecipe,
     onSaveStarter: saveStarter,
+    onSelectKitchenBake: selectKitchenBake,
     onSyncProductionPlans: syncProductionPlans,
     selectedOrderId,
     starterLogs,
@@ -585,6 +614,7 @@ export default function App() {
             inventory,
             expenses,
             bakePlans,
+            kitchenBakes,
             starters,
             starterLogs,
           }}
