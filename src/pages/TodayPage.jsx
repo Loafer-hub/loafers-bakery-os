@@ -11,6 +11,7 @@ import { useMemo } from "react";
 import { BrandHeader } from "../components/AppChrome";
 import { ReadyShelf } from "../components/ReadyShelf";
 import { buildBakeSchedule } from "../lib/fermentationModel";
+import { activeKitchenBakes, buildKitchenBakeSchedule } from "../lib/kitchenBakes";
 import { pickupDateKey } from "../lib/orderCapacity";
 
 const clamp = (value, minimum, maximum) => Math.min(maximum, Math.max(minimum, value));
@@ -95,7 +96,7 @@ function visualFermentationState(model) {
   };
 }
 
-function FermentationVisual({ model }) {
+function FermentationVisual({ model, sourceLabel }) {
   const state = visualFermentationState(model);
   const doughScale = 0.68 + (state.percent / 100) * 0.42;
   return (
@@ -104,6 +105,7 @@ function FermentationVisual({ model }) {
         <div>
           <span className="eyebrow-label dark">Visual fermentation</span>
           <h2>{state.percent}% fermented</h2>
+          {sourceLabel ? <small className="visual-source-label">{sourceLabel}</small> : null}
         </div>
         <span className="fermentation-blocks" aria-hidden="true">{state.blocks}</span>
       </div>
@@ -137,8 +139,11 @@ export default function TodayPage({
   starters,
   starterLogs,
   bakePlans,
+  kitchenBakes,
+  selectedKitchenBakeId,
   recipes,
   onOpenStorage,
+  onSelectKitchenBake,
 }) {
   const dailyCapacity = Math.max(1, Number(bakerySettings?.dailyCapacity || 6));
   const today = new Date();
@@ -154,7 +159,18 @@ export default function TodayPage({
   const capacityUsed = Math.min(dailyCapacity, totalLoaves);
   const starter = starters[0];
   const latestStarterLog = starterLogs.find((log) => log.starterId === starter?.id) || starterLogs[0];
-  const nextBakeModel = useMemo(() => {
+  const activeKitchenList = useMemo(() => activeKitchenBakes(kitchenBakes), [kitchenBakes]);
+  const selectedKitchenBake = useMemo(() => {
+    if (!activeKitchenList.length || selectedKitchenBakeId === "planned") return null;
+    return activeKitchenList.find((bake) => bake.id === selectedKitchenBakeId)
+      || (!selectedKitchenBakeId ? activeKitchenList[0] : null);
+  }, [activeKitchenList, selectedKitchenBakeId]);
+  const kitchenBakeModel = useMemo(() => (
+    selectedKitchenBake
+      ? buildKitchenBakeSchedule(selectedKitchenBake, recipes, starters, starterLogs)
+      : null
+  ), [recipes, selectedKitchenBake, starterLogs, starters]);
+  const plannedBakeModel = useMemo(() => {
     const nextPlan = [...bakePlans]
       .filter((plan) => new Date(plan.bakeEnd || `${plan.date}T23:59:00`) >= new Date())
       .sort((a, b) => new Date(a.bakeEnd || a.date) - new Date(b.bakeEnd || b.date))[0];
@@ -174,6 +190,12 @@ export default function TodayPage({
       starterLogs,
     });
   }, [bakePlans, recipes, starterLogs, starters]);
+  const visualModel = kitchenBakeModel || plannedBakeModel;
+  const visualSourceLabel = selectedKitchenBake
+    ? `Watching ${selectedKitchenBake.name || selectedKitchenBake.recipeName}`
+    : plannedBakeModel
+      ? "Watching next planned bake"
+      : "No active bake selected";
 
   return (
     <main className="page today-page">
@@ -185,10 +207,25 @@ export default function TodayPage({
 
       <section>
         <h2 className="display-title">Today’s bake</h2>
-        <BakeTimeline model={nextBakeModel} />
+        <BakeTimeline model={visualModel} />
       </section>
 
-      <FermentationVisual model={nextBakeModel} />
+      {activeKitchenList.length ? (
+        <section className="today-bake-selector" aria-label="Select active bake visual">
+          <span><strong>Visual source</strong><small>Pick which named Kitchen bake the fermentation visual follows.</small></span>
+          <select
+            value={selectedKitchenBake?.id || "planned"}
+            onChange={(event) => onSelectKitchenBake?.(event.target.value)}
+          >
+            <option value="planned">Next planned bake</option>
+            {activeKitchenList.map((bake) => (
+              <option key={bake.id} value={bake.id}>{bake.name || bake.recipeName}</option>
+            ))}
+          </select>
+        </section>
+      ) : null}
+
+      <FermentationVisual model={visualModel} sourceLabel={visualSourceLabel} />
 
       <ReadyShelf cloudAccount={cloudAccount} enabled={bakerySettings?.readyShelfEnabled !== false} />
 
