@@ -1,6 +1,7 @@
 import {
   ArrowRight,
   CheckCircle2,
+  ChevronDown,
   ClipboardList,
   Clock3,
   Layers3,
@@ -23,6 +24,7 @@ import {
   DEFAULT_PRODUCTION_AUTOMATION,
 } from "../lib/productionPlanner";
 
+// kitchen-collapse-v1
 function defaultForm(recipes, starters) {
   const recipe = recipes[0];
   const starter = starters[0];
@@ -71,6 +73,25 @@ function BakeNameInput({ bake, onSaveKitchenBake }) {
       }, { silent: true })}
       placeholder={bake.recipeName || "Named bake"}
     />
+  );
+}
+
+function KitchenDisclosure({ badge, children, className = "", eyebrow, icon, title }) {
+  return (
+    <details className={`kitchen-disclosure ${className}`}>
+      <summary className="kitchen-disclosure-summary">
+        <span>
+          <span className="eyebrow-label dark">{eyebrow}</span>
+          <h2>{title}</h2>
+        </span>
+        <span className="kitchen-disclosure-actions">
+          {badge !== undefined ? <strong>{badge}</strong> : null}
+          {icon}
+          <ChevronDown className="kitchen-disclosure-chevron" size={17} />
+        </span>
+      </summary>
+      <div className="kitchen-disclosure-body">{children}</div>
+    </details>
   );
 }
 
@@ -179,7 +200,12 @@ export function KitchenBoard({
   onSelectKitchenBake,
 }) {
   const [form, setForm] = useState(() => defaultForm(recipes, starters));
-  const settings = { ...DEFAULT_PRODUCTION_AUTOMATION, ...productionAutomation, autoSchedule: true, groupBatches: true };
+  const settings = useMemo(() => ({
+    ...DEFAULT_PRODUCTION_AUTOMATION,
+    ...productionAutomation,
+    autoSchedule: true,
+    groupBatches: true,
+  }), [productionAutomation]);
   const activeBakes = useMemo(() => activeKitchenBakes(kitchenBakes), [kitchenBakes]);
   const planner = useMemo(() => buildProductionPlanner({
     orders,
@@ -294,11 +320,12 @@ export function KitchenBoard({
         <strong>{activeBakes.length} active</strong>
       </section>
 
-      <section className="kitchen-add-card">
-        <div className="section-title-line">
-          <div><span className="eyebrow-label dark">Start work</span><h2>Add active bake</h2></div>
-          <Plus size={18} />
-        </div>
+      <KitchenDisclosure
+        className="kitchen-add-card"
+        eyebrow="Start work"
+        title="Add active bake"
+        icon={<Plus size={18} />}
+      >
         <form className="kitchen-add-form" onSubmit={addManualBake}>
           <label>Bake name<input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="Saturday country loaf #1" /></label>
           <label>Recipe<select value={form.recipeId} onChange={(event) => {
@@ -325,13 +352,14 @@ export function KitchenBoard({
             ))}
           </div>
         ) : null}
-      </section>
+      </KitchenDisclosure>
 
-      <section className="kitchen-suggestions">
-        <div className="section-title-line">
-          <div><span className="eyebrow-label dark">Optional suggestions</span><h2>Batch and stagger</h2></div>
-          <Layers3 size={18} />
-        </div>
+      <KitchenDisclosure
+        className="kitchen-suggestions"
+        eyebrow="Optional suggestions"
+        title="Batch and stagger"
+        icon={<Layers3 size={18} />}
+      >
         {suggestedBatches.length ? (
           <>
             <p className="kitchen-suggestion-note">These are grouped from open pickup-dated orders. Nothing starts unless you tap “Use in Kitchen.”</p>
@@ -361,13 +389,14 @@ export function KitchenBoard({
         ) : (
           <p className="kitchen-suggestion-note">No batch suggestions yet. Add pickup-dated accepted orders or use planned bakes when you’re ready.</p>
         )}
-      </section>
+      </KitchenDisclosure>
 
-      <section className="kitchen-active-section">
-        <div className="section-title-line">
-          <div><span className="eyebrow-label dark">In progress</span><h2>Active bakes</h2></div>
-          <span>{activeBakes.length}</span>
-        </div>
+      <KitchenDisclosure
+        badge={activeBakes.length}
+        className="kitchen-active-section"
+        eyebrow="In progress"
+        title="Active bakes"
+      >
         {activeBakes.length ? activeBakes.map((bake) => (
           <KitchenBakeCard
             bake={bake}
@@ -381,7 +410,7 @@ export function KitchenBoard({
             onSelectKitchenBake={onSelectKitchenBake}
           />
         )) : <EmptyState title="No bakes in progress" body="Add a named bake or accept a suggested batch when dough hits the bench." />}
-      </section>
+      </KitchenDisclosure>
     </div>
   );
 }
