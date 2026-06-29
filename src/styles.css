@@ -294,6 +294,51 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   font-weight: 500;
 }
 
+.visual-source-label {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.today-bake-selector {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  margin: -4px 0 14px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255,255,255,.55);
+}
+
+.today-bake-selector span {
+  display: grid;
+  gap: 2px;
+}
+
+.today-bake-selector strong {
+  font-size: 11px;
+}
+
+.today-bake-selector small {
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.35;
+}
+
+.today-bake-selector select {
+  max-width: 172px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 9px 10px;
+  color: var(--ink);
+  background: white;
+  font-weight: 700;
+}
+
 .fermentation-blocks {
   color: var(--accent);
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -1369,6 +1414,339 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 
 .bake-view-switch button {
   min-width: 0;
+}
+
+.bake-view-switch {
+  flex-wrap: wrap;
+}
+
+.kitchen-board {
+  display: grid;
+  gap: 14px;
+}
+
+.kitchen-hero,
+.kitchen-add-card,
+.kitchen-suggestions,
+.kitchen-active-section {
+  padding: 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 13px;
+  background: rgba(255,255,255,.46);
+}
+
+.kitchen-hero {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 11px;
+  background: linear-gradient(145deg, #fbfdf8, #efe7db);
+}
+
+.kitchen-hero > span,
+.kitchen-bake-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  color: var(--accent);
+  border-radius: 12px;
+  background: white;
+}
+
+.kitchen-hero small,
+.kitchen-suggestion-note {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.kitchen-hero h2 {
+  margin: 1px 0;
+  font-family: "Newsreader", Georgia, serif;
+  font-size: 25px;
+  font-weight: 500;
+}
+
+.kitchen-hero p,
+.kitchen-suggestion-note,
+.kitchen-warning {
+  margin: 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.kitchen-hero > strong,
+.kitchen-active-section > .section-title-line > span {
+  padding: 7px 9px;
+  border-radius: 999px;
+  color: #4c6044;
+  background: var(--sage-soft);
+  font-size: 10px;
+}
+
+.kitchen-add-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.kitchen-add-form label {
+  display: grid;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.kitchen-add-form label:first-child,
+.kitchen-add-form button {
+  grid-column: 1 / -1;
+}
+
+.kitchen-add-form input,
+.kitchen-add-form select,
+.kitchen-bake-header input {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px;
+  color: var(--ink);
+  background: white;
+  font: inherit;
+}
+
+.kitchen-plan-starts {
+  display: grid;
+  gap: 7px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.kitchen-plan-starts > strong {
+  color: var(--ink);
+  font-size: 11px;
+}
+
+.kitchen-plan-starts button {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(255,255,255,.62);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.kitchen-plan-starts small {
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.kitchen-suggestions {
+  background: linear-gradient(145deg, rgba(255,255,255,.52), rgba(242,239,230,.72));
+}
+
+.kitchen-suggestion-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.kitchen-suggestion-card {
+  display: grid;
+  gap: 7px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255,255,255,.68);
+}
+
+.kitchen-suggestion-card span {
+  display: grid;
+  gap: 2px;
+}
+
+.kitchen-suggestion-card strong,
+.kitchen-bake-header strong {
+  color: var(--ink);
+}
+
+.kitchen-suggestion-card small,
+.kitchen-bake-header small,
+.kitchen-bake-meta,
+.kitchen-step-row small {
+  color: var(--muted);
+  font-size: 8px;
+  line-height: 1.35;
+}
+
+.kitchen-suggestion-card > span:nth-child(2) {
+  color: var(--accent);
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.kitchen-suggestion-card button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border: 0;
+  border-radius: 999px;
+  padding: 8px 9px;
+  color: white;
+  background: var(--accent);
+  font-size: 9px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.kitchen-stagger-list {
+  display: grid;
+  gap: 6px;
+  margin: 11px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.kitchen-stagger-list li {
+  display: grid;
+  gap: 2px;
+  padding: 9px;
+  border-radius: 10px;
+  background: var(--sage-soft);
+}
+
+.kitchen-stagger-list strong {
+  font-size: 10px;
+}
+
+.kitchen-stagger-list small {
+  color: #53604e;
+  font-size: 8px;
+}
+
+.kitchen-active-section {
+  display: grid;
+  gap: 10px;
+}
+
+.kitchen-bake-card {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: rgba(255,255,255,.62);
+}
+
+.kitchen-bake-card.selected {
+  border-color: rgba(199,85,53,.56);
+  box-shadow: 0 0 0 2px rgba(199,85,53,.1);
+}
+
+.kitchen-bake-header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.kitchen-bake-header > span:nth-child(2) {
+  display: grid;
+  gap: 5px;
+}
+
+.kitchen-bake-header > strong {
+  color: var(--accent);
+  font-size: 18px;
+}
+
+.kitchen-bake-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.kitchen-bake-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 7px;
+  border-radius: 999px;
+  background: #f8f5ef;
+}
+
+.kitchen-progress-track {
+  height: 7px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #eee3d6;
+}
+
+.kitchen-progress-track i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+}
+
+.kitchen-step-list {
+  display: grid;
+  gap: 6px;
+}
+
+.kitchen-step-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 9px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fbfaf6;
+}
+
+.kitchen-step-row.done {
+  color: #4b6042;
+  border-color: #c7d2bf;
+  background: #eef4ea;
+}
+
+.kitchen-step-row input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+}
+
+.kitchen-step-row span {
+  display: grid;
+  gap: 2px;
+}
+
+.kitchen-step-row strong {
+  font-size: 10px;
+}
+
+.kitchen-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.kitchen-card-actions button {
+  flex: 1 1 auto;
+}
+
+.danger-text {
+  color: #9f3d31;
 }
 
 .model-controls {
@@ -7781,7 +8159,38 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   }
 
   .bake-page .view-switch button {
+    flex: 1 1 30%;
     padding: 6px;
+  }
+
+  .today-bake-selector,
+  .kitchen-hero,
+  .kitchen-bake-header {
+    grid-template-columns: 1fr;
+  }
+
+  .today-bake-selector select {
+    width: 100%;
+    max-width: none;
+  }
+
+  .kitchen-hero > span,
+  .kitchen-bake-icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .kitchen-add-form,
+  .kitchen-suggestion-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .kitchen-bake-header > strong {
+    justify-self: start;
+  }
+
+  .kitchen-plan-starts button {
+    flex-direction: column;
   }
 
   .model-controls {
