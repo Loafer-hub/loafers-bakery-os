@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { readStoredValue, writeStoredValue } from "../lib/storage";
 
+// persistent-hydration-v1
 export function usePersistentState(key, initialValue) {
-  const [value, setValue] = useState(() => {
+  const [value, setStoredValue] = useState(() => {
     try {
       const saved = window.localStorage.getItem(key);
       return saved ? JSON.parse(saved) : initialValue;
@@ -11,14 +12,37 @@ export function usePersistentState(key, initialValue) {
     }
   });
   const isHydrated = useRef(false);
+  const changedBeforeHydration = useRef(false);
+  const latestValue = useRef(value);
+
+  useEffect(() => {
+    latestValue.current = value;
+  }, [value]);
+
+  const setValue = useCallback((nextValue) => {
+    changedBeforeHydration.current = !isHydrated.current || changedBeforeHydration.current;
+    setStoredValue((current) => {
+      const resolved = typeof nextValue === "function" ? nextValue(current) : nextValue;
+      latestValue.current = resolved;
+      return resolved;
+    });
+  }, []);
 
   useEffect(() => {
     let isActive = true;
+    isHydrated.current = false;
+    changedBeforeHydration.current = false;
 
     readStoredValue(key, initialValue).then((storedValue) => {
       if (!isActive) return;
-      setValue(storedValue);
       isHydrated.current = true;
+      if (changedBeforeHydration.current) {
+        writeStoredValue(key, latestValue.current).catch(() => {
+          window.localStorage.setItem(key, JSON.stringify(latestValue.current));
+        });
+        return;
+      }
+      setStoredValue(storedValue);
     });
 
     return () => {
