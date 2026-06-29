@@ -13,6 +13,8 @@ import { ReadyShelf } from "../components/ReadyShelf";
 import { buildBakeSchedule } from "../lib/fermentationModel";
 import { pickupDateKey } from "../lib/orderCapacity";
 
+const clamp = (value, minimum, maximum) => Math.min(maximum, Math.max(minimum, value));
+
 function BakeTimeline({ model }) {
   if (!model) {
     return (
@@ -43,6 +45,85 @@ function BakeTimeline({ model }) {
         </div>
       ))}
     </div>
+  );
+}
+
+function visualFermentationState(model) {
+  if (!model) {
+    return {
+      percent: 0,
+      status: "No active dough timeline",
+      detail: "Plan a bake and I’ll turn the schedule into a visual fermentation gauge.",
+      blocks: "░░░░░░░░░░",
+    };
+  }
+
+  const now = new Date();
+  const mix = model.steps.find((step) => step.id === "mix")?.start || model.mix;
+  const shape = model.steps.find((step) => step.id === "shape")?.start;
+  const bulkStart = new Date(mix);
+  const bulkEnd = new Date(shape || bulkStart.getTime() + model.dough.bulkHours * 60 * 60 * 1000);
+  const total = Math.max(1, bulkEnd.getTime() - bulkStart.getTime());
+  const rawPercent = (now.getTime() - bulkStart.getTime()) / total * 100;
+  const percent = Math.round(clamp(rawPercent, 0, 100));
+  const filled = Math.round(percent / 10);
+  const blocks = `${"█".repeat(filled)}${"░".repeat(10 - filled)}`;
+
+  if (now < bulkStart) {
+    return {
+      percent: 0,
+      status: "Waiting to mix",
+      detail: `Bulk starts ${bulkStart.toLocaleString("en-US", { weekday: "short", hour: "numeric", minute: "2-digit" })}.`,
+      blocks,
+    };
+  }
+
+  if (now > bulkEnd) {
+    return {
+      percent: 100,
+      status: "Bulk target reached",
+      detail: "Move by dough strength now: shape, chill, or bake according to the plan.",
+      blocks,
+    };
+  }
+
+  return {
+    percent,
+    status: "Bulk fermentation in motion",
+    detail: `${model.dough.bulkHours.toFixed(1)}h model based on temperature, hydration, flour behavior, and starter strength.`,
+    blocks,
+  };
+}
+
+function FermentationVisual({ model }) {
+  const state = visualFermentationState(model);
+  const doughScale = 0.68 + (state.percent / 100) * 0.42;
+  return (
+    <section className="visual-fermentation-card" aria-label="Visual fermentation">
+      <div className="section-title-line">
+        <div>
+          <span className="eyebrow-label dark">Visual fermentation</span>
+          <h2>{state.percent}% fermented</h2>
+        </div>
+        <span className="fermentation-blocks" aria-hidden="true">{state.blocks}</span>
+      </div>
+      <div className="fermentation-visual-body">
+        <div className="fermentation-jar" aria-hidden="true">
+          <span className="fermentation-dough" style={{ transform: `scale(${doughScale})` }} />
+          <span className="fermentation-bubble bubble-one" />
+          <span className="fermentation-bubble bubble-two" />
+          <span className="fermentation-bubble bubble-three" />
+        </div>
+        <div>
+          <strong>{state.status}</strong>
+          <p>{state.detail}</p>
+          <div className="fermentation-progress-track" aria-label={`${state.percent}% fermented`}>
+            <i style={{ width: `${state.percent}%` }} />
+          </div>
+          <small>Visuals are a guide. Final call still comes from dough rise, bubbles, doming, and strength.</small>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -98,7 +179,7 @@ export default function TodayPage({
     <main className="page today-page">
       <BrandHeader onOpenStorage={onOpenStorage} />
       <section className="greeting">
-        <h1>Good morning</h1>
+        <h1>Good morning, Joshua</h1>
         <p>{today.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}</p>
       </section>
 
@@ -106,6 +187,8 @@ export default function TodayPage({
         <h2 className="display-title">Today’s bake</h2>
         <BakeTimeline model={nextBakeModel} />
       </section>
+
+      <FermentationVisual model={nextBakeModel} />
 
       <ReadyShelf cloudAccount={cloudAccount} enabled={bakerySettings?.readyShelfEnabled !== false} />
 
