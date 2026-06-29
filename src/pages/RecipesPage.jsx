@@ -1,5 +1,6 @@
 import {
   Bot,
+  ChevronDown,
   ChevronRight,
   CircleDollarSign,
   Database,
@@ -18,7 +19,7 @@ import { useMemo, useState } from "react";
 import { PageHeading } from "../components/AppChrome";
 import { FlourBlendScience } from "../components/FlourScience";
 import { EmptyState, Modal } from "../components/Primitives";
-import { FLOUR_BRAND_DATABASE, FLOUR_PROFILES, getFlourProfile } from "../data/flourProfiles";
+import { FLOUR_DATABASE_CATEGORIES, FLOUR_PROFILES, getFlourProfile } from "../data/flourProfiles";
 import {
   lowestSalesPrice,
   normalizedSalesOptions,
@@ -444,6 +445,7 @@ function RecipeVisual({ recipe, large = false }) {
 
 function AIBakeAssistant({ setActive, onLogStarter }) {
   const [assistantText, setAssistantText] = useState(ASSISTANT_EXAMPLES[0]);
+  const [isOpen, setIsOpen] = useState(false);
   const result = useMemo(() => analyzeBakeQuestion(assistantText), [assistantText]);
 
   function routeAssistant() {
@@ -461,113 +463,160 @@ function AIBakeAssistant({ setActive, onLogStarter }) {
   }
 
   return (
-    <section className="ai-bake-assistant" aria-label="AI Bake Assistant">
-      <div className="assistant-orb"><Bot size={24} /></div>
-      <div className="assistant-copy">
-        <span className="eyebrow-label dark">5. AI Bake Assistant</span>
-        <h2>Ask the bake problem in plain English</h2>
-        <p>Describe the dough, starter, flour, or mistake. The app translates that into timing advice, formula fixes, or the right tool to open.</p>
-        <div className="assistant-example-row" aria-label="Example bake questions">
-          {ASSISTANT_EXAMPLES.map((example) => (
-            <button type="button" key={example} onClick={() => setAssistantText(example)}>{example}</button>
-          ))}
+    <section className={isOpen ? "ai-bake-assistant open" : "ai-bake-assistant"} aria-label="AI Bake Assistant">
+      <button className="collapsible-section-header" type="button" onClick={() => setIsOpen((value) => !value)} aria-expanded={isOpen}>
+        <span className="assistant-orb"><Bot size={24} /></span>
+        <span>
+          <small>5. AI Bake Assistant</small>
+          <strong>Ask the bake problem in plain English</strong>
+          <em>{isOpen ? "Open and ready" : "Collapsed · tap to troubleshoot dough, starter, hydration, or flour"}</em>
+        </span>
+        <ChevronDown size={20} />
+      </button>
+      {isOpen ? (
+        <div className="assistant-copy collapsible-section-body">
+          <p>Describe the dough, starter, flour, or mistake. The app translates that into timing advice, formula fixes, or the right tool to open.</p>
+          <div className="assistant-example-row" aria-label="Example bake questions">
+            {ASSISTANT_EXAMPLES.map((example) => (
+              <button type="button" key={example} onClick={() => setAssistantText(example)}>{example}</button>
+            ))}
+          </div>
+          <label className="assistant-input">
+            What’s happening?
+            <textarea
+              value={assistantText}
+              onChange={(event) => setAssistantText(event.target.value)}
+              placeholder="My kitchen is 68°F and my dough is sluggish."
+            />
+          </label>
+          <article className="assistant-result">
+            <div>
+              <span><Sparkles size={16} /> Smart route</span>
+              <h3>{result.title}</h3>
+              <p>{result.summary}</p>
+            </div>
+            <ol>
+              {result.steps.map((step) => <li key={step}>{step}</li>)}
+            </ol>
+            <div className="assistant-route">
+              <Route size={17} />
+              <span>{result.tool}</span>
+              {result.target ? <button type="button" onClick={routeAssistant}>Go there</button> : null}
+            </div>
+          </article>
         </div>
-        <label className="assistant-input">
-          What’s happening?
-          <textarea
-            value={assistantText}
-            onChange={(event) => setAssistantText(event.target.value)}
-            placeholder="My kitchen is 68°F and my dough is sluggish."
-          />
-        </label>
-        <article className="assistant-result">
-          <div>
-            <span><Sparkles size={16} /> Smart route</span>
-            <h3>{result.title}</h3>
-            <p>{result.summary}</p>
-          </div>
-          <ol>
-            {result.steps.map((step) => <li key={step}>{step}</li>)}
-          </ol>
-          <div className="assistant-route">
-            <Route size={17} />
-            <span>{result.tool}</span>
-            {result.target ? <button type="button" onClick={routeAssistant}>Go there</button> : null}
-          </div>
-        </article>
-      </div>
+      ) : null}
     </section>
   );
 }
 
 function FlourDatabase() {
-  const [selectedId, setSelectedId] = useState(FLOUR_BRAND_DATABASE[0]?.id || "");
-  const selected = FLOUR_BRAND_DATABASE.find((flour) => flour.id === selectedId) || FLOUR_BRAND_DATABASE[0];
+  const [isOpen, setIsOpen] = useState(true);
+  const [selectedCategoryId, setSelectedCategoryId] = useState(FLOUR_DATABASE_CATEGORIES[0]?.id || "");
+  const selectedCategory = FLOUR_DATABASE_CATEGORIES.find((category) => category.id === selectedCategoryId) || FLOUR_DATABASE_CATEGORIES[0];
+  const [selectedId, setSelectedId] = useState(selectedCategory?.records[0]?.id || "");
+  const selected = selectedCategory?.records.find((flour) => flour.id === selectedId) || selectedCategory?.records[0];
   const profile = getFlourProfile(selected?.closestProfile);
 
-  if (!selected) return null;
+  if (!selectedCategory) return null;
+
+  function chooseCategory(category) {
+    setSelectedCategoryId(category.id);
+    setSelectedId(category.records[0]?.id || "");
+  }
 
   return (
-    <section className="flour-database-panel" id="flour-database" aria-label="Flour database">
-      <div className="section-title-line">
-        <div>
-          <span className="eyebrow-label dark">Flour database</span>
-          <h2>Compare brands before changing a recipe</h2>
-        </div>
+    <section className={isOpen ? "flour-database-panel open" : "flour-database-panel"} id="flour-database" aria-label="Flour database">
+      <button className="collapsible-section-header flour-database-header" type="button" onClick={() => setIsOpen((value) => !value)} aria-expanded={isOpen}>
         <Database size={21} />
-      </div>
-      <p className="flour-database-intro">
-        Protein, ash, absorption, and strength change fermentation speed, starter behavior, dough feel, and how much water a recipe can hold.
-      </p>
-      <div className="flour-brand-tabs" role="tablist" aria-label="Flour brands">
-        {FLOUR_BRAND_DATABASE.map((flour) => (
-          <button
-            type="button"
-            className={flour.id === selected.id ? "selected" : ""}
-            key={flour.id}
-            onClick={() => setSelectedId(flour.id)}
-            role="tab"
-            aria-selected={flour.id === selected.id}
-          >
-            <strong>{flour.brand}</strong>
-            <span>{flour.name}</span>
-          </button>
-        ))}
-      </div>
-      <div className="flour-database-detail">
-        <div className="flour-spec-card">
-          <Wheat size={24} />
-          <div>
-            <span>{selected.brand}</span>
-            <h3>{selected.name}</h3>
-            <p>{selected.style}</p>
+        <span>
+          <small>Flour database</small>
+          <strong>Type-first flour field guide</strong>
+          <em>{FLOUR_DATABASE_CATEGORIES.length} flour categories · brand records underneath each type</em>
+        </span>
+        <ChevronDown size={20} />
+      </button>
+      {isOpen ? (
+        <div className="collapsible-section-body">
+          <p className="flour-database-intro">
+            Start with the flour type, then compare brand records. Protein, ash, absorption, and strength change fermentation speed, starter behavior, dough feel, and how much water a recipe can hold.
+          </p>
+          <div className="flour-type-tabs" role="tablist" aria-label="Flour types">
+            {FLOUR_DATABASE_CATEGORIES.map((category) => (
+              <button
+                type="button"
+                className={category.id === selectedCategory.id ? "selected" : ""}
+                key={category.id}
+                onClick={() => chooseCategory(category)}
+                role="tab"
+                aria-selected={category.id === selectedCategory.id}
+              >
+                <strong>{category.shortName}</strong>
+                <span>{category.records.length} records</span>
+              </button>
+            ))}
+          </div>
+          <div className="flour-category-summary">
+            <span>{selectedCategory.name}</span>
+            <p>{selectedCategory.summary}</p>
+            <small>{selectedCategory.science}</small>
+          </div>
+          <div className="flour-database-layout">
+            <div className="flour-brand-tabs" role="tablist" aria-label={`${selectedCategory.name} brands`}>
+              {selectedCategory.records.map((flour) => (
+                <button
+                  type="button"
+                  className={flour.id === selected.id ? "selected" : ""}
+                  key={flour.id}
+                  onClick={() => setSelectedId(flour.id)}
+                  role="tab"
+                  aria-selected={flour.id === selected.id}
+                >
+                  <strong>{flour.brand}</strong>
+                  <span>{flour.name}</span>
+                </button>
+              ))}
+            </div>
+            {selected ? (
+              <div className="flour-database-detail">
+                <div className="flour-spec-card">
+                  <Wheat size={24} />
+                  <div>
+                    <span>{selectedCategory.name} · {selected.brand}</span>
+                    <h3>{selected.name}</h3>
+                    <p>{selected.style}</p>
+                  </div>
+                </div>
+                <div className="flour-spec-grid">
+                  <span><b>Protein</b>{selected.protein}</span>
+                  <span><b>Ash</b>{selected.ash}</span>
+                  <span><b>Absorption</b>{selected.absorption}</span>
+                  <span><b>Strength</b>{selected.strength}</span>
+                </div>
+                <div className="flour-use-grid">
+                  <article>
+                    <h4><Lightbulb size={16} /> Recipe effect</h4>
+                    <p>{selected.recipeEffect}</p>
+                  </article>
+                  <article>
+                    <h4><Wheat size={16} /> Starter effect</h4>
+                    <p>{selected.starterEffect}</p>
+                  </article>
+                  <article>
+                    <h4><Droplets size={16} /> Adjustment</h4>
+                    <p>{selected.adjustment}</p>
+                  </article>
+                </div>
+                <div className="flour-database-footer">
+                  <span>Use in recipe builder as <b>{profile.name}</b></span>
+                  <small>{selected.sourceStatus}</small>
+                  {selected.sourceUrl ? <a href={selected.sourceUrl} target="_blank" rel="noreferrer">Public record</a> : null}
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
-        <div className="flour-spec-grid">
-          <span><b>Protein</b>{selected.protein}</span>
-          <span><b>Ash</b>{selected.ash}</span>
-          <span><b>Absorption</b>{selected.absorption}</span>
-          <span><b>Strength</b>{selected.strength}</span>
-        </div>
-        <div className="flour-use-grid">
-          <article>
-            <h4><Lightbulb size={16} /> Recipe effect</h4>
-            <p>{selected.recipeEffect}</p>
-          </article>
-          <article>
-            <h4><Wheat size={16} /> Starter effect</h4>
-            <p>{selected.starterEffect}</p>
-          </article>
-          <article>
-            <h4><Droplets size={16} /> Adjustment</h4>
-            <p>{selected.adjustment}</p>
-          </article>
-        </div>
-        <div className="flour-database-footer">
-          <span>Use in recipe builder as <b>{profile.name}</b></span>
-          <small>{selected.sourceNote}</small>
-        </div>
-      </div>
+      ) : null}
     </section>
   );
 }
