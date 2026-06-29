@@ -36,6 +36,12 @@ npm run build
 
 The compiled app is written to `dist`.
 
+## Starlight VM deploy
+
+Loafers can replace an existing app on a Starlight VM while keeping Supabase and Resend in place. The VM deploy workflow builds the app, backs up the current website folder, preserves `.well-known`, and swaps in the new `dist` files.
+
+Setup details live in [`docs/starlight-vm-deploy.md`](docs/starlight-vm-deploy.md).
+
 ## Product status
 
 This is a polished, interactive front-end MVP with an iOS-native Capacitor shell. Bakery records use Capacitor Preferences on iOS and migrate existing browser data automatically. The Storage & Backup center exports a versioned JSON backup, validates restores before applying them, and keeps an automatic recovery copy before every restore.
