@@ -1,9 +1,10 @@
 import { Preferences } from "@capacitor/preferences";
 
 const STORAGE_PREFIX = "loafers.v1.";
-export const BACKUP_SCHEMA_VERSION = 1;
+export const BACKUP_SCHEMA_VERSION = 2;
 export const STORAGE_DATASETS = [
   { id: "orders", label: "Orders" },
+  { id: "customerProfiles", label: "Customer profiles" },
   { id: "recipes", label: "Recipes" },
   { id: "inventory", label: "Inventory" },
   { id: "expenses", label: "Expenses" },
@@ -83,6 +84,10 @@ export function parseBackup(text) {
   }
   const normalizedData = {};
   STORAGE_DATASETS.forEach(({ id }) => {
+    if (id === "customerProfiles" && backup.data[id] === undefined) {
+      normalizedData[id] = [];
+      return;
+    }
     if (!Array.isArray(backup.data[id])) {
       throw new Error(`The ${id} records in this backup are damaged.`);
     }
