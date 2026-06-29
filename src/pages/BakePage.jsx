@@ -9,6 +9,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { PageHeading } from "../components/AppChrome";
 import { BakeCalendar } from "../components/BakeCalendar";
+import { KitchenBoard } from "../components/KitchenBoard";
 import { ProductionPlanner } from "../components/ProductionPlanner";
 import { StarterLab } from "../components/StarterLab";
 import { EmptyState } from "../components/Primitives";
@@ -70,14 +71,19 @@ export default function BakePage({
   inventory,
   recipes,
   bakePlans,
+  kitchenBakes,
+  selectedKitchenBakeId,
   orders,
   starters,
   starterLogs,
   onDeleteBakePlan,
+  onDeleteKitchenBake,
   onDeleteStarter,
   onChangeProductionAutomation,
   onSaveBakePlan,
+  onSaveKitchenBake,
   onSaveStarter,
+  onSelectKitchenBake,
   onSyncProductionPlans,
   onStarterLogged,
 }) {
@@ -248,6 +254,8 @@ export default function BakePage({
 
   const headingTitle = view === "plan"
     ? (editingPlanId ? "Change bake plan" : "Dynamic bake plan")
+    : view === "kitchen"
+      ? "Kitchen"
     : view === "production"
       ? "Production planner"
       : view === "calendar"
@@ -255,6 +263,8 @@ export default function BakePage({
         : "Starters";
   const headingSubtitle = view === "calendar"
     ? `${bakePlans.length} planned · ${acceptedOrderBakes.length} accepted`
+    : view === "kitchen"
+      ? `${kitchenBakes.filter((bake) => !bake.completedAt).length} active bakes in progress`
     : view === "production"
       ? "Automatic batches, stock checks, timing, and bake sheets"
     : view === "starter"
@@ -268,10 +278,28 @@ export default function BakePage({
       <PageHeading title={headingTitle} subtitle={headingSubtitle} />
       <div className="view-switch bake-view-switch">
         <button className={view === "plan" ? "selected" : ""} onClick={() => setView("plan")}>Planner</button>
+        <button className={view === "kitchen" ? "selected" : ""} onClick={() => setView("kitchen")}>Kitchen</button>
         <button className={view === "production" ? "selected" : ""} onClick={() => setView("production")}>Production</button>
         <button className={view === "calendar" ? "selected" : ""} onClick={() => setView("calendar")}>Bakes</button>
         <button className={view === "starter" ? "selected" : ""} onClick={() => setView("starter")}>Starters</button>
       </div>
+
+      {view === "kitchen" ? (
+        <KitchenBoard
+          bakePlans={bakePlans}
+          inventory={inventory}
+          kitchenBakes={kitchenBakes}
+          orders={orders}
+          productionAutomation={productionAutomation}
+          recipes={recipes}
+          selectedKitchenBakeId={selectedKitchenBakeId}
+          starters={starters}
+          starterLogs={starterLogs}
+          onDeleteKitchenBake={onDeleteKitchenBake}
+          onSaveKitchenBake={onSaveKitchenBake}
+          onSelectKitchenBake={onSelectKitchenBake}
+        />
+      ) : null}
 
       {view === "production" ? (
         <ProductionPlanner
