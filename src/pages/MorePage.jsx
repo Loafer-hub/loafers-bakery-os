@@ -4,13 +4,17 @@ import {
   CalendarDays,
   Camera,
   CircleDollarSign,
+  Clipboard,
+  FileUp,
   LineChart,
   Package,
   Pencil,
   Plus,
   Receipt,
+  Search,
   Settings2,
   Trash2,
+  Upload,
   UsersRound,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -20,11 +24,25 @@ import { EmptyState, Modal } from "../components/Primitives";
 const emptyInventoryItem = {
   id: "",
   name: "",
+  barcode: "",
   amount: 0,
   unit: "kg",
   target: 1,
   unitCost: 0,
 };
+
+const OPEN_FOOD_FACTS_FIELDS = [
+  "product_name",
+  "generic_name",
+  "brands",
+  "quantity",
+  "categories",
+  "allergens_tags",
+  "traces_tags",
+  "ingredients_text",
+  "image_front_small_url",
+  "image_url",
+].join(",");
 
 function weekKey(date) {
   const value = new Date(`${date}T12:00:00`);
@@ -63,10 +81,160 @@ function findInventoryByBarcode(inventory, barcode) {
   return inventory.find((item) => cleanBarcode(item.barcode) === target) || null;
 }
 
-function BarcodeImportPanel({ barcode, inventory, onDetected, onManualChange }) {
+function findInventoryByName(inventory, name) {
+  const target = String(name || "").trim().toLowerCase();
+  if (!target) return null;
+  return inventory.find((item) => String(item.name || "").trim().toLowerCase() === target) || null;
+}
+
+function parsePackQuantity(quantityLabel) {
+  const match = String(quantityLabel || "").match(/([\d.]+)\s*(kg|g|lb|lbs|oz|ml|l|liter|liters|each|ct|count|bag|bags)/i);
+  if (!match) return null;
+  const unitMap = {
+    lbs: "lb",
+    liter: "l",
+    liters: "l",
+    ct: "each",
+    count: "each",
+    bags: "bag",
+  };
+  return {
+    quantity: Number(match[1]) || 1,
+    unit: unitMap[match[2].toLowerCase()] || match[2].toLowerCase(),
+  };
+}
+
+function openFoodFactsProductName(product) {
+  const name = product?.product_name || product?.generic_name || "";
+  const brand = String(product?.brands || "").split(",")[0]?.trim();
+  return [brand, name].filter(Boolean).join(" · ") || "";
+}
+
+function formatTags(tags = []) {
+  return tags
+    .map((tag) => String(tag).replace(/^en:/, "").replaceAll("-", " "))
+    .filter(Boolean)
+    .slice(0, 6)
+    .join(", ");
+}
+
+function productLookupNote(product) {
+  if (!product) return "";
+  const lines = [
+    product.quantity ? `Package: ${product.quantity}` : "",
+    product.categories ? `Category: ${product.categories}` : "",
+    product.ingredients_text ? `Ingredients: ${product.ingredients_text}` : "",
+    product.allergens_tags?.length ? `Allergens: ${formatTags(product.allergens_tags)}` : "",
+    product.traces_tags?.length ? `Traces: ${formatTags(product.traces_tags)}` : "",
+    "Source: Open Food Facts",
+  ];
+  return lines.filter(Boolean).join(" · ");
+}
+
+async function lookupOpenFoodFactsProduct(barcode) {
+  const target = cleanBarcode(barcode);
+  if (!target) throw new Error("Enter or scan a barcode first.");
+  const params = new URLSearchParams({
+    fields: OPEN_FOOD_FACTS_FIELDS,
+    app_name: "LoafersBakeryOS",
+    app_version: "1.0",
+  });
+  const response = await fetch(`https://world.openfoodfacts.org/api/v3.6/product/${encodeURIComponent(target)}.json?${params.toString()}`, {
+    headers: { Accept: "application/json" },
+  });
+  if (!response.ok) throw new Error("Open Food Facts lookup failed. Try again or enter the item manually.");
+  const data = await response.json();
+  const product = data.product;
+  if (!product || (!product.product_name && !product.generic_name && !product.brands)) {
+    throw new Error("No food product found for this barcode yet.");
+  }
+  return product;
+}
+
+function parseCsv(text) {
+  const rows = [];
+  let row = [];
+  let cell = "";
+  let quoted = false;
+  const source = String(text || "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  for (let index = 0; index < source.length; index += 1) {
+    const char = source[index];
+    const next = source[index + 1];
+    if (char === '"' && quoted && next === '"') {
+      cell += '"';
+      index += 1;
+    } else if (char === '"') {
+      quoted = !quoted;
+    } else if (char === "," && !quoted) {
+      row.push(cell.trim());
+      cell = "";
+    } else if (char === "\n" && !quoted) {
+      row.push(cell.trim());
+      if (row.some(Boolean)) rows.push(row);
+      row = [];
+      cell = "";
+    } else {
+      cell += char;
+    }
+  }
+  row.push(cell.trim());
+  if (row.some(Boolean)) rows.push(row);
+  if (rows.length < 2) return [];
+  const headers = rows[0].map((header) => header.toLowerCase().replace(/[^a-z0-9]/g, ""));
+  return rows.slice(1).map((values) => Object.fromEntries(headers.map((header, index) => [header, values[index] || ""])));
+}
+
+function csvValue(row, keys) {
+  const normalizedKeys = keys.map((key) => key.toLowerCase().replace(/[^a-z0-9]/g, ""));
+  const foundKey = normalizedKeys.find((key) => row[key]);
+  return foundKey ? row[foundKey] : "";
+}
+
+function numberFromCsv(value, fallback = 0) {
+  const cleaned = String(value || "").replace(/[^0-9.-]/g, "");
+  const parsed = Number(cleaned);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function importedPurchaseRows(records, inventory) {
+  return records.map((row, index) => {
+    const barcode = cleanBarcode(csvValue(row, ["barcode", "code", "upc", "ean", "sku", "item id"]));
+    const itemName = csvValue(row, ["name", "item", "product", "description", "title"]) || (barcode ? `Barcode ${barcode}` : `Imported item ${index + 1}`);
+    const matched = findInventoryByBarcode(inventory, barcode) || findInventoryByName(inventory, itemName);
+    const quantity = numberFromCsv(csvValue(row, ["quantity", "qty", "count", "stock", "amount"]), 1) || 1;
+    const totalCost = numberFromCsv(csvValue(row, ["total cost", "total", "cost", "price", "value"]), 0);
+    const unit = csvValue(row, ["unit", "uom", "measure"]) || matched?.unit || "each";
+    const date = csvValue(row, ["date", "scanned at", "created at", "time"]) || new Date().toISOString().slice(0, 10);
+    return {
+      id: `csv-${Date.now()}-${index}`,
+      selected: true,
+      barcode,
+      inventoryId: matched?.id || "",
+      itemName: matched?.name || itemName,
+      unit,
+      quantity,
+      totalCost,
+      date: String(date).slice(0, 10),
+      target: matched?.target || 1,
+      note: csvValue(row, ["note", "notes", "comment", "supplier", "location"]),
+    };
+  });
+}
+
+function BarcodeImportPanel({
+  barcode,
+  inventory,
+  lookupMessage,
+  lookupProduct,
+  lookupStatus,
+  onDetected,
+  onLookup,
+  onManualChange,
+}) {
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const frameRef = useRef(null);
+  const [pasteMessage, setPasteMessage] = useState("");
   const [scannerState, setScannerState] = useState({
     error: "",
     scanning: false,
@@ -153,19 +321,44 @@ function BarcodeImportPanel({ barcode, inventory, onDetected, onManualChange }) 
     }
   }
 
+  async function pasteBarcode() {
+    setPasteMessage("");
+    if (!navigator.clipboard?.readText) {
+      setPasteMessage("Clipboard paste is not available here. Tap the barcode field and paste manually.");
+      return;
+    }
+    try {
+      const text = await navigator.clipboard.readText();
+      const value = cleanBarcode(text).match(/[A-Za-z0-9-]{5,}/)?.[0] || cleanBarcode(text);
+      if (!value) {
+        setPasteMessage("Clipboard did not contain a barcode.");
+        return;
+      }
+      onDetected(value);
+      setPasteMessage("Barcode pasted.");
+    } catch (error) {
+      setPasteMessage(error.message || "Clipboard permission was blocked.");
+    }
+  }
+
   const matchedItem = findInventoryByBarcode(inventory, barcode);
 
   return (
     <section className="barcode-import-panel">
       <div className="barcode-import-heading">
         <span><Barcode size={17} /> Barcode import</span>
-        {scannerState.scanning ? (
-          <button type="button" className="text-button" onClick={stopScanner}>Stop camera</button>
-        ) : (
-          <button type="button" className="small-action-button" onClick={startScanner}>
-            <Camera size={14} /> Scan
+        <div className="barcode-action-row">
+          {scannerState.scanning ? (
+            <button type="button" className="text-button" onClick={stopScanner}>Stop camera</button>
+          ) : (
+            <button type="button" className="small-action-button" onClick={startScanner}>
+              <Camera size={14} /> Scan
+            </button>
+          )}
+          <button type="button" className="small-action-button subtle" onClick={pasteBarcode}>
+            <Clipboard size={14} /> Paste
           </button>
-        )}
+        </div>
       </div>
       {scannerState.scanning ? (
         <div className="barcode-camera-box">
@@ -190,7 +383,28 @@ function BarcodeImportPanel({ barcode, inventory, onDetected, onManualChange }) 
         <p className="barcode-match-note">Use the camera if supported, or tap this field and scan with a Bluetooth/USB barcode reader.</p>
       )}
       {scannerState.error ? <p className="barcode-match-note warning">{scannerState.error}</p> : null}
+      {pasteMessage ? <p className="barcode-match-note success">{pasteMessage}</p> : null}
       {!scannerState.supported ? <p className="barcode-match-note warning">Tip: manual entry still works and will save the barcode to the item.</p> : null}
+      <div className="barcode-lookup-card">
+        <button type="button" className="small-action-button" onClick={onLookup} disabled={!barcode || lookupStatus === "loading"}>
+          <Search size={14} /> {lookupStatus === "loading" ? "Looking up…" : "Lookup food facts"}
+        </button>
+        <small>For packaged food, this can auto-fill the name, size, ingredients, and allergen note when Open Food Facts has a match.</small>
+      </div>
+      {lookupMessage ? (
+        <p className={`barcode-match-note ${lookupStatus === "error" ? "warning" : "success"}`}>{lookupMessage}</p>
+      ) : null}
+      {lookupProduct ? (
+        <div className="product-lookup-preview">
+          {lookupProduct.image_front_small_url || lookupProduct.image_url ? (
+            <img src={lookupProduct.image_front_small_url || lookupProduct.image_url} alt="" />
+          ) : null}
+          <span>
+            <strong>{openFoodFactsProductName(lookupProduct)}</strong>
+            <small>{[lookupProduct.quantity, lookupProduct.categories].filter(Boolean).join(" · ") || "Food product match"}</small>
+          </span>
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -207,6 +421,9 @@ export default function MorePage({
 }) {
   const [inventoryForm, setInventoryForm] = useState(null);
   const [purchaseForm, setPurchaseForm] = useState(null);
+  const [csvImportOpen, setCsvImportOpen] = useState(false);
+  const [csvRows, setCsvRows] = useState([]);
+  const [csvImportMessage, setCsvImportMessage] = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const repeatCustomers = new Set(orders.map((order) => order.customer)).size;
   const revenue = orders.reduce((sum, order) => sum + Number(order.total || 0), 0);
@@ -239,6 +456,9 @@ export default function MorePage({
       newItemUnit: starterItem?.unit || "kg",
       quantity: 1,
       totalCost: Number(starterItem?.unitCost || 0),
+      lookupMessage: "",
+      lookupProduct: null,
+      lookupStatus: "idle",
       note: "",
     });
   }
@@ -253,7 +473,47 @@ export default function MorePage({
       newItemMode: barcode ? !matched : current.newItemMode,
       newItemUnit: matched?.unit || current.newItemUnit || "kg",
       totalCost: matched ? Number(matched.unitCost || 0) * Number(current.quantity || 1) : current.totalCost,
+      lookupMessage: "",
+      lookupProduct: null,
+      lookupStatus: "idle",
     }));
+  }
+
+  async function lookupBarcodeForPurchase() {
+    const barcode = cleanBarcode(purchaseForm?.barcode);
+    if (!barcode) return;
+    setPurchaseForm((current) => ({
+      ...current,
+      lookupMessage: "Checking Open Food Facts…",
+      lookupStatus: "loading",
+    }));
+    try {
+      const product = await lookupOpenFoodFactsProduct(barcode);
+      const productName = openFoodFactsProductName(product);
+      const pack = parsePackQuantity(product.quantity);
+      setPurchaseForm((current) => {
+        if (cleanBarcode(current.barcode) !== barcode) return current;
+        const matched = findInventoryByBarcode(inventory, barcode);
+        return {
+          ...current,
+          inventoryId: matched?.id || current.inventoryId,
+          lookupMessage: "Food details found. Review the name, quantity, and cost before saving.",
+          lookupProduct: product,
+          lookupStatus: "found",
+          newItemMode: !matched,
+          newItemName: matched ? current.newItemName : (current.newItemName || productName),
+          newItemUnit: matched?.unit || pack?.unit || current.newItemUnit || "each",
+          note: [current.note, productLookupNote(product)].filter(Boolean).join(" · "),
+          quantity: pack?.quantity && Number(current.quantity || 0) === 1 ? pack.quantity : current.quantity,
+        };
+      });
+    } catch (error) {
+      setPurchaseForm((current) => ({
+        ...current,
+        lookupMessage: error.message || "Lookup failed. You can still enter this item manually.",
+        lookupStatus: "error",
+      }));
+    }
   }
 
   function updatePurchaseQuantity(value) {
@@ -265,6 +525,74 @@ export default function MorePage({
         totalCost: item && !current.newItemMode ? Number(item.unitCost || 0) * Number(value || 0) : current.totalCost,
       };
     });
+  }
+
+  function openCsvImport() {
+    setCsvRows([]);
+    setCsvImportMessage("Choose an Orca Scan CSV export, or paste CSV text below.");
+    setCsvImportOpen(true);
+  }
+
+  function loadCsvText(text) {
+    const parsed = importedPurchaseRows(parseCsv(text), inventory);
+    setCsvRows(parsed);
+    setCsvImportMessage(parsed.length
+      ? `${parsed.length} purchase row${parsed.length === 1 ? "" : "s"} ready. Fill any missing costs or quantities before importing.`
+      : "I could not find rows in that CSV. Make sure the export includes headers like Barcode, Name, Quantity, and Cost.");
+  }
+
+  function updateCsvRow(id, changes) {
+    setCsvRows((current) => current.map((row) => (
+      row.id === id ? { ...row, ...changes } : row
+    )));
+  }
+
+  function importCsvRows(event) {
+    event.preventDefault();
+    const selected = csvRows.filter((row) => row.selected);
+    const knownItems = [...inventory];
+    selected.forEach((row, index) => {
+      const quantity = Number(row.quantity);
+      const totalCost = Number(row.totalCost);
+      if (!row.itemName || !(quantity > 0) || !(totalCost >= 0)) return;
+      let item = row.inventoryId
+        ? knownItems.find((entry) => entry.id === row.inventoryId)
+        : null;
+      item = item || findInventoryByBarcode(knownItems, row.barcode) || findInventoryByName(knownItems, row.itemName);
+      if (!item) {
+        item = {
+          id: `inventory-${Date.now()}-${index}`,
+          name: row.itemName.trim(),
+          amount: 0,
+          unit: row.unit || "each",
+          target: Number(row.target || 1),
+          unitCost: quantity > 0 ? totalCost / quantity : 0,
+          barcode: cleanBarcode(row.barcode),
+          isNew: true,
+        };
+        knownItems.unshift(item);
+        onSaveInventoryItem(item);
+      } else if (row.barcode && cleanBarcode(item.barcode) !== cleanBarcode(row.barcode)) {
+        const updatedItem = { ...item, barcode: cleanBarcode(row.barcode), isNew: false };
+        const itemIndex = knownItems.findIndex((entry) => entry.id === item.id);
+        if (itemIndex >= 0) knownItems[itemIndex] = updatedItem;
+        item = updatedItem;
+        onSaveInventoryItem(updatedItem);
+      }
+      onLogExpense({
+        id: `expense-${Date.now()}-${index}`,
+        date: row.date || new Date().toISOString().slice(0, 10),
+        barcode: cleanBarcode(row.barcode),
+        inventoryId: item.id,
+        itemName: item.name,
+        note: [row.note, row.barcode ? `Barcode: ${row.barcode}` : "", "Imported from scanner CSV"].filter(Boolean).join(" · "),
+        quantity,
+        totalCost,
+        unit: item.unit || row.unit || "each",
+      });
+    });
+    setCsvImportOpen(false);
+    setCsvRows([]);
   }
 
   return (
@@ -293,7 +621,10 @@ export default function MorePage({
       <section className="spending-card">
         <div className="section-title-line">
           <div><span className="eyebrow-label dark">6-week expenditure</span><h2>Purchases</h2></div>
-          <button type="button" className="small-action-button" onClick={() => openPurchase()}><Receipt size={15} /> Scan / log</button>
+          <div className="purchase-card-actions">
+            <button type="button" className="small-action-button subtle" onClick={openCsvImport}><FileUp size={15} /> Import CSV</button>
+            <button type="button" className="small-action-button" onClick={() => openPurchase()}><Receipt size={15} /> Scan / log</button>
+          </div>
         </div>
         <div className="spending-total"><strong>${recentSpend.toFixed(2)}</strong><span>last six weeks</span></div>
         <div className="spending-bars" role="img" aria-label={`Six week expenditure totaling $${recentSpend.toFixed(2)}`}>
@@ -427,7 +758,11 @@ export default function MorePage({
             <BarcodeImportPanel
               barcode={purchaseForm.barcode}
               inventory={inventory}
+              lookupMessage={purchaseForm.lookupMessage}
+              lookupProduct={purchaseForm.lookupProduct}
+              lookupStatus={purchaseForm.lookupStatus}
               onDetected={applyBarcodeToPurchase}
+              onLookup={lookupBarcodeForPurchase}
               onManualChange={applyBarcodeToPurchase}
             />
             <div className="purchase-mode-row">
@@ -461,6 +796,64 @@ export default function MorePage({
             <label>Note<input value={purchaseForm.note} onChange={(event) => setPurchaseForm({ ...purchaseForm, note: event.target.value })} placeholder="Supplier, receipt, or sale price" /></label>
             <p className="form-help">Saving adds the purchased quantity to stock, stores the barcode for future scans, and updates purchase trends.</p>
             <button className="primary-button" type="submit">Log purchase</button>
+          </form>
+        </Modal>
+      ) : null}
+
+      {csvImportOpen ? (
+        <Modal title="Import scanner CSV" onClose={() => setCsvImportOpen(false)}>
+          <form className="form-stack" onSubmit={importCsvRows}>
+            <p className="form-help">Works with Orca Scan-style CSV exports. Match columns like Barcode, Name, Quantity, Unit, Cost, Date, and Notes. You can edit every row before it touches inventory.</p>
+            <label>
+              Scanner CSV file
+              <input
+                accept=".csv,text/csv"
+                type="file"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (!file) return;
+                  file.text().then(loadCsvText).catch(() => setCsvImportMessage("I could not read that CSV file."));
+                }}
+              />
+            </label>
+            <label>
+              Or paste CSV text
+              <textarea
+                placeholder={"Barcode,Name,Quantity,Unit,Cost,Date,Notes\n012345678905,Bread flour,10,kg,16.50,2026-06-29,Costco"}
+                onChange={(event) => loadCsvText(event.target.value)}
+              />
+            </label>
+            {csvImportMessage ? <p className="barcode-match-note">{csvImportMessage}</p> : null}
+            {csvRows.length ? (
+              <div className="csv-import-list">
+                {csvRows.map((row) => {
+                  const matched = findInventoryByBarcode(inventory, row.barcode) || findInventoryByName(inventory, row.itemName);
+                  return (
+                    <section className="csv-import-row" key={row.id}>
+                      <label className="csv-row-check">
+                        <input type="checkbox" checked={row.selected} onChange={(event) => updateCsvRow(row.id, { selected: event.target.checked })} />
+                        Import
+                      </label>
+                      <label>Barcode<input value={row.barcode} onChange={(event) => updateCsvRow(row.id, { barcode: event.target.value })} /></label>
+                      <label>Item<input value={row.itemName} onChange={(event) => updateCsvRow(row.id, { itemName: event.target.value })} /></label>
+                      <div className="form-grid">
+                        <label>Quantity<input type="number" min="0.01" step="0.01" value={row.quantity} onChange={(event) => updateCsvRow(row.id, { quantity: event.target.value })} /></label>
+                        <label>Unit<input value={row.unit} onChange={(event) => updateCsvRow(row.id, { unit: event.target.value })} /></label>
+                      </div>
+                      <div className="form-grid">
+                        <label>Total cost<input type="number" min="0" step="0.01" value={row.totalCost} onChange={(event) => updateCsvRow(row.id, { totalCost: event.target.value })} /></label>
+                        <label>Date<input type="date" value={row.date} onChange={(event) => updateCsvRow(row.id, { date: event.target.value })} /></label>
+                      </div>
+                      <label>Note<input value={row.note} onChange={(event) => updateCsvRow(row.id, { note: event.target.value })} /></label>
+                      <small>{matched ? `Will update ${matched.name}` : "Will create a new inventory item if imported."}</small>
+                    </section>
+                  );
+                })}
+              </div>
+            ) : null}
+            <button className="primary-button" type="submit" disabled={!csvRows.some((row) => row.selected)}>
+              <Upload size={16} /> Import selected purchases
+            </button>
           </form>
         </Modal>
       ) : null}
