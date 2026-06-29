@@ -3246,12 +3246,75 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 }
 
 .ai-bake-assistant {
-  display: grid;
-  grid-template-columns: 48px 1fr;
-  gap: 13px;
   background:
     radial-gradient(circle at top left, rgba(199, 85, 53, .16), transparent 34%),
     rgba(255,255,255,.54);
+}
+
+.collapsible-section-header {
+  display: grid;
+  width: 100%;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 13px;
+  padding: 0;
+  color: inherit;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.flour-database-header {
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+}
+
+.flour-database-header > svg:first-child {
+  color: var(--accent);
+}
+
+.collapsible-section-header > span:nth-child(2) {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.collapsible-section-header small {
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .11em;
+}
+
+.collapsible-section-header strong {
+  font-family: "Newsreader", Georgia, serif;
+  font-size: 27px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.collapsible-section-header em {
+  color: var(--muted);
+  font-size: 9px;
+  font-style: normal;
+  line-height: 1.35;
+}
+
+.collapsible-section-header > svg:last-child {
+  justify-self: end;
+  color: var(--muted);
+  transition: transform .18s ease;
+}
+
+.ai-bake-assistant.open .collapsible-section-header > svg:last-child,
+.flour-database-panel.open .collapsible-section-header > svg:last-child {
+  transform: rotate(180deg);
+}
+
+.collapsible-section-body {
+  margin-top: 14px;
 }
 
 .assistant-orb {
@@ -3290,6 +3353,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 }
 
 .assistant-example-row button,
+.flour-type-tabs button,
 .flour-brand-tabs button {
   border: 1px solid var(--line);
   background: rgba(255,255,255,.66);
@@ -3413,13 +3477,59 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   background: linear-gradient(145deg, #fbfaf6, #f2efe6);
 }
 
-.flour-brand-tabs {
+.flour-type-tabs {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
   margin: 13px 0;
 }
 
+.flour-category-summary {
+  display: grid;
+  gap: 5px;
+  margin-bottom: 11px;
+  padding: 11px;
+  border: 1px solid rgba(102,127,88,.18);
+  border-radius: 12px;
+  background: rgba(255,255,255,.58);
+}
+
+.flour-category-summary span {
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.flour-category-summary p,
+.flour-category-summary small {
+  margin: 0;
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.flour-category-summary small {
+  color: #53604e;
+}
+
+.flour-database-layout {
+  display: grid;
+  grid-template-columns: minmax(130px, .42fr) minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+
+.flour-brand-tabs {
+  display: grid;
+  max-height: 450px;
+  grid-template-columns: 1fr;
+  align-content: start;
+  gap: 6px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.flour-type-tabs button,
 .flour-brand-tabs button {
   display: flex;
   min-width: 0;
@@ -3430,12 +3540,14 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   border-radius: 10px;
 }
 
+.flour-type-tabs button.selected,
 .flour-brand-tabs button.selected {
   color: white;
   border-color: var(--accent);
   background: var(--accent);
 }
 
+.flour-type-tabs strong,
 .flour-brand-tabs strong {
   overflow: hidden;
   font-size: 9px;
@@ -3443,6 +3555,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   white-space: nowrap;
 }
 
+.flour-type-tabs span,
 .flour-brand-tabs span {
   overflow: hidden;
   color: inherit;
@@ -3561,6 +3674,16 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .flour-database-footer span {
   color: var(--ink);
   font-weight: 600;
+}
+
+.flour-database-footer a {
+  color: var(--accent);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.flour-database-footer a:hover {
+  text-decoration: underline;
 }
 
 .bakers-percent-note {
@@ -7411,14 +7534,37 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
     max-height: 32vh;
   }
 
-  .ai-bake-assistant,
   .fermentation-visual-body,
-  .flour-use-grid {
+  .flour-use-grid,
+  .flour-database-layout {
     grid-template-columns: 1fr;
   }
 
+  .collapsible-section-header {
+    grid-template-columns: 42px minmax(0, 1fr) auto;
+  }
+
+  .flour-database-header {
+    grid-template-columns: 30px minmax(0, 1fr) auto;
+  }
+
+  .assistant-orb {
+    width: 42px;
+    height: 42px;
+  }
+
+  .collapsible-section-header strong {
+    font-size: 23px;
+  }
+
+  .flour-type-tabs,
   .flour-brand-tabs {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .flour-brand-tabs {
+    max-height: none;
+    padding-right: 0;
   }
 
   .flour-spec-grid {
