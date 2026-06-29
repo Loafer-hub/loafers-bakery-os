@@ -1,20 +1,27 @@
 import {
   Barcode,
+  BellRing,
   Box,
   CalendarDays,
   Camera,
+  ChevronRight,
   CircleDollarSign,
   Clipboard,
   FileUp,
+  Heart,
   LineChart,
+  Mail,
+  MapPin,
   Package,
   Pencil,
+  Phone,
   Plus,
   Receipt,
   Search,
   Settings2,
   Trash2,
   Upload,
+  UserRound,
   UsersRound,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -221,6 +228,125 @@ function importedPurchaseRows(records, inventory) {
   });
 }
 
+const CLOSED_ORDER_STATUSES = new Set(["completed", "rejected", "cancelled", "canceled"]);
+
+function customerIdFromName(name) {
+  return String(name || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+function orderTimestamp(order) {
+  const candidates = [order.pickupAt, order.createdAt, order.date, order.due];
+  for (const value of candidates) {
+    const date = new Date(value);
+    if (!Number.isNaN(date.getTime())) return date.getTime();
+  }
+  return 0;
+}
+
+function dateTimeLabel(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function isActiveOrder(order) {
+  return !CLOSED_ORDER_STATUSES.has(String(order.status || "").toLowerCase());
+}
+
+function orderItemsLabel(order) {
+  if (order.items?.length) {
+    return order.items.map((item) => (
+      `${item.quantity || 1} × ${item.sale_option_label || item.product_name || "Item"}`
+    )).join(" · ");
+  }
+  return order.itemSummary || `${order.quantity || 1} × ${order.product || "Order"}`;
+}
+
+function orderProgressLabel(order) {
+  const progress = order.bakeProgress || {};
+  const entries = Object.entries(progress);
+  if (!entries.length) return "";
+  const complete = entries.filter(([, value]) => Boolean(value)).length;
+  return `${complete}/${entries.length} bake phases complete`;
+}
+
+function blankCustomerProfile(name = "") {
+  const id = customerIdFromName(name) || `customer-${Date.now()}`;
+  return {
+    id,
+    name,
+    email: "",
+    phone: "",
+    allergies: "",
+    preferences: "",
+    address: "",
+    pickupNotes: "",
+    paymentNotes: "",
+    favoriteItems: "",
+    notes: "",
+  };
+}
+
+function buildCustomerRecords(orders, profiles) {
+  const byId = new Map();
+  profiles.forEach((profile) => {
+    const id = profile.id || customerIdFromName(profile.name);
+    if (!id) return;
+    byId.set(id, {
+      ...blankCustomerProfile(profile.name),
+      ...profile,
+      id,
+      orders: [],
+    });
+  });
+  orders.forEach((order) => {
+    const id = customerIdFromName(order.customer) || `order-customer-${order.id}`;
+    const existing = byId.get(id) || {
+      ...blankCustomerProfile(order.customer),
+      id,
+      orders: [],
+    };
+    byId.set(id, {
+      ...existing,
+      name: existing.name || order.customer || "Customer",
+      email: existing.email || order.customerEmail || "",
+      phone: existing.phone || order.customerPhone || "",
+      allergies: existing.allergies || order.allergies || "",
+      orders: [...existing.orders, order],
+    });
+  });
+  return Array.from(byId.values()).map((customer) => {
+    const sortedOrders = [...customer.orders].sort((a, b) => orderTimestamp(b) - orderTimestamp(a));
+    const activeOrders = sortedOrders.filter(isActiveOrder);
+    const totalSpent = sortedOrders.reduce((sum, order) => sum + Number(order.total || 0), 0);
+    const products = [...new Set(sortedOrders.map((order) => order.product).filter(Boolean))].slice(0, 4);
+    return {
+      ...customer,
+      orders: sortedOrders,
+      activeOrders,
+      isActive: activeOrders.length > 0,
+      lastOrderAt: sortedOrders[0] ? orderTimestamp(sortedOrders[0]) : 0,
+      totalSpent,
+      favoriteItems: customer.favoriteItems || products.join(", "),
+    };
+  }).sort((a, b) => (
+    Number(b.isActive) - Number(a.isActive)
+    || b.lastOrderAt - a.lastOrderAt
+    || a.name.localeCompare(b.name)
+  ));
+}
+
 function BarcodeImportPanel({
   barcode,
   inventory,
@@ -410,22 +536,36 @@ function BarcodeImportPanel({
 }
 
 export default function MorePage({
+  customerProfiles = [],
   expenses,
   inventory,
   orders,
   onDeleteExpense,
   onDeleteInventoryItem,
   onLogExpense,
+  onOpenOrder,
+  onSaveCustomerProfile,
   onSaveInventoryItem,
   setActive,
 }) {
+  const [orderHistoryOpen, setOrderHistoryOpen] = useState(false);
+  const [customerDirectoryOpen, setCustomerDirectoryOpen] = useState(false);
+  const [customerView, setCustomerView] = useState("active");
+  const [customerDraft, setCustomerDraft] = useState(null);
   const [inventoryForm, setInventoryForm] = useState(null);
   const [purchaseForm, setPurchaseForm] = useState(null);
   const [csvImportOpen, setCsvImportOpen] = useState(false);
   const [csvRows, setCsvRows] = useState([]);
   const [csvImportMessage, setCsvImportMessage] = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
-  const repeatCustomers = new Set(orders.map((order) => order.customer)).size;
+  const customerRecords = useMemo(() => buildCustomerRecords(orders, customerProfiles), [orders, customerProfiles]);
+  const activeCustomerRecords = useMemo(() => customerRecords.filter((customer) => customer.isActive), [customerRecords]);
+  const pastCustomerRecords = useMemo(() => customerRecords.filter((customer) => customer.orders.length && !customer.isActive), [customerRecords]);
+  const visibleCustomers = customerView === "active"
+    ? activeCustomerRecords
+    : customerView === "past"
+      ? pastCustomerRecords
+      : customerRecords;
   const revenue = orders.reduce((sum, order) => sum + Number(order.total || 0), 0);
   const totalExpenses = expenses.reduce((sum, expense) => sum + Number(expense.totalCost || 0), 0);
   const inventoryValue = inventory.reduce((sum, item) => (
@@ -442,6 +582,40 @@ export default function MorePage({
       isNew: true,
     });
     setConfirmDeleteId(null);
+  }
+
+  function openCustomerDirectory(view = "active") {
+    setCustomerView(view);
+    setCustomerDirectoryOpen(true);
+    const firstCustomer = view === "active"
+      ? activeCustomerRecords[0]
+      : view === "past"
+        ? pastCustomerRecords[0]
+        : customerRecords[0];
+    setCustomerDraft(firstCustomer ? { ...firstCustomer, orders: undefined, activeOrders: undefined } : null);
+  }
+
+  function editCustomer(customer) {
+    setCustomerDraft({ ...customer, orders: undefined, activeOrders: undefined });
+  }
+
+  function addCustomerProfile() {
+    setCustomerDraft({
+      ...blankCustomerProfile(""),
+      id: `customer-${Date.now()}`,
+      name: "",
+    });
+    setCustomerView("all");
+    setCustomerDirectoryOpen(true);
+  }
+
+  function saveCustomerProfile(event) {
+    event.preventDefault();
+    if (!customerDraft || !onSaveCustomerProfile) return;
+    onSaveCustomerProfile({
+      ...customerDraft,
+      name: customerDraft.name?.trim() || "Customer",
+    });
   }
 
   function openPurchase(item) {
@@ -614,8 +788,8 @@ export default function MorePage({
 
       <section className="quick-metrics">
         <div><CircleDollarSign /><strong>${inventoryValue.toFixed(0)}</strong><span>stock value</span></div>
-        <div><Box /><strong>{orders.reduce((sum, order) => sum + Number(order.quantity || 0), 0)}</strong><span>loaves ordered</span></div>
-        <div><UsersRound /><strong>{repeatCustomers}</strong><span>active customers</span></div>
+        <button type="button" className="metric-button" onClick={() => setOrderHistoryOpen(true)}><Box /><strong>{orders.length}</strong><span>orders</span></button>
+        <button type="button" className="metric-button" onClick={() => openCustomerDirectory("active")}><UsersRound /><strong>{activeCustomerRecords.length}</strong><span>active customers</span></button>
       </section>
 
       <section className="spending-card">
@@ -667,6 +841,108 @@ export default function MorePage({
           </div>
         )) : <EmptyState title="No purchases logged" body="Purchase logs create your expenditure chart and update inventory quantities." />}
       </section>
+
+      {orderHistoryOpen ? (
+        <Modal title="Order history" onClose={() => setOrderHistoryOpen(false)}>
+          <div className="order-history-panel">
+            <p className="form-help">Every order record with customer, pickup, payment, allergy, notes, item, and bake progress details.</p>
+            {orders.length ? [...orders].sort((a, b) => orderTimestamp(b) - orderTimestamp(a)).map((order) => (
+              <section className="order-history-card" key={order.id}>
+                <div className="order-history-heading">
+                  <span>
+                    <strong>{order.customer || "Customer"}</strong>
+                    <small>{order.product || order.itemSummary || "Order"} · {order.status || "New"}</small>
+                  </span>
+                  <strong>${Number(order.total || 0).toFixed(2)}</strong>
+                </div>
+                <div className="order-history-facts">
+                  <span><CalendarDays size={13} /> Ordered {dateTimeLabel(order.createdAt) || "Unknown"}</span>
+                  <span><BellRing size={13} /> {orderProgressLabel(order) || "Bake progress not started"}</span>
+                  <span><MapPin size={13} /> {order.pickupAt ? dateTimeLabel(order.pickupAt) : order.due || "Pickup not set"}</span>
+                  <span><Receipt size={13} /> {order.paymentMethod || "Payment not recorded"}</span>
+                </div>
+                <div className="order-history-detail-grid">
+                  <span><strong>Items</strong><small>{orderItemsLabel(order)}</small></span>
+                  <span><strong>Quantity</strong><small>{order.totalUnits || order.quantity || 1} unit{Number(order.totalUnits || order.quantity || 1) === 1 ? "" : "s"}</small></span>
+                  <span><strong>Contact</strong><small>{[order.customerEmail, order.customerPhone].filter(Boolean).join(" · ") || "No contact saved"}</small></span>
+                  <span><strong>Allergies</strong><small>{order.allergies || "None listed"}</small></span>
+                  <span><strong>Pickup</strong><small>{order.pickupLocation || "Pickup location not saved"}</small></span>
+                  <span><strong>Record</strong><small>{order.requestCode ? `Request ${order.requestCode}` : `ID ${order.id}`}</small></span>
+                </div>
+                {order.notes ? <p className="order-history-notes">{order.notes}</p> : null}
+                {onOpenOrder ? (
+                  <button type="button" className="text-button order-history-open" onClick={() => {
+                    setOrderHistoryOpen(false);
+                    onOpenOrder(order.id);
+                  }}>Open in Orders <ChevronRight size={14} /></button>
+                ) : null}
+              </section>
+            )) : <EmptyState title="No orders yet" body="Customer order records will appear here." />}
+          </div>
+        </Modal>
+      ) : null}
+
+      {customerDirectoryOpen ? (
+        <Modal title="Customer directory" onClose={() => setCustomerDirectoryOpen(false)}>
+          <div className="customer-directory-panel">
+            <div className="customer-directory-toolbar">
+              <div className="segmented-control customer-filter">
+                <button type="button" className={customerView === "active" ? "selected" : ""} onClick={() => setCustomerView("active")}>Active <span>{activeCustomerRecords.length}</span></button>
+                <button type="button" className={customerView === "past" ? "selected" : ""} onClick={() => setCustomerView("past")}>Past <span>{pastCustomerRecords.length}</span></button>
+                <button type="button" className={customerView === "all" ? "selected" : ""} onClick={() => setCustomerView("all")}>All <span>{customerRecords.length}</span></button>
+              </div>
+              <button type="button" className="small-action-button" onClick={addCustomerProfile}><Plus size={14} /> Add customer</button>
+            </div>
+            <div className="customer-directory-layout">
+              <div className="customer-directory-list">
+                {visibleCustomers.length ? visibleCustomers.map((customer) => (
+                  <button type="button" className={`customer-directory-row ${customerDraft?.id === customer.id ? "selected" : ""}`} key={customer.id} onClick={() => editCustomer(customer)}>
+                    <UserRound size={17} />
+                    <span>
+                      <strong>{customer.name || "Customer"}</strong>
+                      <small>{customer.orders.length} order{customer.orders.length === 1 ? "" : "s"} · ${customer.totalSpent.toFixed(2)} lifetime</small>
+                    </span>
+                    <ChevronRight size={14} />
+                  </button>
+                )) : <EmptyState title="No customers in this view" body="Switch to All or add a customer profile." />}
+              </div>
+              {customerDraft ? (
+                <form className="form-stack customer-profile-form" onSubmit={saveCustomerProfile}>
+                  <div className="customer-profile-summary">
+                    <UserRound size={19} />
+                    <span>
+                      <strong>{customerDraft.name || "New customer"}</strong>
+                      <small>{customerDraft.orders?.length || customerRecords.find((customer) => customer.id === customerDraft.id)?.orders.length || 0} linked order records</small>
+                    </span>
+                  </div>
+                  <label>Name<input required value={customerDraft.name || ""} onChange={(event) => setCustomerDraft({ ...customerDraft, name: event.target.value })} placeholder="Customer name" /></label>
+                  <div className="form-grid">
+                    <label>Email<input type="email" value={customerDraft.email || ""} onChange={(event) => setCustomerDraft({ ...customerDraft, email: event.target.value })} placeholder="name@example.com" /></label>
+                    <label>Phone<input value={customerDraft.phone || ""} onChange={(event) => setCustomerDraft({ ...customerDraft, phone: event.target.value })} placeholder="907…" /></label>
+                  </div>
+                  <label>Address<textarea value={customerDraft.address || ""} onChange={(event) => setCustomerDraft({ ...customerDraft, address: event.target.value })} placeholder="Street, city, delivery notes…" /></label>
+                  <label>Allergies / safety notes<textarea value={customerDraft.allergies || ""} onChange={(event) => setCustomerDraft({ ...customerDraft, allergies: event.target.value })} placeholder="Wheat, sesame, dairy, nut allergies, cross-contact notes…" /></label>
+                  <label>Preferences<textarea value={customerDraft.preferences || ""} onChange={(event) => setCustomerDraft({ ...customerDraft, preferences: event.target.value })} placeholder="Crust darkness, slicing, add-ins, pickup habits…" /></label>
+                  <div className="form-grid">
+                    <label>Favorite items<input value={customerDraft.favoriteItems || ""} onChange={(event) => setCustomerDraft({ ...customerDraft, favoriteItems: event.target.value })} placeholder="Country, bagels, hot sauce…" /></label>
+                    <label>Payment notes<input value={customerDraft.paymentNotes || ""} onChange={(event) => setCustomerDraft({ ...customerDraft, paymentNotes: event.target.value })} placeholder="Venmo, cash, invoice…" /></label>
+                  </div>
+                  <label>Pickup / delivery notes<textarea value={customerDraft.pickupNotes || ""} onChange={(event) => setCustomerDraft({ ...customerDraft, pickupNotes: event.target.value })} placeholder="Porch box, text on arrival, gate code…" /></label>
+                  <label>Private notes<textarea value={customerDraft.notes || ""} onChange={(event) => setCustomerDraft({ ...customerDraft, notes: event.target.value })} placeholder="Anything useful for future orders…" /></label>
+                  <div className="customer-profile-chips">
+                    <span><Mail size={13} /> {customerDraft.email || "No email"}</span>
+                    <span><Phone size={13} /> {customerDraft.phone || "No phone"}</span>
+                    <span><Heart size={13} /> {customerDraft.favoriteItems || "No favorites yet"}</span>
+                  </div>
+                  <button className="primary-button" type="submit">Save customer profile</button>
+                </form>
+              ) : (
+                <EmptyState title="Pick a customer" body="Choose a customer or add a new profile to save details." />
+              )}
+            </div>
+          </div>
+        </Modal>
+      ) : null}
 
       {inventoryForm ? (
         <Modal title={inventoryForm.isNew ? "Add inventory item" : `Edit ${inventoryForm.name}`} onClose={() => setInventoryForm(null)}>
