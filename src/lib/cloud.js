@@ -217,6 +217,7 @@ export async function publishRecipeCatalog(bakeryId, recipes) {
         available: recipe.available !== false,
         availabilityNote: recipe.availabilityNote || "",
         badges: Array.isArray(recipe.badges) ? recipe.badges : [],
+        timelineSettings: recipe.timelineSettings || {},
         hydration: Number(recipe.hydration || 0),
         ingredients: (recipe.ingredients || []).map((ingredient) => ({
           name: ingredient.name,
