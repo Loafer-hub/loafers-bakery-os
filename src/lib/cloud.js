@@ -116,6 +116,24 @@ export async function signUpCustomer({ email, password, fullName }) {
   return data;
 }
 
+export async function saveCustomerAccountDetails(details = {}) {
+  const profile = {
+    full_name: String(details.name || "").trim(),
+    phone: String(details.phone || "").trim(),
+    allergies: String(details.allergies || "").trim(),
+    preferences: String(details.preferences || "").trim(),
+    address: String(details.address || "").trim(),
+    default_payment_method: String(details.defaultPaymentMethod || "").trim(),
+    favorite_product_id: String(details.favoriteProductId || "").trim(),
+    favorite_product_name: String(details.favoriteProductName || "").trim(),
+    favorite_option_id: String(details.favoriteOptionId || "").trim(),
+    updated_at: new Date().toISOString(),
+  };
+  const { data, error } = await requireClient().auth.updateUser({ data: profile });
+  throwIfError(error);
+  return data;
+}
+
 export async function signOutCloud() {
   const { error } = await requireClient().auth.signOut();
   throwIfError(error);
@@ -335,6 +353,40 @@ export async function lookupCustomerOrder({ slug, requestCode, contact }) {
   });
   throwIfError(error);
   return data;
+}
+
+export async function listSignedInCustomerOrders(slug, limit = 20) {
+  const session = await getCloudSession();
+  const userId = session?.user?.id;
+  if (!userId) return [];
+  const { data, error } = await requireClient()
+    .from("customer_orders")
+    .select(`
+      id,
+      request_code,
+      status,
+      pickup_at,
+      subtotal_cents,
+      customer_name,
+      customer_email,
+      customer_phone,
+      payment_method,
+      payment_status,
+      pickup_location,
+      allergies,
+      customer_notes,
+      baker_notes,
+      bake_progress,
+      created_at,
+      bakeries!inner(name, slug, pickup_location),
+      customer_order_items(id, product_name, unit_price_cents, quantity, sale_option_id, sale_option_label, units_per_pack, capacity_units)
+    `)
+    .eq("customer_user_id", userId)
+    .eq("bakeries.slug", String(slug || "").trim().toLowerCase())
+    .order("created_at", { ascending: false })
+    .limit(Math.max(1, Math.min(50, Number(limit || 20))));
+  throwIfError(error);
+  return data || [];
 }
 
 export async function submitCustomerFeedback({
