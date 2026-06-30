@@ -1,7 +1,9 @@
 // product-type-settings-v1
 // customer-options-v1
+// yeast-breads-v1
 export const PRODUCT_TYPES = [
   { value: "bread", label: "Bread", unitName: "loaf", formulaMode: "bakers", icon: "🥖" },
+  { value: "yeast", label: "Yeast breads", unitName: "loaf", formulaMode: "bakers", icon: "🍞" },
   { value: "bagel", label: "Bagels", unitName: "bagel", formulaMode: "bakers", icon: "🥯" },
   { value: "bun", label: "Buns / rolls", unitName: "bun", formulaMode: "bakers", icon: "🍞" },
   { value: "cake", label: "Cakes", unitName: "cake", formulaMode: "bakers", icon: "🍰" },
@@ -41,6 +43,34 @@ const DEFAULT_PRODUCT_TYPE_COPY = {
     presets: [
       { label: "Loaf", units: 1, price: 13, capacityUnits: 1 },
       { label: "Half loaf", units: 0.5, price: 7, capacityUnits: 1 },
+    ],
+  },
+  yeast: {
+    description: "Commercial-yeast breads such as sandwich loaves, milk bread, dinner bread, and enriched pan loaves.",
+    safetyNotes: "Contains wheat and commercial yeast. Enriched recipes may contain dairy, eggs, butter, or oil.",
+    customerOptions: [
+      {
+        id: "yeast-slicing",
+        label: "Slicing preference",
+        type: "select",
+        enabled: true,
+        required: false,
+        help: "Turn this off during weeks when you do not want to offer slicing.",
+        choices: ["Do not slice", "Slice if possible", "Please slice"],
+      },
+      {
+        id: "loaf-style",
+        label: "Loaf style",
+        type: "select",
+        enabled: false,
+        required: false,
+        help: "Optional when you offer multiple finishes for the same yeast bread.",
+        choices: ["Baker's choice", "Soft sandwich loaf", "Darker crust", "Pullman style if available"],
+      },
+    ],
+    presets: [
+      { label: "Loaf", units: 1, price: 10, capacityUnits: 1 },
+      { label: "Two loaves", units: 2, price: 18, capacityUnits: 2 },
     ],
   },
   bagel: {
