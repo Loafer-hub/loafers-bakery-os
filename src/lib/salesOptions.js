@@ -7,6 +7,8 @@ export const SALES_OPTION_PRESETS = [
   { label: "Custom pack", units: 1 },
 ];
 
+// product-type-settings-v1
+
 function optionId(label, index = 0) {
   const safe = String(label || "option")
     .toLowerCase()
@@ -36,7 +38,7 @@ export function normalizedSalesOptions(recipe = {}) {
     label: String(option.label || `Option ${index + 1}`).trim(),
     units: Math.max(0.5, Number(option.units || 1)),
     price: Math.max(0, Number(option.price ?? recipe.price ?? 0)),
-    capacityUnits: Math.max(1, Math.min(6, Number(option.capacityUnits || 1))),
+    capacityUnits: Math.max(0, Math.min(6, Number(option.capacityUnits ?? 1))),
   }));
 }
 
