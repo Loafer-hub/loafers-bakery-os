@@ -4,12 +4,14 @@ import {
   CalendarDays,
   CheckCircle2,
   ClipboardList,
+  Copy,
   Clock3,
   FileText,
   ListChecks,
   PackageCheck,
   PackageSearch,
   Printer,
+  QrCode,
   Settings2,
   ShoppingCart,
   Tags,
@@ -64,6 +66,18 @@ function localDateKey(value = new Date()) {
 
 function money(value) {
   return Number(value || 0).toFixed(2);
+}
+
+function safeSingleLine(value, fallback = "") {
+  return String(value || fallback)
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function truncateLine(value, length = 32) {
+  const text = safeSingleLine(value);
+  if (text.length <= length) return text;
+  return `${text.slice(0, Math.max(0, length - 1))}…`;
 }
 
 function smartAmount(value, digits = 1) {
@@ -158,6 +172,46 @@ function buildLabelRows(orders, recipes) {
     });
 }
 
+function storefrontUrlFor(cloudAccount) {
+  const slug = cloudAccount?.workspace?.bakery?.slug || "loafers";
+  if (typeof window === "undefined") return `?order=${encodeURIComponent(slug)}`;
+  const url = new URL(window.location.href);
+  url.search = `?order=${encodeURIComponent(slug)}`;
+  url.hash = "";
+  return url.toString();
+}
+
+function qrImageUrl(value, size = 180) {
+  return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&margin=8&data=${encodeURIComponent(value)}`;
+}
+
+function coreprintLabelText(label, storefrontUrl) {
+  return [
+    "LOAFERS BAKERY",
+    "------------------------------",
+    `CUSTOMER: ${truncateLine(label.customer, 21)}`,
+    `PICKUP: ${truncateLine(label.pickup, 23)}`,
+    `ITEM: ${truncateLine(label.item, 25)}`,
+    `ALLERGY: ${truncateLine(label.allergies, 22)}`,
+    `PAY: ${truncateLine(label.payment, 26)}`,
+    label.requestCode ? `CODE: ${truncateLine(label.requestCode, 25)}` : "",
+    "SCAN QR TO ORDER AGAIN",
+    storefrontUrl,
+    "Thank you!",
+  ].filter(Boolean).join("\n");
+}
+
+function storefrontSlipText(storefrontUrl) {
+  return [
+    "LOAFERS BAKERY",
+    "------------------------------",
+    "SCAN QR TO ORDER",
+    "Fresh bread + small batch goods",
+    storefrontUrl,
+    "Thank you!",
+  ].join("\n");
+}
+
 function buildForecastRows({ days, inventory, planner, settings }) {
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() + Number(days || 14));
@@ -212,6 +266,7 @@ function ToggleRow({ checked, disabled = false, label, note, onChange, warning =
 
 export function ProductionPlanner({
   automation,
+  cloudAccount,
   inventory,
   orders,
   recipes,
@@ -226,6 +281,7 @@ export function ProductionPlanner({
   const [selectedDay, setSelectedDay] = useState(() => localDateKey(new Date()));
   const [forecastDays, setForecastDays] = useState(14);
   const [printMode, setPrintMode] = useState("");
+  const [copyMessage, setCopyMessage] = useState("");
   const syncedSignature = useRef("");
   const planner = useMemo(() => buildProductionPlanner({
     orders,
@@ -266,6 +322,30 @@ export function ProductionPlanner({
   const shoppingRows = forecastRows.filter((row) => row.status !== "ok");
   const shoppingTotal = shoppingRows.reduce((sum, row) => sum + Number(row.cost || 0), 0);
   const readyOrders = orders.filter(isProductionReadyOrder);
+  const storefrontUrl = useMemo(() => storefrontUrlFor(cloudAccount), [cloudAccount?.workspace?.bakery?.slug]);
+  const storefrontQrSrc = useMemo(() => qrImageUrl(storefrontUrl), [storefrontUrl]);
+  const miniPrinterRows = labelRows.length
+    ? labelRows.map((label) => ({
+      ...label,
+      copyText: coreprintLabelText(label, storefrontUrl),
+      heading: label.customer,
+      subheading: label.item,
+    }))
+    : [{
+      id: "storefront-slip",
+      customer: "Storefront QR slip",
+      item: "Scan to order from Loafers",
+      pickup: "Any customer",
+      payment: "",
+      allergies: "",
+      requestCode: "",
+      ingredients: "",
+      storage: "",
+      notes: "",
+      copyText: storefrontSlipText(storefrontUrl),
+      heading: "Storefront QR slip",
+      subheading: "Copy/paste into Coreprint",
+    }];
   const calendarSignature = JSON.stringify(planner.calendarPlans.map((plan) => [
     plan.id,
     plan.bakeEnd,
@@ -311,6 +391,15 @@ export function ProductionPlanner({
     window.requestAnimationFrame(() => {
       window.setTimeout(() => window.print(), 80);
     });
+  }
+
+  async function copyMiniLabel(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopyMessage("Copied mini-printer label text.");
+    } catch {
+      setCopyMessage("Copy failed. Select the text and copy it manually.");
+    }
   }
 
   return (
@@ -462,6 +551,31 @@ export function ProductionPlanner({
               <button type="button" className="secondary-button" onClick={() => printSection("labels")} disabled={!labelRows.length}><Tags size={15} /> Order labels</button>
               <button type="button" className="secondary-button" onClick={() => printSection("shopping")} disabled={!forecastRows.length}><ShoppingCart size={15} /> Shopping list</button>
             </div>
+            <section className="coreprint-copy-panel" aria-label="Coreprint CTP500BR copy and paste labels">
+              <div className="coreprint-heading">
+                <span><QrCode size={17} /> Coreprint CTP500BR mini labels</span>
+                <small>Copy this narrow text into the Coreprint app. The QR points to your storefront.</small>
+              </div>
+              {copyMessage ? <p className="production-sync-message">{copyMessage}</p> : null}
+              <div className="coreprint-label-list">
+                {miniPrinterRows.map((label) => (
+                  <article className="coreprint-label-card" key={label.id}>
+                    <div className="coreprint-label-preview">
+                      <img src={storefrontQrSrc} alt="QR code for Loafers storefront" />
+                      <span>
+                        <strong>{label.heading}</strong>
+                        <small>{label.subheading}</small>
+                        <em>{storefrontUrl}</em>
+                      </span>
+                    </div>
+                    <textarea readOnly value={label.copyText} aria-label={`${label.heading} Coreprint label text`} />
+                    <button type="button" className="secondary-button" onClick={() => copyMiniLabel(label.copyText)}>
+                      <Copy size={15} /> Copy Coreprint text
+                    </button>
+                  </article>
+                ))}
+              </div>
+            </section>
             <div id="production-label-sheet" className="production-label-sheet">
               <div className="print-sheet-heading">
                 <span>Loafers Bakery OS</span>
@@ -471,12 +585,17 @@ export function ProductionPlanner({
               <div className="production-label-grid">
                 {labelRows.length ? labelRows.map((label) => (
                   <article className="production-label-card" key={label.id}>
-                    <div><strong>{label.customer}</strong><span>{label.pickup}</span></div>
-                    <h3>{label.item}</h3>
-                    <p><b>Ingredients:</b> {label.ingredients}</p>
-                    <p><b>Allergies:</b> {label.allergies}</p>
-                    <p><b>Storage:</b> {label.storage}</p>
-                    <small>{label.payment}{label.requestCode ? ` · ${label.requestCode}` : ""}</small>
+                    <div className="production-label-topline"><strong>{label.customer}</strong><span>{label.pickup}</span></div>
+                    <div className="production-label-main">
+                      <span>
+                        <h3>{label.item}</h3>
+                        <p><b>Ingredients:</b> {label.ingredients}</p>
+                        <p><b>Allergies:</b> {label.allergies}</p>
+                        <p><b>Storage:</b> {label.storage}</p>
+                      </span>
+                      <img className="production-label-qr" src={storefrontQrSrc} alt="QR code for Loafers storefront" />
+                    </div>
+                    <small>{label.payment}{label.requestCode ? ` · ${label.requestCode}` : ""} · Scan QR to order again</small>
                   </article>
                 )) : <p className="cloud-empty-copy">No active production orders to label.</p>}
               </div>
