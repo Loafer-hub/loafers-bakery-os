@@ -1,5 +1,13 @@
-import { useEffect, useState } from "react";
-import { BottomNav } from "./components/AppChrome";
+import {
+  ChefHat,
+  ClipboardList,
+  PackageCheck,
+  Receipt,
+  Settings2,
+  Wheat,
+} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { BottomNav, GlobalQuickAction } from "./components/AppChrome";
 import { Modal, Toast } from "./components/Primitives";
 import { StorageCenter } from "./components/StorageCenter";
 import {
@@ -28,8 +36,10 @@ import {
 import BakePage from "./pages/BakePage";
 import CustomerOrderPortal from "./pages/CustomerOrderPortal";
 import LiquidPage from "./pages/LiquidPage";
+import MenuPage from "./pages/MenuPage";
 import MorePage from "./pages/MorePage";
 import OrdersPage from "./pages/OrdersPage";
+import ProductionPage from "./pages/ProductionPage";
 import RecipesPage from "./pages/RecipesPage";
 import SettingsPage from "./pages/SettingsPage";
 import TodayPage from "./pages/TodayPage";
@@ -40,12 +50,24 @@ import TodayPage from "./pages/TodayPage";
 const pages = {
   today: TodayPage,
   orders: OrdersPage,
-  bake: BakePage,
-  liquid: LiquidPage,
-  recipes: RecipesPage,
-  more: MorePage,
+  production: ProductionPage,
+  menu: MenuPage,
+  business: MorePage,
   settings: SettingsPage,
 };
+
+const pageAliases = {
+  bake: "production",
+  liquid: "production",
+  recipes: "menu",
+  more: "business",
+  trends: "business",
+};
+
+function canonicalPage(page) {
+  if (page === "settings") return "settings";
+  return pageAliases[page] || page || "today";
+}
 
 export default function App() {
   const [active, setActive] = useState("today");
@@ -75,6 +97,7 @@ export default function App() {
   const [recoveryBackup, setRecoveryBackup] = usePersistentState("loafers-recovery-v1", null);
   const [toast, setToast] = useState("");
   const [quickStarter, setQuickStarter] = useState(false);
+  const [quickActionsOpen, setQuickActionsOpen] = useState(false);
   const [storageOpen, setStorageOpen] = useState(false);
   const [quickFeed, setQuickFeed] = useState({
     starterId: "mabel",
@@ -83,7 +106,7 @@ export default function App() {
     rise: 2,
     note: "",
   });
-  const Page = pages[active];
+  const Page = pages[canonicalPage(active)] || TodayPage;
   const cloudAccount = useCloudAccount();
   const productionAutomation = {
     ...DEFAULT_PRODUCTION_AUTOMATION,
@@ -342,9 +365,15 @@ export default function App() {
     setToast("Sample orders erased");
   }
 
+  function openQuickStarter() {
+    setQuickFeed((current) => ({ ...current, starterId: starters[0]?.id || "" }));
+    setQuickStarter(true);
+  }
+
   function navigate(page) {
-    if (page !== "orders") setSelectedOrderId(null);
-    setActive(page);
+    const nextPage = canonicalPage(page);
+    if (nextPage !== "orders") setSelectedOrderId(null);
+    setActive(nextPage);
   }
 
   function openOrder(id) {
@@ -568,10 +597,8 @@ export default function App() {
     onLogExpense: logExpense,
     onPlanCreated: setToast,
     onStarterLogged: logStarter,
-    onLogStarter: () => {
-      setQuickFeed((current) => ({ ...current, starterId: starters[0]?.id || "" }));
-      setQuickStarter(true);
-    },
+    onLogStarter: openQuickStarter,
+    onOpenSettings: () => navigate("settings"),
     onOpenStorage: () => setStorageOpen(true),
     onUpdateOrder: updateOrder,
     onUpdateOrderProgress: updateOrderProgress,
@@ -585,6 +612,45 @@ export default function App() {
     selectedOrderId,
     starterLogs,
   };
+
+  const quickActions = useMemo(() => [
+    {
+      label: "Review orders",
+      note: "Pending, accepted, customer records",
+      icon: ClipboardList,
+      onClick: () => navigate("orders"),
+    },
+    {
+      label: "Start Kitchen bake",
+      note: "Open Production and track active work",
+      icon: ChefHat,
+      onClick: () => navigate("production"),
+    },
+    {
+      label: "Ready shelf item",
+      note: "Jump to Menu for public shelf stock",
+      icon: PackageCheck,
+      onClick: () => navigate("menu"),
+    },
+    {
+      label: "Log starter feed",
+      note: "Quick culture check without hunting",
+      icon: Wheat,
+      onClick: openQuickStarter,
+    },
+    {
+      label: "Log purchase",
+      note: "Open Business inventory and spending",
+      icon: Receipt,
+      onClick: () => navigate("business"),
+    },
+    {
+      label: "Bakery settings",
+      note: "Capacity, pickup, messages, storefront",
+      icon: Settings2,
+      onClick: () => navigate("settings"),
+    },
+  ], [starters]);
 
   if (orderSlug) {
     return (
@@ -603,7 +669,13 @@ export default function App() {
         <div className="scroll-view">
           <Page {...sharedProps} />
         </div>
-        <BottomNav active={active === "settings" ? "more" : active} onChange={navigate} />
+        <BottomNav active={active === "settings" ? "business" : canonicalPage(active)} onChange={navigate} />
+        <GlobalQuickAction
+          actions={quickActions}
+          isOpen={quickActionsOpen}
+          onClose={() => setQuickActionsOpen(false)}
+          onOpen={() => setQuickActionsOpen(true)}
+        />
         <Toast message={toast} />
       </div>
 
