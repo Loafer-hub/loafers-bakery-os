@@ -68,6 +68,42 @@ function sameCalendarDay(a, b) {
     && a.getDate() === b.getDate();
 }
 
+const bakeViews = [
+  {
+    id: "plan",
+    label: "Schedule",
+    heading: "Bake schedule",
+    editHeading: "Change schedule",
+    subtitle: "Build one science-backed timeline from mix time or desired finish.",
+  },
+  {
+    id: "kitchen",
+    label: "Kitchen board",
+    heading: "Kitchen board",
+    subtitle: "Live checklists for active bakes, folds, proofing, baking, and completion.",
+  },
+  {
+    id: "production",
+    label: "Batch plan",
+    heading: "Batch plan",
+    subtitle: "Group accepted orders, stagger starts, check formulas, and spot shortages.",
+  },
+  {
+    id: "calendar",
+    label: "Calendar",
+    heading: "Bake calendar",
+    subtitle: "Planned bakes, accepted orders, and unavailable bake days.",
+  },
+  {
+    id: "starter",
+    label: "Starter care",
+    heading: "Starter care",
+    subtitle: "Starter profiles, feed logs, ratios, and flour blends.",
+  },
+];
+
+const bakeViewCopy = Object.fromEntries(bakeViews.map((item) => [item.id, item]));
+
 export default function BakePage({
   cloudAccount,
   productionAutomation,
@@ -272,36 +308,36 @@ export default function BakePage({
     }
   }
 
-  const headingTitle = view === "plan"
-    ? (editingPlanId ? "Change bake plan" : "Dynamic bake plan")
-    : view === "kitchen"
-      ? "Kitchen"
-    : view === "production"
-      ? "Production planner"
-      : view === "calendar"
-        ? "Bake calendar"
-        : "Starters";
+  const activeViewCopy = bakeViewCopy[view] || bakeViewCopy.plan;
+  const headingTitle = view === "plan" && editingPlanId
+    ? activeViewCopy.editHeading
+    : activeViewCopy.heading;
   const headingSubtitle = view === "calendar"
-    ? `${bakePlans.length} planned · ${acceptedOrderBakes.length} accepted`
+    ? `${activeViewCopy.subtitle} ${bakePlans.length} planned · ${acceptedOrderBakes.length} accepted.`
     : view === "kitchen"
-      ? `${kitchenBakes.filter((bake) => !bake.completedAt).length} active bakes in progress`
+      ? `${activeViewCopy.subtitle} ${kitchenBakes.filter((bake) => !bake.completedAt).length} active.`
     : view === "production"
-      ? "Automatic batches, stock checks, timing, and bake sheets"
+      ? activeViewCopy.subtitle
     : view === "starter"
-      ? `${starters.length} ${starters.length === 1 ? "starter profile" : "starter profiles"}`
+      ? `${activeViewCopy.subtitle} ${starters.length} ${starters.length === 1 ? "profile" : "profiles"}.`
       : model
-        ? `Estimated finish ${formatScheduleTime(model.bakeEnd)}`
-        : "Temperature-aware fermentation timing";
+        ? `${activeViewCopy.subtitle} Estimated finish ${formatScheduleTime(model.bakeEnd)}.`
+        : activeViewCopy.subtitle;
 
   return (
     <main className="page bake-page">
       <PageHeading title={headingTitle} subtitle={headingSubtitle} />
-      <div className="view-switch bake-view-switch">
-        <button className={view === "plan" ? "selected" : ""} onClick={() => setView("plan")}>Planner</button>
-        <button className={view === "kitchen" ? "selected" : ""} onClick={() => setView("kitchen")}>Kitchen</button>
-        <button className={view === "production" ? "selected" : ""} onClick={() => setView("production")}>Production</button>
-        <button className={view === "calendar" ? "selected" : ""} onClick={() => setView("calendar")}>Bakes</button>
-        <button className={view === "starter" ? "selected" : ""} onClick={() => setView("starter")}>Starters</button>
+      <div className="view-switch bake-view-switch" aria-label="Bake work areas">
+        {bakeViews.map((item) => (
+          <button
+            className={view === item.id ? "selected" : ""}
+            key={item.id}
+            onClick={() => setView(item.id)}
+            type="button"
+          >
+            {item.label}
+          </button>
+        ))}
       </div>
 
       {view === "kitchen" ? (
@@ -392,9 +428,9 @@ export default function BakePage({
               </div>
             </section>
 
-            <section className="dynamic-schedule" aria-label="Estimated bake schedule">
+            <section className="dynamic-schedule" aria-label="Science-backed bake timeline">
               <div className="section-title-line">
-                <h2>Estimated schedule</h2>
+                <h2>Timeline</h2>
                 <span>{model.dough.bulkHours.toFixed(1)}h {timelineSettings.primaryLabel.toLowerCase()}{timelineSettings.includeColdProof ? ` · ${coldProofHours}h cold` : ""}</span>
               </div>
               {model.steps.map((step) => (
@@ -459,7 +495,7 @@ export default function BakePage({
             </section>
 
             <button className="primary-button" type="button" onClick={savePlan}>
-              {editingPlanId ? "Save bake changes" : "Add bake to calendar"}
+              {editingPlanId ? "Save schedule changes" : "Save to bake calendar"}
             </button>
             {editingPlanId ? confirmPlanDelete ? (
               <div className="delete-confirmation">
