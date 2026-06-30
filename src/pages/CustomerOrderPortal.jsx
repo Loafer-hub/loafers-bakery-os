@@ -236,6 +236,9 @@ export default function CustomerOrderPortal({
             hydration: recipe.hydration,
             ingredients: recipe.ingredients,
             available: recipe.available !== false,
+            soldOut: recipe.soldOut === true,
+            unavailableThisWeek: recipe.unavailableThisWeek === true,
+            hiddenThisWeek: recipe.hiddenThisWeek === true,
             availabilityNote: recipe.availabilityNote || "",
             badges: Array.isArray(recipe.badges) ? recipe.badges : [],
           },
@@ -290,6 +293,7 @@ export default function CustomerOrderPortal({
   const visibleProductTypeValues = new Set(productTypes.map((type) => type.value));
   const storefrontProducts = (storefront?.products || []).filter((product) => (
     visibleProductTypeValues.has(productTypeValue(product))
+    && product?.recipe_details?.hiddenThisWeek !== true
   ));
   const selectedItems = useMemo(() => [
     ...storefrontProducts.flatMap((product) => productSalesOptions(product)
