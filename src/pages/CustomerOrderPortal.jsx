@@ -40,6 +40,7 @@ import { productTypeMap, productTypeSettingsFor } from "../lib/productTypes";
 
 // product-type-settings-v1
 // customer-options-v1
+// compact-customer-cards-v1
 
 const DEFAULT_PICKUP_LOCATION = "Three Bears, Delta Junction, AK";
 const DEFAULT_PAYMENT_METHODS = ["Venmo", "Zelle", "Cash"];
@@ -86,6 +87,17 @@ function productTypeValue(product) {
 
 function productPhotoUrl(product) {
   return String(product?.recipe_details?.photoUrl || "").trim();
+}
+
+function productStartingPrice(product) {
+  const prices = productSalesOptions(product).map((option) => option.price_cents);
+  return Math.min(...prices);
+}
+
+function productSelectedPackageCount(product, quantities) {
+  return productSalesOptions(product).reduce((sum, option) => (
+    sum + Number(quantities[`product-${product.id}-${option.id}`] || 0)
+  ), 0);
 }
 
 function enabledCustomerOptions(typeSettings) {
@@ -615,19 +627,8 @@ export default function CustomerOrderPortal({
                       key={product.id}
                       product={product}
                       quantities={quantities}
-                      selectedOptionId={selectedOptions[product.id]}
                       typeSettings={typeSettings}
-                      onChangeOption={(optionId) => setSelectedOptions((current) => ({ ...current, [product.id]: optionId }))}
-                      customerOptionSelections={productOptionSelections[product.id] || {}}
-                      onChangeCustomerOption={(optionId, value) => setProductOptionSelections((current) => ({
-                        ...current,
-                        [product.id]: {
-                          ...(current[product.id] || {}),
-                          [optionId]: value,
-                        },
-                      }))}
-                      onChangeQuantity={changeQuantity}
-                      onShowDetails={() => setSelectedProduct(product)}
+                      onOpenItem={() => setSelectedProduct(product)}
                     />
                   );
                 })}
@@ -726,9 +727,21 @@ export default function CustomerOrderPortal({
       </form>
 
       {selectedProduct ? (
-        <CustomerRecipeDetails
+        <CustomerProductOrderModal
+          customerOptionSelections={productOptionSelections[selectedProduct.id] || {}}
           product={selectedProduct}
+          quantities={quantities}
+          selectedOptionId={selectedOptions[selectedProduct.id]}
           typeSettings={productSettingsByValue.get(productTypeValue(selectedProduct)) || productTypeSettingsFor(rules, productTypeValue(selectedProduct))}
+          onChangeCustomerOption={(optionId, value) => setProductOptionSelections((current) => ({
+            ...current,
+            [selectedProduct.id]: {
+              ...(current[selectedProduct.id] || {}),
+              [optionId]: value,
+            },
+          }))}
+          onChangeOption={(optionId) => setSelectedOptions((current) => ({ ...current, [selectedProduct.id]: optionId }))}
+          onChangeQuantity={changeQuantity}
           onClose={() => setSelectedProduct(null)}
         />
       ) : null}
@@ -749,89 +762,45 @@ function CustomerAnnouncement({ announcement }) {
 }
 
 function CustomerProductCard({
+  onOpenItem,
+  product,
+  quantities,
+  typeSettings,
+}) {
+  const selectedCount = productSelectedPackageCount(product, quantities);
+  const selected = selectedCount > 0;
+  const photoUrl = productPhotoUrl(product);
+  return (
+    <article className={selected ? "customer-product compact-product selected" : "customer-product compact-product"}>
+      <button className="customer-product-card-button" type="button" onClick={onOpenItem} aria-label={`Open options for ${product.name}`}>
+        <span className={photoUrl ? "customer-product-photo" : "customer-product-photo empty"}>
+          {photoUrl ? <img src={photoUrl} alt={product.recipe_details?.photoAlt || product.name} /> : typeSettings?.icon || productTypeIcon(product)}
+        </span>
+        <span className="customer-product-card-body">
+          <span className="customer-product-card-meta"><Info size={12} /> {typeSettings?.label || productTypeLabel(product)}</span>
+          <h3>{product.name}</h3>
+          <p>{product.description}</p>
+          <span className="customer-product-card-footer">
+            <strong>From {dollars(productStartingPrice(product))}</strong>
+            <small>{selected ? `${selectedCount} package${selectedCount === 1 ? "" : "s"} selected` : "Tap for details"}</small>
+          </span>
+        </span>
+      </button>
+    </article>
+  );
+}
+
+function CustomerProductOrderModal({
   customerOptionSelections,
-  onChangeOption,
   onChangeCustomerOption,
+  onChangeOption,
   onChangeQuantity,
-  onShowDetails,
+  onClose,
   product,
   quantities,
   selectedOptionId,
   typeSettings,
 }) {
-  const options = productSalesOptions(product);
-  const selectedOption = options.find((option) => option.id === selectedOptionId) || options[0];
-  const quantityKey = `product-${product.id}-${selectedOption.id}`;
-  const selected = options.some((option) => Number(quantities[`product-${product.id}-${option.id}`] || 0) > 0);
-  const unitName = product.recipe_details?.unitName || "item";
-  const unitsLabel = pluralUnit(unitName, selectedOption.units);
-  const photoUrl = productPhotoUrl(product);
-  const customerOptions = enabledCustomerOptions(typeSettings);
-  return (
-    <article className={selected ? "customer-product selected" : "customer-product"}>
-      <div className="customer-product-main">
-        <span className={photoUrl ? "customer-product-photo" : "customer-product-photo empty"}>
-          {photoUrl ? <img src={photoUrl} alt={product.recipe_details?.photoAlt || product.name} /> : typeSettings?.icon || productTypeIcon(product)}
-        </span>
-        <button className="customer-product-info" type="button" onClick={onShowDetails} aria-label={`View details for ${product.name}`}>
-          <span><Info size={13} /> {typeSettings?.label || productTypeLabel(product)} · View details</span>
-          <h3>{product.name}</h3>
-          <p>{product.description}</p>
-        </button>
-        <label className="customer-package-choice">
-          Package
-          <select value={selectedOption.id} onChange={(event) => onChangeOption(event.target.value)}>
-            {options.map((option) => <option key={option.id} value={option.id}>{option.label} · {option.units} {pluralUnit(unitName, option.units)} · {dollars(option.price_cents)}</option>)}
-          </select>
-        </label>
-        <span className="customer-package-price"><strong>{dollars(selectedOption.price_cents)}</strong><small>{selectedOption.label} · {selectedOption.units} {unitsLabel}</small></span>
-        {customerOptions.length ? (
-          <div className="customer-product-options">
-            <strong>Optional choices</strong>
-            {customerOptions.map((option) => (
-              <label className="customer-product-option" key={option.id}>
-                <span>{option.label}{option.required ? " *" : ""}</span>
-                {option.type === "text" ? (
-                  <input
-                    value={customerOptionSelections[option.id] || ""}
-                    onChange={(event) => onChangeCustomerOption(option.id, event.target.value)}
-                    placeholder="Leave a note"
-                  />
-                ) : (
-                  <select
-                    value={customerOptionSelections[option.id] || ""}
-                    onChange={(event) => onChangeCustomerOption(option.id, event.target.value)}
-                  >
-                    <option value="">{option.required ? "Choose one" : "No preference"}</option>
-                    {(option.choices || []).map((choice) => <option key={choice} value={choice}>{choice}</option>)}
-                  </select>
-                )}
-                {option.help ? <small>{option.help}</small> : null}
-              </label>
-            ))}
-          </div>
-        ) : null}
-      </div>
-      <div className="customer-quantity">
-        <button type="button" aria-label={`Remove one ${selectedOption.label} of ${product.name}`} onClick={() => onChangeQuantity({
-          ...product,
-          itemType: "product",
-          saleOption: selectedOption,
-          quantityKey,
-        }, -1)}><Minus size={15} /></button>
-        <span>{quantities[quantityKey] || 0}</span>
-        <button type="button" aria-label={`Add one ${selectedOption.label} of ${product.name}`} onClick={() => onChangeQuantity({
-          ...product,
-          itemType: "product",
-          saleOption: selectedOption,
-          quantityKey,
-        }, 1)}><Plus size={15} /></button>
-      </div>
-    </article>
-  );
-}
-
-function CustomerRecipeDetails({ product, typeSettings, onClose }) {
   const details = product.recipe_details || {};
   const ingredients = Array.isArray(details.ingredients) ? details.ingredients : [];
   const baseYield = Math.max(1, Number(details.yield || 1));
@@ -840,6 +809,10 @@ function CustomerRecipeDetails({ product, typeSettings, onClose }) {
   const formulaMode = details.formulaMode || "bakers";
   const photoUrl = productPhotoUrl(product);
   const salesOptions = productSalesOptions(product);
+  const selectedOption = salesOptions.find((option) => option.id === selectedOptionId) || salesOptions[0];
+  const quantityKey = `product-${product.id}-${selectedOption.id}`;
+  const quantity = Number(quantities[quantityKey] || 0);
+  const customerOptions = enabledCustomerOptions(typeSettings);
   const nutrition = ingredients.length ? estimateRecipeNutrition({
     yield: baseYield,
     ingredients,
@@ -847,7 +820,7 @@ function CustomerRecipeDetails({ product, typeSettings, onClose }) {
 
   return (
     <Modal title={product.name} onClose={onClose}>
-      <div className="customer-recipe-detail">
+      <div className="customer-recipe-detail customer-item-window">
         <div className={photoUrl ? "customer-recipe-photo" : "customer-recipe-photo empty"}>
           {photoUrl ? <img src={photoUrl} alt={details.photoAlt || product.name} /> : typeSettings?.icon || productTypeIcon(product)}
         </div>
@@ -863,15 +836,70 @@ function CustomerRecipeDetails({ product, typeSettings, onClose }) {
             <span><strong>Safety & storage</strong><small>{typeSettings.safetyNotes}</small></span>
           </aside>
         ) : null}
-        <div className="customer-recipe-heading"><h3>Package sizes</h3><small>Choose on the order card</small></div>
-        <div className="customer-recipe-packages">
-          {salesOptions.map((option) => (
-            <div key={option.id}>
-              <span><strong>{option.label}</strong><small>{option.units} {pluralUnit(unitName, option.units)} · {option.capacity_units} bake slot{option.capacity_units === 1 ? "" : "s"}</small></span>
-              <strong>{dollars(option.price_cents)}</strong>
+        <section className="customer-item-order-panel" aria-label={`Order options for ${product.name}`}>
+          <div className="customer-recipe-heading"><h3>Choose package & quantity</h3><small>Saved to your request</small></div>
+          <label className="customer-modal-package-choice">
+            Package
+            <select value={selectedOption.id} onChange={(event) => onChangeOption(event.target.value)}>
+              {salesOptions.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.label} · {option.units} {pluralUnit(unitName, option.units)} · {dollars(option.price_cents)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="customer-modal-quantity-row">
+            <span>
+              <strong>Quantity</strong>
+              <small>{selectedOption.units} {pluralUnit(unitName, selectedOption.units)} per package · {selectedOption.capacity_units} bake slot{selectedOption.capacity_units === 1 ? "" : "s"}</small>
+            </span>
+            <div className="customer-quantity horizontal">
+              <button type="button" aria-label={`Remove one ${selectedOption.label} of ${product.name}`} onClick={() => onChangeQuantity({
+                ...product,
+                itemType: "product",
+                saleOption: selectedOption,
+                quantityKey,
+              }, -1)}><Minus size={15} /></button>
+              <span>{quantity}</span>
+              <button type="button" aria-label={`Add one ${selectedOption.label} of ${product.name}`} onClick={() => onChangeQuantity({
+                ...product,
+                itemType: "product",
+                saleOption: selectedOption,
+                quantityKey,
+              }, 1)}><Plus size={15} /></button>
             </div>
-          ))}
-        </div>
+          </div>
+          <div className="customer-item-modal-total">
+            <span><small>Selected package</small><strong>{dollars(selectedOption.price_cents)}</strong></span>
+            <span><small>Line estimate</small><strong>{dollars(selectedOption.price_cents * quantity)}</strong></span>
+          </div>
+          {customerOptions.length ? (
+            <div className="customer-product-options modal-options">
+              <strong>Customer choices</strong>
+              {customerOptions.map((option) => (
+                <label className="customer-product-option" key={option.id}>
+                  <span>{option.label}{option.required ? " *" : ""}</span>
+                  {option.type === "text" ? (
+                    <input
+                      value={customerOptionSelections[option.id] || ""}
+                      onChange={(event) => onChangeCustomerOption(option.id, event.target.value)}
+                      placeholder="Leave a note"
+                    />
+                  ) : (
+                    <select
+                      value={customerOptionSelections[option.id] || ""}
+                      onChange={(event) => onChangeCustomerOption(option.id, event.target.value)}
+                    >
+                      <option value="">{option.required ? "Choose one" : "No preference"}</option>
+                      {(option.choices || []).map((choice) => <option key={choice} value={choice}>{choice}</option>)}
+                    </select>
+                  )}
+                  {option.help ? <small>{option.help}</small> : null}
+                </label>
+              ))}
+            </div>
+          ) : null}
+        </section>
 
         {ingredients.length ? (
           <>
