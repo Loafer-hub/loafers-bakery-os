@@ -303,8 +303,8 @@ function ProductionDashboard({
             <strong>{readyShelfEnabled ? `${shelfQuantity} ready-shelf items` : "Ready shelf hidden"}</strong>
             <small>{shelfError || (bakeryId ? `${shelfItems.length} listing${shelfItems.length === 1 ? "" : "s"} available now` : "Sign into cloud to count ready stock")}</small>
           </div>
-          <button type="button" className="text-button production-card-link" onClick={() => setActive("today")}>
-            Manage shelf below <ChevronRight size={14} />
+          <button type="button" className="text-button production-card-link" onClick={() => setActive("menu")}>
+            Open Menu shelf <ChevronRight size={14} />
           </button>
         </article>
 
@@ -314,7 +314,7 @@ function ProductionDashboard({
             <strong>{activeBakes.length} in-progress bake{activeBakes.length === 1 ? "" : "s"}</strong>
             <small>{activeBakes[0] ? `${activeBakes[0].name || activeBakes[0].recipeName} · ${activeBakes[0].status || "working"}` : "Start a Kitchen bake to track steps live."}</small>
           </div>
-          <button type="button" className="text-button production-card-link" onClick={() => setActive("bake")}>
+          <button type="button" className="text-button production-card-link" onClick={() => setActive("production")}>
             Open Kitchen <ChevronRight size={14} />
           </button>
         </article>
@@ -369,6 +369,7 @@ export default function TodayPage({
   selectedKitchenBakeId,
   recipes,
   onOpenStorage,
+  onOpenSettings,
   onSelectKitchenBake,
 }) {
   const [readyShelfRefreshKey, setReadyShelfRefreshKey] = useState(0);
@@ -429,7 +430,7 @@ export default function TodayPage({
 
   return (
     <main className="page today-page">
-      <BrandHeader onOpenStorage={onOpenStorage} />
+      <BrandHeader onOpenSettings={onOpenSettings} onOpenStorage={onOpenStorage} />
       <section className="greeting">
         <h1>Good morning, Joshua</h1>
         <p>{today.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}</p>
@@ -529,7 +530,7 @@ export default function TodayPage({
             ))}
           </span>
         </div>
-        <button className="primary-button" onClick={() => setActive("bake")}>
+        <button className="primary-button" onClick={() => setActive("production")}>
           Plan next bake <ArrowRight size={19} />
         </button>
       </section>
