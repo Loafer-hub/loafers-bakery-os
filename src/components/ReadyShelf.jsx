@@ -35,7 +35,7 @@ function blankShelfItem() {
   };
 }
 
-export function ReadyShelf({ cloudAccount, enabled = true }) {
+export function ReadyShelf({ cloudAccount, enabled = true, onShelfChange }) {
   const bakeryId = cloudAccount.workspace?.bakeryId;
   const [items, setItems] = useState([]);
   const [form, setForm] = useState(null);
@@ -45,18 +45,21 @@ export function ReadyShelf({ cloudAccount, enabled = true }) {
   const loadShelf = useCallback(async () => {
     if (!bakeryId) {
       setItems([]);
+      onShelfChange?.([]);
       return;
     }
     setLoading(true);
     setError("");
     try {
-      setItems(await listReadyShelfItems(bakeryId));
+      const nextItems = await listReadyShelfItems(bakeryId);
+      setItems(nextItems);
+      onShelfChange?.(nextItems);
     } catch (nextError) {
       setError(nextError.message);
     } finally {
       setLoading(false);
     }
-  }, [bakeryId]);
+  }, [bakeryId, onShelfChange]);
 
   useEffect(() => {
     loadShelf();
