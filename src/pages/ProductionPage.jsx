@@ -7,9 +7,9 @@ import LiquidPage from "./LiquidPage";
 const productionViews = [
   {
     id: "bake",
-    label: "Bake floor",
+    label: "Bread work",
     icon: ChefHat,
-    title: "Bread, yeast, starters, Kitchen, and bake calendar.",
+    title: "Schedules, Kitchen board, batch planning, calendar, and starters.",
   },
   {
     id: "liquid",
@@ -28,7 +28,7 @@ export default function ProductionPage(props) {
       <section className="page hub-page production-hub-page">
         <PageHeading
           title="Production"
-          subtitle="Plan the work, run the Kitchen board, manage starters, and keep specialty batches scientific."
+          subtitle="One workbench for bread, yeast bakes, starters, ferments, oils, sauces, and vinegar projects."
           action={<span className="hub-heading-icon"><Factory size={22} /></span>}
         />
 
@@ -51,8 +51,8 @@ export default function ProductionPage(props) {
         <aside className="hub-context-card">
           <ActiveIcon size={20} />
           <span>
-            <strong>{view === "liquid" ? "Ferments and infusions belong in production too." : "Kitchen work starts here."}</strong>
-            <small>{view === "liquid" ? "Use the liquid calculators before a product becomes menu-ready." : "Use Planner for timing, Kitchen for live work, Production for batching, Bakes for calendar, and Starters for culture care."}</small>
+            <strong>{view === "liquid" ? "Ferments and infusions belong in production too." : "Bread work has clearer lanes now."}</strong>
+            <small>{view === "liquid" ? "Use the liquid calculators before a product becomes menu-ready." : "Schedule builds one timeline. Kitchen board tracks live work. Batch plan groups orders. Calendar shows booked and blocked days. Starter care keeps culture records."}</small>
           </span>
           {view === "bake" ? <CalendarDays size={18} /> : null}
         </aside>
