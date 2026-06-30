@@ -1,5 +1,4 @@
 import {
-  Bot,
   ChevronDown,
   ChevronRight,
   CircleDollarSign,
@@ -9,10 +8,7 @@ import {
   Package,
   Pencil,
   Plus,
-  Route,
   Search,
-  Send,
-  Sparkles,
   Trash2,
   Wheat,
 } from "lucide-react";
@@ -41,8 +37,6 @@ import {
 } from "../lib/recipeTimeline";
 
 // yeast-breads-v1
-// ai-assist-submit-v1
-// ai-assist-responsive-v1
 // recipe-grams-entry-v1
 // recipe-timeline-controls-v1
 // yeast-rise-science-v1
@@ -143,112 +137,6 @@ const PRODUCT_BADGE_OPTIONS = [
   { value: "gluten", label: "Gluten" },
   { value: "limited_batch", label: "Limited batch" },
 ];
-const ASSISTANT_EXAMPLES = [
-  "My kitchen is 68°F and my dough is sluggish.",
-  "I accidentally added too much water.",
-  "My starter doubled in 5 hours. Is it ready?",
-  "Which flour should I use for bagels?",
-];
-
-function analyzeBakeQuestion(input) {
-  const text = String(input || "").toLowerCase();
-  const mentions = (...terms) => terms.some((term) => text.includes(term));
-
-  if (!text.trim()) {
-    return {
-      title: "Ask me what is happening with your dough",
-      summary: "Type like you would text another baker. I’ll route the problem to timing, starter, hydration, or flour behavior.",
-      steps: [
-        "Include temperature, dough feel, rise amount, and when you mixed if you know them.",
-        "If it is urgent, describe what you see first: slack, tearing, domed, collapsed, sticky, or not moving.",
-      ],
-      tool: "Try one of the examples above.",
-    };
-  }
-
-  if (mentions("sluggish", "slow", "not rising", "stalled", "cold", "68", "67", "66", "65")) {
-    return {
-      title: "Likely cold-room slowdown",
-      summary: "At roughly 68°F, sourdough can move a lot slower than a 75–78°F recipe schedule. The dough may be fine; the clock is probably lying.",
-      steps: [
-        "Give bulk more time and watch expansion, bubbles at the edge, and dough strength instead of the printed schedule.",
-        "Warm the dough gently: a turned-off oven with the light on, a warm water bath under the bowl, or a warmer shelf.",
-        "If the dough is high whole grain or rye, check sooner once it starts moving because activity can accelerate quickly.",
-      ],
-      tool: "Open the Bake planner and adjust dough temperature to recalculate the timeline.",
-      target: "bake",
-    };
-  }
-
-  if (mentions("too much water", "too wet", "wet dough", "sticky", "soupy", "accidentally added", "hydration")) {
-    return {
-      title: "Hydration rescue",
-      summary: "Do not panic-flour the dough immediately. A wet dough often tightens after a rest and folds, especially with bread flour or whole grain.",
-      steps: [
-        "Rest 20–30 minutes so flour can absorb water before judging the dough.",
-        "Use coil folds or stretch-and-folds every 30 minutes until it holds shape better.",
-        "If it is batter-thin, add a small measured flour correction and write down the new hydration so the recipe learns from it.",
-      ],
-      tool: "Use the recipe formula table to update the water percentage for next time.",
-      target: "recipes",
-    };
-  }
-
-  if (mentions("starter", "doubled", "ready", "float", "peak", "levain", "5 hours", "five hours")) {
-    return {
-      title: "Starter readiness check",
-      summary: "A starter doubling in about 5 hours is usually strong enough if it is bubbly, domed or just beginning to flatten, and smells pleasantly acidic.",
-      steps: [
-        "Use it near peak: after strong expansion but before it collapses back down.",
-        "Judge readiness by rise, bubbles, aroma, and texture. The float test can fail with some flour blends even when the starter is ready.",
-        "If your kitchen is cool, log the feed ratio and temperature so the app can calibrate future feed timing.",
-      ],
-      tool: "Log a starter check so future bake plans get smarter.",
-      target: "starter",
-    };
-  }
-
-  if (mentions("flour", "protein", "ash", "absorption", "king", "cairnspring", "central", "bob", "costco", "bagel", "pizza")) {
-    return {
-      title: "Flour behavior route",
-      summary: "Protein tells you potential gluten strength, ash hints at mineral/bran content, and absorption tells you how much water the flour can carry before the dough turns slack.",
-      steps: [
-        "For bagels and pizza, start with a stronger bread flour and lower hydration than a country loaf.",
-        "For Cairnspring-style high-extraction flour, expect more flavor, more water demand, and sometimes faster fermentation.",
-        "For Costco/AP flour, hold back water or blend with bread flour if you need taller free-form loaves.",
-      ],
-      tool: "Compare brands in the Flour database below.",
-      target: "flour",
-    };
-  }
-
-  if (mentions("overproof", "over proof", "collapsed", "flat", "deflated", "sour")) {
-    return {
-      title: "Possible over-fermentation",
-      summary: "If the dough was tall then collapsed, very loose, or sharply sour, it may have outrun its gluten structure.",
-      steps: [
-        "Shape gently and bake sooner rather than extending proof.",
-        "Use a pan if it cannot hold tension as a free-form loaf.",
-        "Next bake: lower dough temperature, shorten bulk, reduce starter percentage, or use stronger flour.",
-      ],
-      tool: "Use the visual fermentation gauge on Today to catch the next batch earlier.",
-      target: "today",
-    };
-  }
-
-  return {
-    title: "General bake triage",
-    summary: "I would check temperature, starter strength, hydration, flour strength, and actual rise in that order.",
-    steps: [
-      "Tell me the dough temperature, how long it has been fermenting, and roughly how much it has expanded.",
-      "If it feels slack, look at hydration and flour strength. If it feels tight but slow, look at temperature and starter activity.",
-      "When in doubt, make the next change small and record it so the recipe history stays useful.",
-    ],
-    tool: "For timing, use Bake. For formula changes, use Recipes. For active dough, watch Today’s fermentation visual.",
-    target: "bake",
-  };
-}
-
 function productTypeFor(recipe = {}) {
   return productTypeMetaFor(recipe.productType || recipe.value);
 }
@@ -562,90 +450,6 @@ function RecipeVisual({ recipe, large = false }) {
     );
   }
   return <span className={`${className} empty`} aria-hidden="true">{productTypeIcon(recipe)}</span>;
-}
-
-function AIBakeAssistant({ setActive, onLogStarter }) {
-  const [assistantDraft, setAssistantDraft] = useState(ASSISTANT_EXAMPLES[0]);
-  const [assistantText, setAssistantText] = useState(ASSISTANT_EXAMPLES[0]);
-  const [isOpen, setIsOpen] = useState(false);
-  const result = useMemo(() => analyzeBakeQuestion(assistantText), [assistantText]);
-
-  function submitAssistant(event) {
-    event.preventDefault();
-    setAssistantText(assistantDraft.trim());
-  }
-
-  function useAssistantExample(example) {
-    setAssistantDraft(example);
-    setAssistantText(example);
-  }
-
-  function routeAssistant() {
-    if (result.target === "starter" && onLogStarter) {
-      onLogStarter();
-      return;
-    }
-    if (result.target === "flour" && typeof document !== "undefined") {
-      document.getElementById("flour-database")?.scrollIntoView({ behavior: "smooth", block: "start" });
-      return;
-    }
-    if (result.target && setActive) {
-      setActive(result.target);
-    }
-  }
-
-  return (
-    <section className={isOpen ? "ai-bake-assistant open" : "ai-bake-assistant"} aria-label="AI Bake Assistant">
-      <button className="collapsible-section-header" type="button" onClick={() => setIsOpen((value) => !value)} aria-expanded={isOpen}>
-        <span className="assistant-orb"><Bot size={24} /></span>
-        <span>
-          <small>5. AI Bake Assistant</small>
-          <strong>Ask the bake problem in plain English</strong>
-          <em>{isOpen ? "Open and ready" : "Collapsed · tap to troubleshoot dough, starter, hydration, or flour"}</em>
-        </span>
-        <ChevronDown size={20} />
-      </button>
-      {isOpen ? (
-        <div className="assistant-copy collapsible-section-body">
-          <p>Describe the dough, starter, flour, or mistake. The app translates that into timing advice, formula fixes, or the right tool to open.</p>
-          <div className="assistant-example-row" aria-label="Example bake questions">
-            {ASSISTANT_EXAMPLES.map((example) => (
-              <button type="button" key={example} onClick={() => useAssistantExample(example)}>{example}</button>
-            ))}
-          </div>
-          <form className="assistant-question-form" onSubmit={submitAssistant}>
-            <label className="assistant-input">
-              What’s happening?
-              <textarea
-                value={assistantDraft}
-                onChange={(event) => setAssistantDraft(event.target.value)}
-                placeholder="My kitchen is 68°F and my dough is sluggish."
-              />
-            </label>
-            <button className="assistant-submit-button" type="submit">
-              <Send size={15} />
-              Ask assistant
-            </button>
-          </form>
-          <article className="assistant-result" aria-live="polite">
-            <div>
-              <span><Sparkles size={16} /> Smart route</span>
-              <h3>{result.title}</h3>
-              <p>{result.summary}</p>
-            </div>
-            <ol>
-              {result.steps.map((step) => <li key={step}>{step}</li>)}
-            </ol>
-            <div className="assistant-route">
-              <Route size={17} />
-              <span>{result.tool}</span>
-              {result.target ? <button type="button" onClick={routeAssistant}>Go there</button> : null}
-            </div>
-          </article>
-        </div>
-      ) : null}
-    </section>
-  );
 }
 
 function FlourDatabase() {
@@ -1015,7 +819,6 @@ export default function RecipesPage({ bakerySettings, inventory, recipes, onDele
         <Search size={17} />
         <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search recipes" />
       </label>
-      <AIBakeAssistant setActive={setActive} onLogStarter={onLogStarter} />
       <FlourDatabase />
       <section className="recipe-list">
         {groupedRecipes.length ? groupedRecipes.map((group) => (
