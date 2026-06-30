@@ -24,6 +24,7 @@ import {
   getAutomaticEmailStatus,
   listEmailNotificationDeliveries,
   publishRecipeCatalog,
+  publicOrderUrl,
   sendAutomaticEmailTest,
 } from "../lib/cloud";
 import { normalizedBakerySettings } from "../lib/bakerySettings";
@@ -32,6 +33,7 @@ import { normalizeProductTypeSettings } from "../lib/productTypes";
 // product-type-settings-v1
 // settings-collapse-v1
 // customer-options-v1
+// checkout-flow-v1
 
 function ToggleRow({ checked, label, note, onChange }) {
   return (
@@ -496,6 +498,15 @@ export default function SettingsPage({
           ].filter(Boolean).join(" and ")} in Supabase secrets.`
           : "The app is ready. Add the Resend API key and verified sender in Supabase to start delivery.";
   const productTypes = normalizeProductTypeSettings(draft);
+  const previewUrl = (() => {
+    try {
+      const url = new URL(publicOrderUrl(cloudAccount.workspace?.bakery?.slug || "loafers"));
+      url.searchParams.set("preview", "owner");
+      return url.toString();
+    } catch {
+      return "";
+    }
+  })();
 
   return (
     <main className="page settings-page">
@@ -660,6 +671,7 @@ export default function SettingsPage({
           <button className="secondary-button" type="button" disabled={!cloudAccount.workspace?.bakeryId || Boolean(busy)} onClick={publishMenu}>
             <Send size={16} /> {busy === "publish" ? "Publishing…" : `Republish ${recipes.length} recipes`}
           </button>
+          {previewUrl ? <a className="secondary-button settings-preview-link" href={previewUrl} target="_blank" rel="noreferrer"><Store size={16} /> Owner preview</a> : null}
         </section>
 
         {error ? <p className="form-error" role="alert">{error}</p> : null}
