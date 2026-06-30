@@ -1,4 +1,23 @@
-import { Banknote, CalendarDays, CheckCircle2, List, Mail, MessageSquareText, Plus, Search, Send, ShoppingBag, Trash2 } from "lucide-react";
+import {
+  Banknote,
+  BellRing,
+  CalendarDays,
+  CheckCircle2,
+  ChevronRight,
+  Heart,
+  List,
+  Mail,
+  MapPin,
+  MessageSquareText,
+  Phone,
+  Plus,
+  Search,
+  Send,
+  ShoppingBag,
+  Trash2,
+  UserRound,
+  UsersRound,
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { PageHeading } from "../components/AppChrome";
 import { CloudOrderInbox } from "../components/CloudOrderInbox";
@@ -83,9 +102,269 @@ function inferredPaymentStatus(order = {}) {
   return "unpaid";
 }
 
+const closedOrderStatuses = new Set(["completed", "rejected", "cancelled", "canceled"]);
+
+function customerIdFromName(name) {
+  return String(name || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+function orderTimestamp(order) {
+  const candidates = [order.pickupAt, order.createdAt, order.date, order.due];
+  for (const value of candidates) {
+    const date = new Date(value);
+    if (!Number.isNaN(date.getTime())) return date.getTime();
+  }
+  return 0;
+}
+
+function dateTimeLabel(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function isActiveOrder(order) {
+  return !closedOrderStatuses.has(String(order.status || "").toLowerCase());
+}
+
+function orderItemsLabel(order) {
+  if (order.items?.length) {
+    return order.items.map((item) => (
+      `${item.quantity || 1} × ${item.sale_option_label || item.product_name || "Item"}`
+    )).join(" · ");
+  }
+  return order.itemSummary || `${order.quantity || 1} × ${order.product || "Order"}`;
+}
+
+function orderProgressLabel(order) {
+  const progress = order.bakeProgress || {};
+  const entries = Object.entries(progress);
+  if (!entries.length) return "";
+  const complete = entries.filter(([, value]) => Boolean(value)).length;
+  return `${complete}/${entries.length} bake phases complete`;
+}
+
+function blankCustomerProfile(name = "") {
+  const id = customerIdFromName(name) || `customer-${Date.now()}`;
+  return {
+    id,
+    name,
+    email: "",
+    phone: "",
+    allergies: "",
+    preferences: "",
+    address: "",
+    pickupNotes: "",
+    paymentNotes: "",
+    favoriteItems: "",
+    notes: "",
+  };
+}
+
+function buildCustomerRecords(orders, profiles) {
+  const byId = new Map();
+  profiles.forEach((profile) => {
+    const id = profile.id || customerIdFromName(profile.name);
+    if (!id) return;
+    byId.set(id, {
+      ...blankCustomerProfile(profile.name),
+      ...profile,
+      id,
+      orders: [],
+    });
+  });
+  orders.forEach((order) => {
+    if (order.isSample) return;
+    const id = customerIdFromName(order.customer) || `order-customer-${order.id}`;
+    const existing = byId.get(id) || {
+      ...blankCustomerProfile(order.customer),
+      id,
+      orders: [],
+    };
+    byId.set(id, {
+      ...existing,
+      name: existing.name || order.customer || "Customer",
+      email: existing.email || order.customerEmail || "",
+      phone: existing.phone || order.customerPhone || "",
+      allergies: existing.allergies || order.allergies || "",
+      orders: [...existing.orders, order],
+    });
+  });
+  return Array.from(byId.values()).map((customer) => {
+    const sortedOrders = [...customer.orders].sort((a, b) => orderTimestamp(b) - orderTimestamp(a));
+    const activeOrders = sortedOrders.filter(isActiveOrder);
+    const totalSpent = sortedOrders.reduce((sum, order) => sum + Number(order.total || 0), 0);
+    const products = [...new Set(sortedOrders.map((order) => order.product).filter(Boolean))].slice(0, 4);
+    return {
+      ...customer,
+      orders: sortedOrders,
+      activeOrders,
+      isActive: activeOrders.length > 0,
+      lastOrderAt: sortedOrders[0] ? orderTimestamp(sortedOrders[0]) : 0,
+      totalSpent,
+      favoriteItems: customer.favoriteItems || products.join(", "),
+    };
+  }).sort((a, b) => (
+    Number(b.isActive) - Number(a.isActive)
+    || b.lastOrderAt - a.lastOrderAt
+    || a.name.localeCompare(b.name)
+  ));
+}
+
+function CustomerProfilesView({
+  customerProfiles,
+  onOpenOrder,
+  onSaveCustomerProfile,
+  orders,
+}) {
+  const [customerView, setCustomerView] = useState("active");
+  const [customerDraft, setCustomerDraft] = useState(null);
+  const customerRecords = useMemo(() => buildCustomerRecords(orders, customerProfiles), [customerProfiles, orders]);
+  const activeCustomerRecords = useMemo(() => customerRecords.filter((customer) => customer.isActive), [customerRecords]);
+  const pastCustomerRecords = useMemo(() => customerRecords.filter((customer) => customer.orders.length && !customer.isActive), [customerRecords]);
+  const visibleCustomers = customerView === "active"
+    ? activeCustomerRecords
+    : customerView === "past"
+      ? pastCustomerRecords
+      : customerRecords;
+  const linkedCustomer = customerDraft
+    ? customerRecords.find((customer) => customer.id === customerDraft.id)
+    : null;
+
+  useEffect(() => {
+    if (customerDraft) return;
+    const starter = activeCustomerRecords[0] || customerRecords[0] || null;
+    if (starter) setCustomerDraft({ ...starter, orders: undefined, activeOrders: undefined });
+  }, [activeCustomerRecords, customerDraft, customerRecords]);
+
+  function editCustomer(customer) {
+    setCustomerDraft({ ...customer, orders: undefined, activeOrders: undefined });
+  }
+
+  function addCustomerProfile() {
+    setCustomerDraft({
+      ...blankCustomerProfile(""),
+      id: `customer-${Date.now()}`,
+      name: "",
+    });
+    setCustomerView("all");
+  }
+
+  function saveCustomerProfile(event) {
+    event.preventDefault();
+    if (!customerDraft || !onSaveCustomerProfile) return;
+    onSaveCustomerProfile({
+      ...customerDraft,
+      name: customerDraft.name?.trim() || "Customer",
+    });
+  }
+
+  return (
+    <section className="customer-directory-panel orders-customer-panel">
+      <div className="customer-directory-toolbar">
+        <div className="segmented-control customer-filter">
+          <button type="button" className={customerView === "active" ? "selected" : ""} onClick={() => setCustomerView("active")}>Active <span>{activeCustomerRecords.length}</span></button>
+          <button type="button" className={customerView === "past" ? "selected" : ""} onClick={() => setCustomerView("past")}>Past <span>{pastCustomerRecords.length}</span></button>
+          <button type="button" className={customerView === "all" ? "selected" : ""} onClick={() => setCustomerView("all")}>All <span>{customerRecords.length}</span></button>
+        </div>
+        <button type="button" className="small-action-button" onClick={addCustomerProfile}><Plus size={14} /> Add customer</button>
+      </div>
+      <div className="customer-directory-layout">
+        <div className="customer-directory-list">
+          {visibleCustomers.length ? visibleCustomers.map((customer) => (
+            <button type="button" className={`customer-directory-row ${customerDraft?.id === customer.id ? "selected" : ""}`} key={customer.id} onClick={() => editCustomer(customer)}>
+              <UserRound size={17} />
+              <span>
+                <strong>{customer.name || "Customer"}</strong>
+                <small>{customer.orders.length} order{customer.orders.length === 1 ? "" : "s"} · ${customer.totalSpent.toFixed(2)} lifetime</small>
+              </span>
+              <ChevronRight size={14} />
+            </button>
+          )) : <EmptyState title="No customers in this view" body="Switch to All or add a customer profile." />}
+        </div>
+        {customerDraft ? (
+          <form className="form-stack customer-profile-form" onSubmit={saveCustomerProfile}>
+            <div className="customer-profile-summary">
+              <UserRound size={19} />
+              <span>
+                <strong>{customerDraft.name || "New customer"}</strong>
+                <small>{linkedCustomer?.orders.length || 0} linked order record{(linkedCustomer?.orders.length || 0) === 1 ? "" : "s"}</small>
+              </span>
+            </div>
+            <label>Name<input required value={customerDraft.name || ""} onChange={(event) => setCustomerDraft({ ...customerDraft, name: event.target.value })} placeholder="Customer name" /></label>
+            <div className="form-grid">
+              <label>Email<input type="email" value={customerDraft.email || ""} onChange={(event) => setCustomerDraft({ ...customerDraft, email: event.target.value })} placeholder="name@example.com" /></label>
+              <label>Phone<input value={customerDraft.phone || ""} onChange={(event) => setCustomerDraft({ ...customerDraft, phone: event.target.value })} placeholder="907…" /></label>
+            </div>
+            <label>Address<textarea value={customerDraft.address || ""} onChange={(event) => setCustomerDraft({ ...customerDraft, address: event.target.value })} placeholder="Street, city, delivery notes…" /></label>
+            <label>Allergies / safety notes<textarea value={customerDraft.allergies || ""} onChange={(event) => setCustomerDraft({ ...customerDraft, allergies: event.target.value })} placeholder="Wheat, sesame, dairy, nut allergies, cross-contact notes…" /></label>
+            <label>Preferences<textarea value={customerDraft.preferences || ""} onChange={(event) => setCustomerDraft({ ...customerDraft, preferences: event.target.value })} placeholder="Crust darkness, slicing, add-ins, pickup habits…" /></label>
+            <div className="form-grid">
+              <label>Favorite items<input value={customerDraft.favoriteItems || ""} onChange={(event) => setCustomerDraft({ ...customerDraft, favoriteItems: event.target.value })} placeholder="Country, bagels, hot sauce…" /></label>
+              <label>Payment notes<input value={customerDraft.paymentNotes || ""} onChange={(event) => setCustomerDraft({ ...customerDraft, paymentNotes: event.target.value })} placeholder="Venmo, cash, invoice…" /></label>
+            </div>
+            <label>Pickup / delivery notes<textarea value={customerDraft.pickupNotes || ""} onChange={(event) => setCustomerDraft({ ...customerDraft, pickupNotes: event.target.value })} placeholder="Porch box, text on arrival, gate code…" /></label>
+            <label>Private notes<textarea value={customerDraft.notes || ""} onChange={(event) => setCustomerDraft({ ...customerDraft, notes: event.target.value })} placeholder="Anything useful for future orders…" /></label>
+            <div className="customer-profile-chips">
+              <span><Mail size={13} /> {customerDraft.email || "No email"}</span>
+              <span><Phone size={13} /> {customerDraft.phone || "No phone"}</span>
+              <span><Heart size={13} /> {customerDraft.favoriteItems || "No favorites yet"}</span>
+            </div>
+            <button className="primary-button" type="submit">Save customer profile</button>
+
+            <section className="customer-order-history-list">
+              <div className="section-title-line">
+                <div><strong>Order history</strong><small>All saved order details for this customer.</small></div>
+                <UsersRound size={17} />
+              </div>
+              {linkedCustomer?.orders.length ? linkedCustomer.orders.map((order) => (
+                <article className="order-history-card compact" key={order.id}>
+                  <div className="order-history-heading">
+                    <span>
+                      <strong>{order.product || order.itemSummary || "Order"}</strong>
+                      <small>{order.status || "New"} · {dateTimeLabel(order.pickupAt || order.createdAt) || order.due || "No date"}</small>
+                    </span>
+                    <strong>${Number(order.total || 0).toFixed(2)}</strong>
+                  </div>
+                  <div className="order-history-facts">
+                    <span><MapPin size={13} /> {order.pickupAt ? dateTimeLabel(order.pickupAt) : order.due || "Pickup not set"}</span>
+                    <span><BellRing size={13} /> {orderProgressLabel(order) || "Bake progress not started"}</span>
+                    <span><MessageSquareText size={13} /> {order.allergies || customerDraft.allergies || "No allergy note"}</span>
+                    <span><Banknote size={13} /> {order.paymentMethod || "Payment not recorded"}</span>
+                  </div>
+                  <div className="order-history-detail-grid">
+                    <span><strong>Items</strong><small>{orderItemsLabel(order)}</small></span>
+                    <span><strong>Contact</strong><small>{[order.customerEmail, order.customerPhone].filter(Boolean).join(" · ") || "No contact saved"}</small></span>
+                  </div>
+                  {order.notes ? <p className="order-history-notes">{order.notes}</p> : null}
+                  <button type="button" className="text-button order-history-open" onClick={() => onOpenOrder?.(order.id)}>Open order <ChevronRight size={14} /></button>
+                </article>
+              )) : <EmptyState title="No orders linked yet" body="Orders with this customer name will appear here automatically." />}
+            </section>
+          </form>
+        ) : (
+          <EmptyState title="Pick a customer" body="Choose a customer or add a new profile to save details." />
+        )}
+      </div>
+    </section>
+  );
+}
+
 export default function OrdersPage({
   bakerySettings,
   cloudAccount,
+  customerProfiles = [],
   orders,
   recipes,
   starters,
@@ -96,6 +375,7 @@ export default function OrdersPage({
   onDeleteOrder,
   onImportCloudOrder,
   onOpenOrder,
+  onSaveCustomerProfile,
   onUpdateOrder,
   onUpdateOrderProgress,
   selectedOrderId,
@@ -390,6 +670,10 @@ export default function OrdersPage({
             onOpenOrder(null);
             setView("calendar");
           }}><CalendarDays size={14} /> Calendar</button>
+          <button type="button" className={view === "customers" ? "selected" : ""} onClick={() => {
+            onOpenOrder(null);
+            setView("customers");
+          }}><UsersRound size={14} /> Customers</button>
         </div>
       </div>
 
@@ -417,7 +701,14 @@ export default function OrdersPage({
         </div>
       </div> : null}
 
-      {view === "calendar" ? (
+      {view === "customers" ? (
+        <CustomerProfilesView
+          customerProfiles={customerProfiles}
+          onOpenOrder={onOpenOrder}
+          onSaveCustomerProfile={onSaveCustomerProfile}
+          orders={orders}
+        />
+      ) : view === "calendar" ? (
         <OrderCalendar
           orders={orders}
           recipes={recipes}
