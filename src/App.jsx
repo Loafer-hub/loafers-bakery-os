@@ -99,6 +99,7 @@ export default function App() {
   const [quickStarter, setQuickStarter] = useState(false);
   const [quickActionsOpen, setQuickActionsOpen] = useState(false);
   const [storageOpen, setStorageOpen] = useState(false);
+  const [menuView, setMenuView] = useState("recipes");
   const [quickFeed, setQuickFeed] = useState({
     starterId: "mabel",
     ratio: "1:2:2",
@@ -370,9 +371,10 @@ export default function App() {
     setQuickStarter(true);
   }
 
-  function navigate(page) {
+  function navigate(page, options = {}) {
     const nextPage = canonicalPage(page);
     if (nextPage !== "orders") setSelectedOrderId(null);
+    if (nextPage === "menu" && options.menuView) setMenuView(options.menuView);
     setActive(nextPage);
   }
 
@@ -611,6 +613,8 @@ export default function App() {
     onSyncProductionPlans: syncProductionPlans,
     selectedOrderId,
     starterLogs,
+    menuView,
+    onChangeMenuView: setMenuView,
   };
 
   const quickActions = useMemo(() => [
@@ -630,7 +634,7 @@ export default function App() {
       label: "Ready shelf item",
       note: "Jump to Menu for public shelf stock",
       icon: PackageCheck,
-      onClick: () => navigate("menu"),
+      onClick: () => navigate("menu", { menuView: "shelf" }),
     },
     {
       label: "Log starter feed",
