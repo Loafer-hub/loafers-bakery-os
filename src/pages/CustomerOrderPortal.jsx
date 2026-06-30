@@ -176,6 +176,20 @@ function customerChoiceNote(items) {
   return lines.length ? `Customer choices:\n${lines.join("\n")}` : "";
 }
 
+function customerTrackingLink(code, contact) {
+  try {
+    const url = new URL(window.location.href);
+    if (code) url.searchParams.set("track", code);
+    if (contact) url.searchParams.set("contact", contact);
+    url.hash = "track-my-bake";
+    return url.toString();
+  } catch {
+    const track = code ? `&track=${encodeURIComponent(code)}` : "";
+    const contactParam = contact ? `&contact=${encodeURIComponent(contact)}` : "";
+    return `${window.location.pathname}${window.location.search}${track}${contactParam}#track-my-bake`;
+  }
+}
+
 export default function CustomerOrderPortal({
   bakerySettings,
   cloudAccount,
@@ -362,6 +376,11 @@ export default function CustomerOrderPortal({
       ? []
       : storefrontProducts.filter((product) => productTypeValue(product) === activeCatalogTab);
   const activeCatalogInfo = catalogTabs.find((tab) => tab.id === activeCatalogTab);
+  const availableThisWeekCount = storefrontProducts.filter((product) => !productUnavailable(product)).length;
+  const unavailableThisWeekCount = storefrontProducts.length - availableThisWeekCount;
+  const enabledCustomerChoiceCount = productTypes.reduce((sum, type) => (
+    sum + enabledCustomerOptions(type).length
+  ), 0);
   const customerAnnouncement = rules.announcementEnabled && rules.announcementText
     ? {
       title: rules.announcementTitle || "From the baker",
@@ -384,6 +403,9 @@ export default function CustomerOrderPortal({
   const trackedContact = urlParams.get("contact") || "";
   const ownerPreview = urlParams.get("preview") === "owner" || urlParams.get("ownerPreview") === "1";
   const checkoutStepIndex = CHECKOUT_STEPS.findIndex((step) => step.id === checkoutStep);
+  const successTrackingLink = success
+    ? customerTrackingLink(success.request_code, form.email.trim() || form.phone.trim())
+    : "";
 
   useEffect(() => {
     if (!catalogTabs.some((tab) => tab.id === activeCatalogTab)) {
@@ -590,6 +612,7 @@ export default function CustomerOrderPortal({
         <p>{storefront.bakery.name} received your bread request. The baker will confirm availability and pickup details for {storefront.bakery.pickup_location || DEFAULT_PICKUP_LOCATION}.</p>
         <div><small>Request code</small><strong>{success.request_code}</strong><span>{dollars(success.subtotal_cents)}</span></div>
         <aside className="success-payment-detail"><small>{form.paymentMethod}</small><strong>{PAYMENT_DETAILS[form.paymentMethod]}</strong></aside>
+        <a className="success-track-link" href={successTrackingLink}>Track this bake</a>
         <CustomerOrderLookup
           configured={cloudAccount.configured}
           feedbackEnabled={rules.feedbackEnabled}
@@ -668,6 +691,14 @@ export default function CustomerOrderPortal({
           <span><Banknote size={17} /><span><small>Payment</small><strong>{(storefront.bakery.payment_methods || DEFAULT_PAYMENT_METHODS).join(", ")}</strong></span></span>
           <span><Clock3 size={17} /><span><small>Pickup hours</small><strong>Weekdays {pickupHoursLabel("2026-06-22", rules)} · Weekends {pickupHoursLabel("2026-06-21", rules)}</strong></span></span>
         </div>
+      </section>
+
+      <section className="customer-menu-summary" aria-label="Menu snapshot">
+        <article><strong>{availableThisWeekCount}</strong><span>available this week</span></article>
+        <article><strong>{readyShelfItems.length}</strong><span>ready now</span></article>
+        <article><strong>{unavailableThisWeekCount}</strong><span>sold out / paused</span></article>
+        <article><strong>{enabledCustomerChoiceCount}</strong><span>optional choices</span></article>
+        <a href="#track-my-bake">Track an order</a>
       </section>
 
       {rules.reviewsVisible && (storefront.reviews || []).length ? (
