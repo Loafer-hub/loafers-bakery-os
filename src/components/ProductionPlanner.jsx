@@ -1,18 +1,31 @@
 import {
   AlertTriangle,
   CalendarCheck2,
+  CalendarDays,
   CheckCircle2,
   ClipboardList,
+  Clock3,
+  FileText,
+  ListChecks,
+  PackageCheck,
   PackageSearch,
   Printer,
   Settings2,
+  ShoppingCart,
+  Tags,
   Wheat,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   buildProductionPlanner,
   DEFAULT_PRODUCTION_AUTOMATION,
+  ingredientRequirements,
+  inventoryStatus,
+  orderProductionLines,
 } from "../lib/productionPlanner";
+
+const CLOSED_ORDER_STATUSES = new Set(["completed", "rejected", "cancelled", "canceled"]);
+const PRODUCTION_READY_STATUSES = new Set(["accepted", "paid", "deposit", "confirmed", "in progress", "ready", "picked up"]);
 
 function dateTimeLabel(value) {
   if (!value) return "Not scheduled";
@@ -25,10 +38,166 @@ function dateTimeLabel(value) {
   });
 }
 
+function timeLabel(value) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+}
+
+function shortDateLabel(value) {
+  if (!value) return "Unscheduled";
+  const date = new Date(`${value}T12:00:00`);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+}
+
+function localDateKey(value = new Date()) {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, "0"),
+    String(date.getDate()).padStart(2, "0"),
+  ].join("-");
+}
+
+function money(value) {
+  return Number(value || 0).toFixed(2);
+}
+
+function smartAmount(value, digits = 1) {
+  const number = Number(value || 0);
+  if (Math.abs(number) >= 10) return number.toFixed(0);
+  return number.toFixed(digits);
+}
+
 function requirementLabel(row) {
   if (row.packaging) return `${row.needed} ${row.item?.unit || "bags"}`;
   if (row.matched) return `${row.needed.toFixed(row.needed < 10 ? 2 : 1)} ${row.item.unit}`;
   return `${Math.round(row.grams || 0)} g`;
+}
+
+function isProductionReadyOrder(order) {
+  const status = String(order?.status || "").toLowerCase();
+  if (order?.isSample === true || CLOSED_ORDER_STATUSES.has(status)) return false;
+  return !status || PRODUCTION_READY_STATUSES.has(status);
+}
+
+function eventDateKey(event) {
+  return localDateKey(event.start);
+}
+
+function eventTone(stepId = "") {
+  if (stepId.includes("feed")) return "feed";
+  if (stepId.includes("mix")) return "mix";
+  if (stepId.includes("fold")) return "fold";
+  if (stepId.includes("bake")) return "bake";
+  if (stepId.includes("pickup")) return "pickup";
+  return "work";
+}
+
+function buildProductionEvents(batches) {
+  return batches.flatMap((batch) => {
+    const scheduled = batch.schedule?.steps?.map((step) => ({
+      id: `${batch.key}-${step.id}`,
+      start: step.start,
+      end: step.end,
+      label: step.label,
+      detail: step.detail,
+      batch,
+      tone: eventTone(step.id),
+    })) || [];
+    const pickup = batch.pickupAt ? [{
+      id: `${batch.key}-pickup`,
+      start: new Date(batch.pickupAt),
+      label: "Pickup",
+      detail: batch.customers.join(" · "),
+      batch,
+      tone: "pickup",
+    }] : [];
+    return [...scheduled, ...pickup];
+  }).filter((event) => event.start && !Number.isNaN(new Date(event.start).getTime()))
+    .sort((a, b) => new Date(a.start) - new Date(b.start));
+}
+
+function storageNoteForProduct(lines) {
+  const type = lines.find((line) => line.recipe?.productType)?.recipe?.productType || "bread";
+  if (type === "hot_sauce") return "Refrigerate after opening. Do not use if cap bulges, smells off, or mold appears.";
+  if (type === "vinegar") return "Store capped away from heat and sunlight. Sediment or mother is normal in live vinegar.";
+  if (type === "infused_oil") return "Keep refrigerated unless shelf-stable process is verified. Use clean utensils.";
+  if (type === "cake") return "Keep covered. Refrigerate if dairy frosting or perishable filling is used.";
+  return "Keep wrapped at room temperature. For longer storage, slice and freeze.";
+}
+
+function uniqueWords(values) {
+  return [...new Set(values.map((value) => String(value || "").trim()).filter(Boolean))];
+}
+
+function buildLabelRows(orders, recipes) {
+  return orders
+    .filter(isProductionReadyOrder)
+    .sort((a, b) => new Date(a.pickupAt || a.createdAt || 0) - new Date(b.pickupAt || b.createdAt || 0))
+    .map((order) => {
+      const lines = orderProductionLines(order, recipes);
+      const ingredients = uniqueWords(lines.flatMap((line) => (
+        line.recipe?.ingredients?.map((ingredient) => ingredient.name) || []
+      )));
+      return {
+        id: order.id,
+        customer: order.customer || "Customer",
+        item: order.itemSummary || `${order.quantity || 1} × ${order.product || "Order"}`,
+        pickup: order.pickupAt ? dateTimeLabel(order.pickupAt) : order.due || "Pickup not set",
+        payment: [order.paymentMethod, order.paymentStatus].filter(Boolean).join(" · ") || "Payment not recorded",
+        allergies: order.allergies || "No allergies listed",
+        requestCode: order.requestCode || order.cloudOrderId || "",
+        ingredients: ingredients.length ? ingredients.join(", ") : "Recipe ingredients not matched",
+        storage: storageNoteForProduct(lines),
+        notes: order.notes || order.internalNotes || "",
+      };
+    });
+}
+
+function buildForecastRows({ days, inventory, planner, settings }) {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() + Number(days || 14));
+  cutoff.setHours(23, 59, 59, 999);
+  const forecastBatches = planner.batches.filter((batch) => {
+    if (!batch.pickupAt) return true;
+    const pickup = new Date(batch.pickupAt);
+    return Number.isNaN(pickup.getTime()) || pickup <= cutoff;
+  });
+  const requirements = ingredientRequirements(forecastBatches);
+  const totalPackages = forecastBatches.reduce((sum, batch) => sum + Number(batch.packages || 0), 0);
+  return inventoryStatus(requirements, inventory, totalPackages, settings.includePackaging)
+    .filter((row) => !row.skipped)
+    .map((row) => {
+      if (!row.matched || !row.item) {
+        return {
+          ...row,
+          status: "missing",
+          projected: 0,
+          restock: 0,
+          cost: 0,
+          unit: row.item?.unit || "match needed",
+        };
+      }
+      const target = Number(row.item.target || 0);
+      const projected = Number(row.available || 0) - Number(row.needed || 0);
+      const restock = Math.max(0, target - projected);
+      return {
+        ...row,
+        status: projected < 0 ? "short" : projected < target ? "low" : "ok",
+        projected,
+        restock,
+        target,
+        unit: row.item.unit,
+        cost: restock * Number(row.item.unitCost || 0),
+      };
+    }).sort((a, b) => {
+      const rank = { missing: 0, short: 1, low: 2, ok: 3 };
+      return rank[a.status] - rank[b.status] || a.name.localeCompare(b.name);
+    });
 }
 
 function ToggleRow({ checked, disabled = false, label, note, onChange, warning = false }) {
@@ -51,9 +220,12 @@ export function ProductionPlanner({
   onChangeAutomation,
   onSyncProductionPlans,
 }) {
-  const settings = { ...DEFAULT_PRODUCTION_AUTOMATION, ...automation };
+  const settings = useMemo(() => ({ ...DEFAULT_PRODUCTION_AUTOMATION, ...automation }), [automation]);
   const [showSettings, setShowSettings] = useState(false);
   const [syncMessage, setSyncMessage] = useState("");
+  const [selectedDay, setSelectedDay] = useState(() => localDateKey(new Date()));
+  const [forecastDays, setForecastDays] = useState(14);
+  const [printMode, setPrintMode] = useState("");
   const syncedSignature = useRef("");
   const planner = useMemo(() => buildProductionPlanner({
     orders,
@@ -63,6 +235,37 @@ export function ProductionPlanner({
     starterLogs,
     settings,
   }), [inventory, orders, recipes, settings, starterLogs, starters]);
+  const productionEvents = useMemo(() => buildProductionEvents(planner.batches), [planner.batches]);
+  const dayOptions = useMemo(() => {
+    const keys = new Set([localDateKey(new Date())]);
+    productionEvents.forEach((event) => {
+      const key = eventDateKey(event);
+      if (key) keys.add(key);
+    });
+    planner.batches.forEach((batch) => {
+      const key = localDateKey(batch.pickupAt);
+      if (key) keys.add(key);
+    });
+    return [...keys].sort();
+  }, [planner.batches, productionEvents]);
+  const selectedDayEvents = useMemo(() => (
+    productionEvents.filter((event) => eventDateKey(event) === selectedDay)
+  ), [productionEvents, selectedDay]);
+  const selectedDayBatches = useMemo(() => {
+    const batchMap = new Map();
+    selectedDayEvents.forEach((event) => batchMap.set(event.batch.key, event.batch));
+    return [...batchMap.values()];
+  }, [selectedDayEvents]);
+  const labelRows = useMemo(() => buildLabelRows(orders, recipes), [orders, recipes]);
+  const forecastRows = useMemo(() => buildForecastRows({
+    days: forecastDays,
+    inventory,
+    planner,
+    settings,
+  }), [forecastDays, inventory, planner, settings]);
+  const shoppingRows = forecastRows.filter((row) => row.status !== "ok");
+  const shoppingTotal = shoppingRows.reduce((sum, row) => sum + Number(row.cost || 0), 0);
+  const readyOrders = orders.filter(isProductionReadyOrder);
   const calendarSignature = JSON.stringify(planner.calendarPlans.map((plan) => [
     plan.id,
     plan.bakeEnd,
@@ -83,6 +286,15 @@ export function ProductionPlanner({
     settings.enabled,
   ]);
 
+  useEffect(() => {
+    const clearPrintMode = () => {
+      document.body.removeAttribute("data-print-mode");
+      setPrintMode("");
+    };
+    window.addEventListener("afterprint", clearPrintMode);
+    return () => window.removeEventListener("afterprint", clearPrintMode);
+  }, []);
+
   function updateSetting(key, value) {
     onChangeAutomation({ ...settings, [key]: value });
   }
@@ -93,8 +305,16 @@ export function ProductionPlanner({
     setSyncMessage("Bake calendar synced.");
   }
 
+  function printSection(mode) {
+    setPrintMode(mode);
+    document.body.dataset.printMode = mode;
+    window.requestAnimationFrame(() => {
+      window.setTimeout(() => window.print(), 80);
+    });
+  }
+
   return (
-    <div className="production-planner">
+    <div className={`production-planner ${printMode ? `print-mode-${printMode}` : ""}`}>
       <section className={`production-automation-hero ${settings.enabled ? "enabled" : ""}`}>
         <span><ClipboardList size={24} /></span>
         <div>
@@ -134,7 +354,50 @@ export function ProductionPlanner({
           <div><strong>Automatic batch planning is off</strong><span>Your orders and manual bake plans are unchanged.</span></div>
         </section>
       ) : (
-        <div id="production-sheet">
+        <>
+          <section className="production-day-mode" id="production-day-sheet" aria-label="Production day mode">
+            <div className="section-title-line">
+              <div>
+                <span className="eyebrow-label dark">Production day mode</span>
+                <h2>{shortDateLabel(selectedDay)}</h2>
+                <small>A focused bench view for the work that happens on this day.</small>
+              </div>
+              <CalendarDays size={21} />
+            </div>
+            <div className="production-day-toolbar">
+              <label>
+                Day
+                <select value={selectedDay} onChange={(event) => setSelectedDay(event.target.value)}>
+                  {dayOptions.map((day) => <option key={day} value={day}>{shortDateLabel(day)}</option>)}
+                </select>
+              </label>
+              <button type="button" className="secondary-button" onClick={() => printSection("day")} disabled={!selectedDayEvents.length}>
+                <Printer size={15} /> Print day sheet
+              </button>
+            </div>
+            <div className="production-day-stats">
+              <span><strong>{selectedDayEvents.length}</strong><small>timed steps</small></span>
+              <span><strong>{selectedDayBatches.length}</strong><small>batches touched</small></span>
+              <span><strong>{selectedDayBatches.reduce((sum, batch) => sum + Number(batch.loaves || 0), 0)}</strong><small>items in flow</small></span>
+              <span><strong>{planner.shortages.length}</strong><small>stock flags</small></span>
+            </div>
+            <div className="production-day-timeline">
+              {selectedDayEvents.length ? selectedDayEvents.map((event) => (
+                <article className={`production-day-event ${event.tone}`} key={event.id}>
+                  <time>{timeLabel(event.start)}</time>
+                  <span>
+                    <strong>{event.label}</strong>
+                    <small>{event.batch.recipeName} · {event.batch.loaves} {event.batch.recipe?.unitName || "items"}</small>
+                  </span>
+                  <em>{event.detail || event.batch.customers.join(" · ")}</em>
+                </article>
+              )) : (
+                <p className="cloud-empty-copy">No timed production steps on this day yet. Sync the batch plan or choose another day.</p>
+              )}
+            </div>
+          </section>
+
+          <div id="production-sheet" className="production-batch-sheet">
           <section className="production-summary-grid">
             <div><Wheat /><strong>{planner.totalLoaves}</strong><span>items queued</span></div>
             <div><ClipboardList /><strong>{planner.batches.length}</strong><span>production batches</span></div>
@@ -183,13 +446,87 @@ export function ProductionPlanner({
               </div>
             </section>
           ) : null}
-        </div>
+          </div>
+
+          <section className="production-print-center" aria-label="Labels and printables">
+            <div className="section-title-line">
+              <div>
+                <span className="eyebrow-label dark">Printables</span>
+                <h2>Labels and prep sheets</h2>
+                <small>Print the day list, customer labels, or shopping sheet without copying notes by hand.</small>
+              </div>
+              <FileText size={21} />
+            </div>
+            <div className="production-print-actions">
+              <button type="button" className="secondary-button" onClick={() => printSection("batch")} disabled={!planner.batches.length}><ListChecks size={15} /> Batch sheet</button>
+              <button type="button" className="secondary-button" onClick={() => printSection("labels")} disabled={!labelRows.length}><Tags size={15} /> Order labels</button>
+              <button type="button" className="secondary-button" onClick={() => printSection("shopping")} disabled={!forecastRows.length}><ShoppingCart size={15} /> Shopping list</button>
+            </div>
+            <div id="production-label-sheet" className="production-label-sheet">
+              <div className="print-sheet-heading">
+                <span>Loafers Bakery OS</span>
+                <strong>Order labels</strong>
+                <small>{labelRows.length} active production order{labelRows.length === 1 ? "" : "s"}</small>
+              </div>
+              <div className="production-label-grid">
+                {labelRows.length ? labelRows.map((label) => (
+                  <article className="production-label-card" key={label.id}>
+                    <div><strong>{label.customer}</strong><span>{label.pickup}</span></div>
+                    <h3>{label.item}</h3>
+                    <p><b>Ingredients:</b> {label.ingredients}</p>
+                    <p><b>Allergies:</b> {label.allergies}</p>
+                    <p><b>Storage:</b> {label.storage}</p>
+                    <small>{label.payment}{label.requestCode ? ` · ${label.requestCode}` : ""}</small>
+                  </article>
+                )) : <p className="cloud-empty-copy">No active production orders to label.</p>}
+              </div>
+            </div>
+          </section>
+
+          <section className="inventory-forecast-panel" id="production-shopping-sheet" aria-label="Inventory forecast">
+            <div className="section-title-line">
+              <div>
+                <span className="eyebrow-label dark">Inventory forecast</span>
+                <h2>Restock before you run short</h2>
+                <small>Uses accepted production orders, recipes, package counts, inventory targets, and unit costs.</small>
+              </div>
+              <PackageCheck size={21} />
+            </div>
+            <div className="inventory-forecast-toolbar">
+              <label>
+                Forecast window
+                <span><input type="number" min="1" max="60" value={forecastDays} onChange={(event) => setForecastDays(Number(event.target.value))} /> days</span>
+              </label>
+              <strong>${money(shoppingTotal)} suggested restock</strong>
+            </div>
+            <div className="inventory-forecast-list">
+              {forecastRows.length ? forecastRows.map((row) => (
+                <article className={`inventory-forecast-row ${row.status}`} key={row.name}>
+                  <span>
+                    <strong>{row.name}</strong>
+                    <small>{row.status === "missing" ? "No matching inventory item" : `${smartAmount(row.available)} ${row.unit} on hand · need ${smartAmount(row.needed)} ${row.unit}`}</small>
+                  </span>
+                  <span>
+                    <strong>{row.status === "ok" ? "Covered" : row.status === "missing" ? "Match item" : `Buy ${smartAmount(row.restock)} ${row.unit}`}</strong>
+                    <small>{row.status === "ok" ? `Projected ${smartAmount(row.projected)} ${row.unit}` : row.status === "missing" ? "Add or rename inventory so forecasting can track it." : `Target ${smartAmount(row.target)} · est. $${money(row.cost)}`}</small>
+                  </span>
+                </article>
+              )) : <p className="cloud-empty-copy">No forecast rows yet. Add accepted pickup-dated orders and matching recipe ingredients.</p>}
+            </div>
+            <div className="shopping-list-summary">
+              <strong>Shopping list</strong>
+              {shoppingRows.length ? shoppingRows.map((row) => (
+                <span key={row.name}>{row.status === "missing" ? `${row.name}: match inventory item` : `${row.name}: ${smartAmount(row.restock)} ${row.unit}`}</span>
+              )) : <span>No restock needed for this window.</span>}
+            </div>
+          </section>
+        </>
       )}
 
       {settings.enabled ? (
         <div className="production-actions">
           <button className="secondary-button" type="button" disabled={!planner.calendarPlans.length} onClick={syncNow}><CalendarCheck2 size={16} /> Sync calendar now</button>
-          <button className="primary-button" type="button" disabled={!planner.batches.length} onClick={() => window.print()}><Printer size={16} /> Print bake-day sheet</button>
+          <button className="primary-button" type="button" disabled={!readyOrders.length} onClick={() => printSection("labels")}><Printer size={16} /> Print labels</button>
         </div>
       ) : null}
       {syncMessage ? <p className="production-sync-message">{syncMessage}</p> : null}
