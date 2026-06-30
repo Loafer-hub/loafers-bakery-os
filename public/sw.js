@@ -1,6 +1,7 @@
-const CACHE_NAME = "loafers-v8";
+const CACHE_NAME = "loafers-v9";
 const APP_SHELL = [
   "./",
+  "./offline.html",
   "./manifest.webmanifest",
   "./icons/icon-180.png",
   "./icons/icon-192.png",
@@ -23,14 +24,21 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
+  const request = event.request;
 
   event.respondWith(
-    fetch(event.request)
+    fetch(request)
       .then((response) => {
         const copy = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+        caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
         return response;
       })
-      .catch(() => caches.match(event.request).then((cached) => cached || caches.match("./"))),
+      .catch(() => caches.match(request).then((cached) => {
+        if (cached) return cached;
+        if (request.mode === "navigate" || request.destination === "document") {
+          return caches.match("./").then((shell) => shell || caches.match("./offline.html"));
+        }
+        return caches.match("./offline.html");
+      })),
   );
 });
