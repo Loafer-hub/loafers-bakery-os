@@ -1,5 +1,7 @@
 import { BAKE_PHASES, normalizedBakeProgress } from "./bakeProgress";
 
+// checkout-flow-v1
+
 const STATUS_LABELS = {
   New: "received",
   Deposit: "deposit received",
@@ -26,6 +28,21 @@ function latestPhase(progress) {
   return [...BAKE_PHASES].reverse().find((phase) => normalized[phase.id]) || null;
 }
 
+export function customerTrackingUrl(order = {}) {
+  const explicit = String(order.customerOrderUrl || "").trim();
+  try {
+    const url = explicit ? new URL(explicit) : new URL(window.location.href);
+    url.search = "";
+    url.searchParams.set("order", order.orderSlug || order.slug || "loafers");
+    if (order.requestCode) url.searchParams.set("track", order.requestCode);
+    return url.toString();
+  } catch {
+    const slug = encodeURIComponent(order.orderSlug || order.slug || "loafers");
+    const code = order.requestCode ? `&track=${encodeURIComponent(order.requestCode)}` : "";
+    return `?order=${slug}${code}`;
+  }
+}
+
 const EVENT_LINES = {
   accepted: "Your order has been accepted.",
   bakeProgress: "Here is the latest update on your bake.",
@@ -46,6 +63,7 @@ export function buildCustomerStatusMessage(order, progress = order.bakeProgress,
     `Pickup: ${pickupLabel(order.pickupAt)} at ${order.pickupLocation || "Three Bears, Delta Junction, AK"}.`,
     order.notes ? `Baker note: ${order.notes}` : "",
     order.requestCode ? `Request code: ${order.requestCode}.` : "",
+    order.requestCode ? `Track your bake: ${customerTrackingUrl(order)}` : "",
     "Thank you!",
   ].filter(Boolean);
   return lines.join("\n");
