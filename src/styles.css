@@ -5204,6 +5204,63 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   gap: 5px;
 }
 
+.ingredient-entry-mode-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #fbfaf6;
+}
+
+.ingredient-entry-mode-card > div:first-child {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ingredient-entry-mode-card strong {
+  font-size: 12px;
+}
+
+.ingredient-entry-mode-card small {
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.35;
+}
+
+.entry-mode-toggle {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(54px, 1fr));
+  flex: 0 0 auto;
+  overflow: hidden;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #f2eee7;
+}
+
+.entry-mode-toggle button {
+  min-height: 30px;
+  padding: 0 10px;
+  color: var(--muted);
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.entry-mode-toggle button.selected {
+  color: var(--ink);
+  background: white;
+  box-shadow: 0 6px 14px rgba(76, 57, 41, .08);
+}
+
 .small-action-button:disabled {
   cursor: default;
   opacity: .45;
@@ -5223,7 +5280,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 
 .ingredient-editor-row {
   display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr) 82px 32px;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr) 98px 32px;
   align-items: end;
   gap: 6px;
   padding: 9px;
@@ -5239,6 +5296,29 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 
 .ingredient-editor-row label span {
   font-size: 8px;
+}
+
+.ingredient-measure-control {
+  position: relative;
+}
+
+.ingredient-measure-control input {
+  padding-right: 34px;
+}
+
+.ingredient-measure-control small {
+  position: absolute;
+  right: 8px;
+  bottom: 10px;
+  max-width: 30px;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 800;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: none;
 }
 
 .remove-ingredient-button {
@@ -8861,8 +8941,17 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
     min-height: 170px;
   }
 
+  .ingredient-entry-mode-card {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .entry-mode-toggle {
+    width: 100%;
+  }
+
   .ingredient-editor-row {
-    grid-template-columns: minmax(0, 1fr) 96px 32px;
+    grid-template-columns: minmax(0, 1fr) 110px 32px;
   }
 
   .ingredient-editor-row > .ingredient-name-control {
@@ -8979,6 +9068,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 
 /* responsive-shell-v1 */
 /* ai-assist-responsive-v1 */
+/* recipe-grams-entry-v1 */
 @media (min-width: 760px) {
   .app-stage {
     padding: clamp(20px, 3vw, 36px);
