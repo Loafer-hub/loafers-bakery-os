@@ -98,9 +98,9 @@ export function ProductionPlanner({
       <section className={`production-automation-hero ${settings.enabled ? "enabled" : ""}`}>
         <span><ClipboardList size={24} /></span>
         <div>
-          <small>Solo bakery autopilot</small>
-          <h2>Production planner</h2>
-          <p>Turn accepted orders into batches, quantities, timing, shortages, and a bake-day sheet.</p>
+          <small>Orders to dough</small>
+          <h2>Batch plan</h2>
+          <p>Group accepted orders, calculate quantities, stagger timing, spot shortages, and print a bake-day sheet.</p>
         </div>
         <label className="master-automation-toggle">
           <input type="checkbox" checked={settings.enabled} onChange={(event) => updateSetting("enabled", event.target.checked)} />
@@ -109,7 +109,7 @@ export function ProductionPlanner({
       </section>
 
       <button className="production-settings-button" type="button" onClick={() => setShowSettings((value) => !value)}>
-        <Settings2 size={16} /> Automation controls <span>{showSettings ? "Hide" : "Show"}</span>
+        <Settings2 size={16} /> Batch controls <span>{showSettings ? "Hide" : "Show"}</span>
       </button>
 
       {showSettings ? (
@@ -131,7 +131,7 @@ export function ProductionPlanner({
       {!settings.enabled ? (
         <section className="production-paused">
           <Settings2 size={22} />
-          <div><strong>Automatic production planning is off</strong><span>Your orders and manual bake plans are unchanged.</span></div>
+          <div><strong>Automatic batch planning is off</strong><span>Your orders and manual bake plans are unchanged.</span></div>
         </section>
       ) : (
         <div id="production-sheet">
