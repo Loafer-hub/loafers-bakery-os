@@ -3,9 +3,12 @@ import {
   CalendarDays,
   ClipboardList,
   Croissant,
-  Droplets,
   House,
   LineChart,
+  Plus,
+  Settings2,
+  Store,
+  X,
   UserRound,
   Wheat,
 } from "lucide-react";
@@ -13,13 +16,25 @@ import {
 const navItems = [
   { id: "today", label: "Today", icon: House },
   { id: "orders", label: "Orders", icon: ClipboardList },
-  { id: "bake", label: "Bake", icon: Croissant },
-  { id: "liquid", label: "Liquid", icon: Droplets },
-  { id: "recipes", label: "Recipes", icon: BookOpen },
-  { id: "more", label: "Trends", icon: LineChart },
+  { id: "production", label: "Production", icon: Croissant },
+  { id: "menu", label: "Menu", icon: Store },
+  { id: "business", label: "Business", icon: LineChart },
 ];
 
-export function BrandHeader({ compact = false, onOpenStorage }) {
+export function BrandHeader({ compact = false, onOpenSettings, onOpenStorage }) {
+  const actions = (
+    <span className="brand-actions">
+      {onOpenSettings ? (
+        <button className="icon-button subtle" aria-label="Open bakery settings" onClick={onOpenSettings}>
+          <Settings2 size={compact ? 19 : 21} />
+        </button>
+      ) : null}
+      <button className="icon-button" aria-label="Open storage and backup" onClick={onOpenStorage}>
+        <UserRound size={compact ? 21 : 23} />
+      </button>
+    </span>
+  );
+
   if (compact) {
     return (
       <header className="compact-brand">
@@ -27,9 +42,7 @@ export function BrandHeader({ compact = false, onOpenStorage }) {
           <span className="brand-mark"><Wheat size={20} strokeWidth={1.8} /></span>
           <span className="brand-name">Loafers</span>
         </div>
-        <button className="icon-button" aria-label="Open storage and backup" onClick={onOpenStorage}>
-          <UserRound size={21} />
-        </button>
+        {actions}
       </header>
     );
   }
@@ -40,9 +53,7 @@ export function BrandHeader({ compact = false, onOpenStorage }) {
         <span className="brand-mark"><Wheat size={23} strokeWidth={1.8} /></span>
         <span className="brand-name">Loafers</span>
       </div>
-      <button className="icon-button" aria-label="Open storage and backup" onClick={onOpenStorage}>
-        <UserRound size={23} />
-      </button>
+      {actions}
     </header>
   );
 }
@@ -62,6 +73,42 @@ export function BottomNav({ active, onChange }) {
         </button>
       ))}
     </nav>
+  );
+}
+
+export function GlobalQuickAction({ isOpen, onClose, onOpen, actions = [] }) {
+  return (
+    <>
+      <button
+        className={isOpen ? "global-quick-action open" : "global-quick-action"}
+        type="button"
+        onClick={isOpen ? onClose : onOpen}
+        aria-expanded={isOpen}
+        aria-label={isOpen ? "Close quick actions" : "Open quick actions"}
+      >
+        {isOpen ? <X size={22} /> : <Plus size={24} />}
+      </button>
+      {isOpen ? (
+        <div className="quick-action-popover" role="dialog" aria-label="Quick actions">
+          <strong>Quick actions</strong>
+          <div>
+            {actions.map(({ icon: Icon, label, note, onClick }) => (
+              <button
+                type="button"
+                key={label}
+                onClick={() => {
+                  onClick?.();
+                  onClose?.();
+                }}
+              >
+                <span>{Icon ? <Icon size={17} /> : <BookOpen size={17} />}</span>
+                <span><b>{label}</b><small>{note}</small></span>
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </>
   );
 }
 
