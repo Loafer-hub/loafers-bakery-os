@@ -360,6 +360,7 @@ export default function BakePage({
       {view === "production" ? (
         <ProductionPlanner
           automation={productionAutomation}
+          cloudAccount={cloudAccount}
           inventory={inventory}
           orders={orders}
           recipes={recipes}
