@@ -1,4 +1,5 @@
 import { buildBakeSchedule } from "./fermentationModel";
+import { normalizeTimelineSettings, recipeUsesStarter } from "./recipeTimeline";
 
 const ACTIVE_STATUSES = new Set(["active", "mixing", "proofing", "baking", undefined, null, ""]);
 
@@ -35,12 +36,14 @@ export function buildKitchenBakeSchedule(bake, recipes, starters, starterLogs) {
   const starter = starters.find((item) => item.id === bake.starterId)
     || starters.find((item) => item.name === bake.starterName)
     || starters[0];
-  if (!recipe || !starter || !bake.anchorDateTime) return null;
+  if (!recipe || !bake.anchorDateTime) return null;
+  if (recipeUsesStarter(recipe) && !starter) return null;
+  const timeline = normalizeTimelineSettings(recipe);
   return buildBakeSchedule({
     recipe,
     loaves: Number(bake.loaves || recipe.yield || 1),
     doughTemperature: Number(bake.doughTemperature || 76),
-    coldProofHours: Number(bake.coldProofHours ?? 12),
+    coldProofHours: Number(bake.coldProofHours ?? timeline.defaultColdProofHours),
     anchorMode: bake.anchorMode || "start",
     anchorDateTime: bake.anchorDateTime,
     starter,
@@ -56,32 +59,57 @@ function stepById(model, id) {
 export function buildKitchenChecklist(model, bake = {}) {
   if (!model) return [];
   const mix = stepById(model, "mix")?.start || model.mix;
+  const timeline = model.timeline || {};
   const folds = stepById(model, "folds");
+  const primary = stepById(model, "primary");
   const shape = stepById(model, "shape");
+  const finalProof = stepById(model, "final-proof");
   const cold = stepById(model, "cold");
   const preheat = stepById(model, "preheat");
   const bakeStep = stepById(model, "bake");
-  const foldOffsets = [0.5, 1, 1.5, 2].filter((offset) => {
-    if (!shape?.start) return true;
-    return addHours(mix, offset).getTime() < new Date(shape.start).getTime() - 8 * 60 * 1000;
-  });
-  const chosenFoldOffsets = foldOffsets.length ? foldOffsets : [0.5];
   const coolStart = bakeStep?.end ? new Date(bakeStep.end) : addHours(model.bakeEnd, -0.5);
-  const readyTime = addHours(coolStart, Number(bake.coolHours || 2));
+  const readyTime = addHours(coolStart, Number(bake.coolHours ?? timeline.coolHours ?? 2));
+  const foldSteps = timeline.includeStretchFolds && timeline.stretchFoldCount > 0
+    ? Array.from({ length: timeline.stretchFoldCount }, (_, index) => {
+      const offset = (Number(timeline.firstFoldMinutes || 0) + index * Number(timeline.foldIntervalMinutes || 30)) / 60;
+      const time = addHours(mix, offset);
+      return {
+        id: `stretch-fold-${index + 1}`,
+        label: `Stretch & fold ${index + 1}`,
+        time,
+        detail: index === 0 ? "Start gentle gluten development" : "Build strength without tearing",
+      };
+    }).filter((step) => {
+      const cutoff = shape?.start || primary?.start || timeline.primaryEnd;
+      if (!cutoff) return true;
+      return new Date(step.time).getTime() < new Date(cutoff).getTime() - 8 * 60 * 1000;
+    })
+    : [];
 
   return [
-    { id: "feed", label: "Feed starter", time: stepById(model, "feed")?.start, detail: bake.ratio || stepById(model, "feed")?.detail || "Build levain" },
+    ...(timeline.usesStarter && stepById(model, "feed") ? [
+      { id: "feed", label: "Feed starter", time: stepById(model, "feed")?.start, detail: bake.ratio || stepById(model, "feed")?.detail || "Build levain" },
+    ] : []),
     { id: "mix", label: "Mix dough", time: mix, detail: `${bake.doughTemperature || 76}°F target dough` },
-    ...chosenFoldOffsets.map((offset, index) => ({
-      id: `stretch-fold-${index + 1}`,
-      label: `Stretch & fold ${index + 1}`,
-      time: addHours(mix, offset),
-      detail: index === 0 ? "Start gentle gluten development" : "Build strength without tearing",
-    })),
-    { id: "bulk-check", label: "Bulk check", time: folds?.end || addHours(mix, model.dough.bulkHours * 0.65), detail: "Look for rise, bubbles, doming, and strength" },
-    { id: "shape", label: "Shape", time: shape?.start, detail: shape?.detail || "Shape when the dough says yes" },
-    { id: "cold-proof", label: "Cold proof / final rest", time: cold?.start, detail: cold?.detail || `${bake.coldProofHours ?? 12}h planned` },
-    { id: "preheat", label: "Preheat oven", time: preheat?.start, detail: "Give the stone/Dutch oven real heat" },
+    ...foldSteps,
+    {
+      id: "primary-check",
+      label: `${timeline.primaryLabel || "Rise"} check`,
+      time: primary?.start || folds?.end || shape?.start || timeline.primaryEnd || addHours(mix, model.dough.bulkHours * 0.65),
+      detail: timeline.useBulkFermentRules ? "Look for rise, bubbles, doming, and strength" : "Look for puffy dough and a slow spring back",
+    },
+    ...(timeline.includeShape && shape ? [
+      { id: "shape", label: "Shape", time: shape?.start, detail: shape?.detail || "Shape when the dough says yes" },
+    ] : []),
+    ...(timeline.includeFinalProof && finalProof ? [
+      { id: "final-proof", label: "Final proof", time: finalProof?.start, detail: finalProof?.detail || `${timeline.finalProofHours}h planned` },
+    ] : []),
+    ...(timeline.includeColdProof && cold ? [
+      { id: "cold-proof", label: "Cold proof / final rest", time: cold?.start, detail: cold?.detail || `${bake.coldProofHours ?? timeline.defaultColdProofHours ?? 12}h planned` },
+    ] : []),
+    ...(timeline.includePreheat && preheat ? [
+      { id: "preheat", label: "Preheat oven", time: preheat?.start, detail: "Give the stone/Dutch oven real heat" },
+    ] : []),
     { id: "bake", label: "Bake", time: bakeStep?.start, detail: bakeStep?.detail || "Load and bake" },
     { id: "cool", label: "Cool", time: coolStart, detail: "Crumb sets while steam escapes" },
     { id: "ready", label: "Ready / packed", time: readyTime, detail: "Ready for shelf, pickup, or slicing" },
