@@ -5,6 +5,7 @@ import {
   CloudUpload,
   Copy,
   ExternalLink,
+  KeyRound,
   LogOut,
   RefreshCw,
   Send,
@@ -265,6 +266,20 @@ export function BakerCloudPanel({
       <div className="cloud-account-line">
         <span><strong>{cloudAccount.session.user.email}</strong><small>{workspace.role} · last cloud copy {dateLabel(remoteUpdatedAt)}</small></span>
         <button type="button" onClick={signOut} aria-label="Sign out"><LogOut size={16} /></button>
+      </div>
+      <div className="owner-security-grid">
+        <article>
+          <ShieldCheck size={17} />
+          <span><strong>Owner-only area</strong><small>{workspace.role === "owner" ? "Signed in as owner" : `Signed in as ${workspace.role}`}</small></span>
+        </article>
+        <article>
+          <KeyRound size={17} />
+          <span><strong>Safer cloud data</strong><small>Private records require this bakery account</small></span>
+        </article>
+        <article>
+          <Cloud size={17} />
+          <span><strong>Multi-device sync</strong><small>Copy here, restore on the next device</small></span>
+        </article>
       </div>
       <div className="cloud-action-grid">
         <button type="button" onClick={uploadSnapshot} disabled={Boolean(busy)}>
