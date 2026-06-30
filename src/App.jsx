@@ -33,6 +33,8 @@ import RecipesPage from "./pages/RecipesPage";
 import SettingsPage from "./pages/SettingsPage";
 import TodayPage from "./pages/TodayPage";
 
+// customer-options-v1
+
 const pages = {
   today: TodayPage,
   orders: OrdersPage,
@@ -192,6 +194,9 @@ export default function App() {
       due,
       pickupAt: request.pickup_at,
       paymentMethod: request.payment_method,
+      paymentStatus: request.payment_status || "unpaid",
+      paymentAmount: 0,
+      paymentNotes: "",
       items: items.map((item) => ({
         product_name: item.product_name,
         quantity: Number(item.quantity || 1),
