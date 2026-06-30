@@ -11,6 +11,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { BAKE_PHASES, normalizedBakeProgress } from "../lib/bakeProgress";
 import { lookupCustomerOrder, submitCustomerFeedback } from "../lib/cloud";
 
+// checkout-flow-v1
+
 const STATUS_LABELS = {
   requested: "Awaiting baker approval",
   accepted: "Accepted",
@@ -84,6 +86,8 @@ export function CustomerOrderLookup({
     [lookup?.bake_progress],
   );
   const completedPhases = BAKE_PHASES.filter((phase) => progress[phase.id]).length;
+  const progressPercent = Math.round(completedPhases / BAKE_PHASES.length * 100);
+  const nextPhase = BAKE_PHASES.find((phase) => !progress[phase.id]);
 
   async function submitLookup(event) {
     event.preventDefault();
@@ -113,7 +117,7 @@ export function CustomerOrderLookup({
   return (
     <section className="customer-tracking" aria-label="Track a bread order">
       <div className="customer-section-heading">
-        <div><h2>Track your order</h2><p>Use your request code plus the email or phone used when ordering.</p></div>
+        <div><h2>Track my bake</h2><p>Use your request code plus the email or phone used when ordering.</p></div>
       </div>
       <form className="tracking-lookup-form" onSubmit={submitLookup}>
         <label>Request code<input required value={form.code} onChange={(event) => setForm({ ...form, code: event.target.value.toUpperCase() })} placeholder="Example: A1B2C3D4" /></label>
@@ -126,16 +130,24 @@ export function CustomerOrderLookup({
 
       {lookup ? (
         <div className="customer-order-status">
-          <div className="customer-status-heading">
+          <div className="track-bake-hero">
             <span><small>Request {lookup.request_code}</small><strong>{STATUS_LABELS[lookup.status] || lookup.status}</strong></span>
-            <span className={`customer-status-pill status-${lookup.status}`}>{completedPhases}/{BAKE_PHASES.length} phases</span>
+            <div>
+              <span><b style={{ width: `${progressPercent}%` }} /></span>
+              <small>{progressPercent}% complete · {nextPhase ? `Next: ${nextPhase.label}` : "Bake complete"}</small>
+            </div>
           </div>
+          <span className={`customer-status-pill status-${lookup.status}`}>{completedPhases}/{BAKE_PHASES.length} phases checked off</span>
           <div className="customer-status-facts">
             <span><small>Pickup</small><strong>{pickupLabel(lookup.pickup_at)}</strong></span>
             <span><small>Order</small><strong>{(lookup.items || []).map((item) => `${item.quantity} × ${item.sale_option_label || item.product_name}${item.sale_option_label ? ` ${item.product_name}` : ""}`).join(" · ")}</strong></span>
             <span><small>Location</small><strong>{lookup.pickup_location}</strong></span>
           </div>
           {lookup.baker_notes ? <aside className="customer-baker-comment"><MessageCircle size={17} /><span><small>Baker comment</small><strong>{lookup.baker_notes}</strong></span></aside> : null}
+          <aside className="track-next-step">
+            <CheckCircle2 size={18} />
+            <span><small>Next checkpoint</small><strong>{nextPhase ? `${nextPhase.label}: ${nextPhase.detail}` : "Your bake is marked complete."}</strong></span>
+          </aside>
 
           <div className="customer-progress-heading">
             <span><strong>Live bake progress</strong><small>Updates automatically about every 12 seconds.</small></span>
