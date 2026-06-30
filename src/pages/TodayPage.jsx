@@ -315,7 +315,7 @@ function ProductionDashboard({
             <small>{activeBakes[0] ? `${activeBakes[0].name || activeBakes[0].recipeName} · ${activeBakes[0].status || "working"}` : "Start a Kitchen bake to track steps live."}</small>
           </div>
           <button type="button" className="text-button production-card-link" onClick={() => setActive("production")}>
-            Open Kitchen <ChevronRight size={14} />
+            Open Kitchen board <ChevronRight size={14} />
           </button>
         </article>
 
