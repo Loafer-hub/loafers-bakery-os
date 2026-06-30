@@ -34,7 +34,7 @@ import { updateCustomerOrderNotificationPreferences } from "../lib/cloud";
 // customer-options-v1
 // checkout-flow-v1
 
-const filters = ["Pending", "Completed", "All"];
+const filters = ["Active", "Ready", "Completed", "All"];
 const paymentMethods = ["Venmo", "Zelle", "Cash", "Other"];
 const paymentStatuses = [
   { value: "unpaid", label: "Unpaid" },
@@ -42,6 +42,15 @@ const paymentStatuses = [
   { value: "paid", label: "Paid in full" },
   { value: "refunded", label: "Refunded" },
 ];
+const ORDER_WORKFLOW = [
+  { value: "New", label: "New", note: "Request received" },
+  { value: "Accepted", label: "Accepted", note: "You approved it" },
+  { value: "In progress", label: "In progress", note: "Baking work started" },
+  { value: "Ready", label: "Ready", note: "Packed for pickup" },
+  { value: "Picked up", label: "Picked up", note: "Customer has it" },
+  { value: "Completed", label: "Completed", note: "Closed record" },
+];
+const workflowValues = new Set(ORDER_WORKFLOW.map((step) => step.value));
 
 const sampleCustomers = new Set([
   "Emily Morgan",
@@ -103,6 +112,7 @@ function inferredPaymentStatus(order = {}) {
 }
 
 const closedOrderStatuses = new Set(["completed", "rejected", "cancelled", "canceled"]);
+const readyOrderStatuses = new Set(["ready", "picked up"]);
 
 function customerIdFromName(name) {
   return String(name || "")
@@ -136,6 +146,19 @@ function dateTimeLabel(value) {
 
 function isActiveOrder(order) {
   return !closedOrderStatuses.has(String(order.status || "").toLowerCase());
+}
+
+function workflowLabel(status = "") {
+  if (status === "Paid" || status === "Deposit" || status === "Confirmed") return "Accepted";
+  return status || "New";
+}
+
+function workflowTone(status = "") {
+  const normalized = workflowLabel(status).toLowerCase();
+  if (normalized === "completed" || normalized === "picked up") return "success";
+  if (normalized === "ready") return "success";
+  if (normalized === "in progress" || normalized === "accepted") return "accent";
+  return "neutral";
 }
 
 function orderItemsLabel(order) {
@@ -383,7 +406,7 @@ export default function OrdersPage({
   const rules = normalizedBakerySettings(bakerySettings);
   const dailyCapacity = rules.dailyCapacity;
   const enabledNotificationEvents = notificationEventOptions(rules);
-  const [filter, setFilter] = useState("Pending");
+  const [filter, setFilter] = useState("Active");
   const [view, setView] = useState("list");
   const [query, setQuery] = useState("");
   const [showAdd, setShowAdd] = useState(false);
@@ -406,6 +429,7 @@ export default function OrdersPage({
     paymentStatus: "unpaid",
     paymentAmount: "",
     paymentNotes: "",
+    internalNotes: "",
   });
   const [detailProgress, setDetailProgress] = useState(() => normalizedBakeProgress());
   const [form, setForm] = useState({
@@ -429,14 +453,15 @@ export default function OrdersPage({
     const normalized = query.trim().toLowerCase();
     return orders.filter((order) => {
       const matchesFilter = filter === "All"
-        || (filter === "Pending" && order.status !== "Completed")
-        || (filter === "Completed" && order.status === "Completed");
+        || (filter === "Active" && isActiveOrder(order))
+        || (filter === "Ready" && readyOrderStatuses.has(String(workflowLabel(order.status)).toLowerCase()))
+        || (filter === "Completed" && workflowLabel(order.status) === "Completed");
       const matchesQuery = !normalized || `${order.customer} ${order.product}`.toLowerCase().includes(normalized);
       return matchesFilter && matchesQuery;
     });
   }, [filter, orders, query]);
 
-  const openOrders = orders.filter((order) => order.status !== "Completed").length;
+  const openOrders = orders.filter(isActiveOrder).length;
   const bookedRevenue = orders.reduce((sum, order) => sum + order.total, 0);
   const sampleOrderCount = orders.filter(isSampleOrder).length;
   const selectedOrder = orders.find((order) => order.id === selectedOrderId);
@@ -464,6 +489,7 @@ export default function OrdersPage({
       paymentStatus: inferredPaymentStatus(selectedOrder),
       paymentAmount: selectedOrder.paymentAmount ?? "",
       paymentNotes: selectedOrder.paymentNotes || "",
+      internalNotes: selectedOrder.internalNotes || "",
     });
     setDetailProgress(normalizedBakeProgress(selectedOrder.bakeProgress));
     setNotificationEvent(enabledNotificationEvents[0]?.id || "");
@@ -499,6 +525,7 @@ export default function OrdersPage({
       paymentStatus: form.paymentStatus,
       paymentAmount: Number(form.paymentAmount || 0),
       paymentNotes: form.paymentNotes.trim(),
+      internalNotes: "",
       product: `${selectedRecipe.name} · ${selectedOption.label}`,
       quantity: formCapacityUnits,
       totalUnits: Number(selectedOption.units || 1) * Number(form.packageCount || 1),
@@ -553,6 +580,7 @@ export default function OrdersPage({
       paymentStatus: detailForm.paymentStatus,
       paymentAmount: Number(detailForm.paymentAmount || 0),
       paymentNotes: detailForm.paymentNotes.trim(),
+      internalNotes: detailForm.internalNotes.trim(),
       pickupAt: detailForm.pickupAt ? new Date(detailForm.pickupAt).toISOString() : null,
       due: pickupDueLabel(detailForm.pickupAt),
     };
@@ -560,7 +588,7 @@ export default function OrdersPage({
       if (selectedOrder.cloudOrderId) {
         await updateCustomerOrderNotificationPreferences(selectedOrder.cloudOrderId, changes);
       }
-      if (detailForm.status === "Completed" && selectedOrder.status !== "Completed") {
+      if (detailForm.status === "Completed" && workflowLabel(selectedOrder.status) !== "Completed") {
         await onCompleteOrder(selectedOrder.id, changes);
         setFilter("Completed");
       } else {
@@ -613,6 +641,7 @@ export default function OrdersPage({
         paymentStatus: detailForm.paymentStatus,
         paymentAmount: Number(detailForm.paymentAmount || 0),
         paymentNotes: detailForm.paymentNotes.trim(),
+        internalNotes: detailForm.internalNotes.trim(),
         pickupAt: detailForm.pickupAt ? new Date(detailForm.pickupAt).toISOString() : null,
         due: pickupDueLabel(detailForm.pickupAt),
       });
@@ -736,9 +765,9 @@ export default function OrdersPage({
                   {order.due}
                   {order.notes ? <MessageSquareText size={13} aria-label="Has notes" /> : null}
                 </span>
-                <Status tone={order.status === "Completed" || order.status === "Paid" ? "success" : order.status === "New" ? "accent" : "neutral"}>
-                  {order.status === "Completed" || order.status === "Paid" ? <CheckCircle2 size={13} /> : <ShoppingBag size={13} />}
-                  {order.status}
+                <Status tone={workflowTone(order.status)}>
+                  {workflowTone(order.status) === "success" ? <CheckCircle2 size={13} /> : <ShoppingBag size={13} />}
+                  {workflowLabel(order.status)}
                 </Status>
                 <span className={`payment-status-chip ${inferredPaymentStatus(order)}`}>
                   <Banknote size={12} />
@@ -751,7 +780,7 @@ export default function OrdersPage({
       </section>}
 
       {showAdd ? (
-        <Modal title="New bread order" onClose={() => setShowAdd(false)}>
+        <Modal title="New customer order" onClose={() => setShowAdd(false)}>
           <form className="form-stack" onSubmit={submitOrder}>
             <label>
               Customer
@@ -763,7 +792,7 @@ export default function OrdersPage({
               />
             </label>
             <label>
-              Bread
+              Item
               <select value={form.product} onChange={(event) => {
                 const selectedRecipe = recipes.find((recipe) => recipe.name === event.target.value);
                 setForm({
@@ -811,12 +840,12 @@ export default function OrdersPage({
                 setForm({ ...form, pickupAt: event.target.value });
               }} /></label>
               <label>
-                Order status
+                Workflow status
                 <select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}>
                   <option>New</option>
-                  <option>Confirmed</option>
-                  <option>Deposit</option>
-                  <option>Paid</option>
+                  <option>Accepted</option>
+                  <option>In progress</option>
+                  <option>Ready</option>
                 </select>
               </label>
             </div>
@@ -858,7 +887,7 @@ export default function OrdersPage({
         <Modal title={selectedOrder.customer} onClose={() => onOpenOrder(null)}>
           <form className="form-stack" onSubmit={saveDetails}>
             <div className="order-detail-summary">
-              <div><span>Bread</span><strong>{selectedOrder.product}</strong></div>
+              <div><span>Item</span><strong>{selectedOrder.product}</strong></div>
               <div><span>Ordered</span><strong>{selectedOrder.itemSummary || `${selectedOrder.quantity} item${selectedOrder.quantity === 1 ? "" : "s"}`}</strong></div>
               <div><span>Total</span><strong>${selectedOrder.total}</strong></div>
               <div><span>Bake capacity</span><strong>{selectedOrder.quantity} slot{selectedOrder.quantity === 1 ? "" : "s"}</strong></div>
@@ -878,19 +907,42 @@ export default function OrdersPage({
                 <span>{detailCapacity.feedReserved ? "Keep this order on a different pickup day." : `${detailCapacity.remaining} spaces available for this order.`}</span>
               </div>
             ) : null}
-            <label>
-              Order status
-              <select
-                value={detailForm.status}
-                onChange={(event) => setDetailForm({ ...detailForm, status: event.target.value })}
-              >
-                <option>New</option>
-                <option>Confirmed</option>
-                <option>Deposit</option>
-                <option>Paid</option>
-                <option>Completed</option>
-              </select>
-            </label>
+            <section className="order-workflow-panel" aria-label="Order workflow">
+              <div className="section-title-line">
+                <div><strong>Order workflow</strong><small>Move the order through production without mixing it up with payment.</small></div>
+                <ShoppingBag size={18} />
+              </div>
+              <div className="order-workflow-steps">
+                {ORDER_WORKFLOW.map((step) => {
+                  const active = workflowLabel(detailForm.status) === step.value;
+                  const completed = ORDER_WORKFLOW.findIndex((item) => item.value === workflowLabel(detailForm.status)) > ORDER_WORKFLOW.findIndex((item) => item.value === step.value);
+                  return (
+                    <button
+                      className={[active ? "active" : "", completed ? "complete" : ""].filter(Boolean).join(" ")}
+                      key={step.value}
+                      onClick={() => setDetailForm({ ...detailForm, status: step.value })}
+                      type="button"
+                    >
+                      <span>{completed || active ? <CheckCircle2 size={14} /> : <ShoppingBag size={14} />}</span>
+                      <strong>{step.label}</strong>
+                      <small>{step.note}</small>
+                    </button>
+                  );
+                })}
+              </div>
+              <label>
+                Workflow status
+                <select
+                  value={detailForm.status}
+                  onChange={(event) => setDetailForm({ ...detailForm, status: event.target.value })}
+                >
+                  {!workflowValues.has(detailForm.status) ? <option>{detailForm.status}</option> : null}
+                  {ORDER_WORKFLOW.map((step) => <option key={step.value}>{step.value}</option>)}
+                  <option>Rejected</option>
+                  <option>Cancelled</option>
+                </select>
+              </label>
+            </section>
             <section className="payment-tracking-panel" aria-label="Payment tracking">
               <div className="section-title-line">
                 <div><strong>Payment tracking</strong><small>Use this for Venmo, Zelle, Cash, deposits, and “paid at pickup” notes.</small></div>
@@ -917,11 +969,19 @@ export default function OrdersPage({
             </section>
             {detailError ? <p className="form-error" role="alert">{detailError}</p> : null}
             <label>
-              Baker notes
+              Customer-visible baker note
               <textarea
                 value={detailForm.notes}
                 onChange={(event) => setDetailForm({ ...detailForm, notes: event.target.value })}
-                placeholder="Pickup details, scoring request, allergies, payment reminder…"
+                placeholder="Pickup details, customer-visible comment, payment reminder…"
+              />
+            </label>
+            <label>
+              Private internal note
+              <textarea
+                value={detailForm.internalNotes}
+                onChange={(event) => setDetailForm({ ...detailForm, internalNotes: event.target.value })}
+                placeholder="Kitchen-only notes, customer preferences, delivery reminders, private context…"
               />
             </label>
             <section className="order-notification-panel" aria-label="Customer status notifications">
@@ -988,7 +1048,7 @@ export default function OrdersPage({
               <CalendarDays size={16} /> Add full bake plan to phone calendar
             </button>
             {calendarMessage ? <div className="calendar-export-message">{calendarMessage}</div> : null}
-            {selectedOrder.status !== "Completed" ? (
+            {workflowLabel(selectedOrder.status) !== "Completed" ? (
               <button className="complete-bake-button" type="button" disabled={completing} onClick={completeBake}>
                 <CheckCircle2 size={16} /> {completing ? "Completing…" : "Complete bake"}
               </button>
