@@ -3928,6 +3928,11 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   letter-spacing: .08em;
 }
 
+.assistant-question-form {
+  display: grid;
+  gap: 8px;
+}
+
 .assistant-input textarea {
   min-height: 78px;
   resize: vertical;
@@ -3941,6 +3946,26 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   line-height: 1.45;
   text-transform: none;
   letter-spacing: 0;
+}
+
+.assistant-submit-button {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  color: white;
+  border: 0;
+  border-radius: 10px;
+  background: var(--accent);
+  box-shadow: 0 8px 18px rgba(199, 85, 53, .16);
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.assistant-submit-button:hover {
+  background: var(--accent-dark);
 }
 
 .assistant-result {
@@ -8950,6 +8975,160 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .empty-state p {
   color: var(--muted);
   font-size: 11px;
+}
+
+/* responsive-shell-v1 */
+/* ai-assist-responsive-v1 */
+@media (min-width: 760px) {
+  .app-stage {
+    padding: clamp(20px, 3vw, 36px);
+  }
+
+  .app-shell {
+    width: min(1180px, calc(100vw - 48px));
+    height: min(980px, calc(100vh - 48px));
+    min-height: min(760px, calc(100vh - 48px));
+    grid-template-columns: 98px minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    border-radius: 32px;
+  }
+
+  .scroll-view {
+    grid-column: 2;
+    grid-row: 1;
+    min-width: 0;
+  }
+
+  .bottom-nav {
+    grid-column: 1;
+    grid-row: 1;
+    display: flex;
+    align-items: stretch;
+    flex-direction: column;
+    gap: 8px;
+    padding: 24px 10px;
+    border-top: 0;
+    border-right: 1px solid var(--line);
+    background: rgba(251,250,247,.98);
+  }
+
+  .nav-item {
+    min-height: 72px;
+    justify-content: center;
+    gap: 7px;
+    padding: 10px 6px;
+    border-radius: 18px;
+    font-size: 11px;
+  }
+
+  .nav-item.active {
+    background: var(--accent-soft);
+  }
+
+  .nav-item svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .page {
+    padding: 34px clamp(34px, 4vw, 58px) 48px;
+  }
+
+  .page-heading {
+    align-items: center;
+    margin-bottom: 30px;
+  }
+
+  .page-heading h1 {
+    font-size: clamp(46px, 4.8vw, 62px);
+  }
+
+  .display-title {
+    font-size: clamp(48px, 4.5vw, 64px);
+  }
+
+  .form-grid,
+  .planner-input-grid,
+  .science-curves .curve-grid,
+  .factor-grid,
+  .recipe-list,
+  .ready-shelf-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .recipe-list,
+  .ready-shelf-list {
+    display: grid;
+    gap: 14px;
+  }
+
+  .ai-bake-assistant,
+  .flour-database-panel {
+    padding: 20px;
+  }
+
+  .assistant-question-form {
+    grid-template-columns: minmax(0, 1fr) 164px;
+    align-items: end;
+  }
+
+  .assistant-submit-button {
+    min-height: 86px;
+  }
+
+  .order-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    border-top: 0;
+  }
+
+  .order-row {
+    height: 100%;
+  }
+}
+
+@media (min-width: 1120px) {
+  .app-shell {
+    grid-template-columns: 112px minmax(0, 1fr);
+  }
+
+  .bottom-nav {
+    padding-inline: 14px;
+  }
+
+  .today-page {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr);
+    align-content: start;
+    gap: 18px 26px;
+  }
+
+  .today-page .compact-brand,
+  .today-page .greeting,
+  .today-page > h2,
+  .today-page .bake-timeline,
+  .today-page .today-bake-selector,
+  .today-page .visual-fermentation-card {
+    grid-column: 1;
+  }
+
+  .today-page .starter-panel,
+  .today-page .order-panel {
+    grid-column: 2;
+  }
+
+  .today-page .starter-panel {
+    grid-row: 2 / span 2;
+  }
+
+  .today-page .order-panel {
+    grid-row: 4 / span 4;
+  }
+
+  .recipe-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 540px) {
