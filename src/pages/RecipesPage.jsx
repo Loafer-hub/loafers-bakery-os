@@ -21,6 +21,11 @@ import { FlourBlendScience } from "../components/FlourScience";
 import { EmptyState, Modal } from "../components/Primitives";
 import { FLOUR_DATABASE_CATEGORIES, FLOUR_PROFILES, getFlourProfile } from "../data/flourProfiles";
 import {
+  PRODUCT_TYPES,
+  productTypeFor as productTypeMetaFor,
+  productTypeSettingsFor,
+} from "../lib/productTypes";
+import {
   lowestSalesPrice,
   normalizedSalesOptions,
   pluralUnit,
@@ -40,18 +45,6 @@ const INGREDIENT_CATEGORIES = [
   { value: "culture", label: "Culture / ferment" },
   { value: "inclusion", label: "Inclusion" },
   { value: "other", label: "Other" },
-];
-
-const PRODUCT_TYPES = [
-  { value: "bread", label: "Bread", unitName: "loaf", formulaMode: "bakers", icon: "🥖" },
-  { value: "bagel", label: "Bagels", unitName: "bagel", formulaMode: "bakers", icon: "🥯" },
-  { value: "bun", label: "Buns / rolls", unitName: "bun", formulaMode: "bakers", icon: "🍞" },
-  { value: "cake", label: "Cakes", unitName: "cake", formulaMode: "bakers", icon: "🍰" },
-  { value: "pastry", label: "Pastries", unitName: "pastry", formulaMode: "bakers", icon: "🥐" },
-  { value: "hot_sauce", label: "Hot sauces", unitName: "bottle", formulaMode: "batch", icon: "🌶️" },
-  { value: "vinegar", label: "Vinegars", unitName: "bottle", formulaMode: "batch", icon: "🍾" },
-  { value: "infused_oil", label: "Infused oils", unitName: "bottle", formulaMode: "batch", icon: "🫒" },
-  { value: "other", label: "Other item", unitName: "item", formulaMode: "batch", icon: "🏷️" },
 ];
 
 const DEFAULT_INGREDIENTS = [
@@ -116,6 +109,7 @@ const PRODUCT_TEMPLATES = {
 const TYPE_DEFAULT_UNITS = new Set(PRODUCT_TYPES.map((type) => type.unitName.toLowerCase()));
 
 // recipe-type-collapse-v1
+// product-type-settings-v1
 const ASSISTANT_EXAMPLES = [
   "My kitchen is 68°F and my dough is sluggish.",
   "I accidentally added too much water.",
@@ -223,7 +217,7 @@ function analyzeBakeQuestion(input) {
 }
 
 function productTypeFor(recipe = {}) {
-  return PRODUCT_TYPES.find((type) => type.value === recipe.productType) || PRODUCT_TYPES[0];
+  return productTypeMetaFor(recipe.productType || recipe.value);
 }
 
 function productTypeLabel(value) {
@@ -362,9 +356,18 @@ function flourWeightFor(recipe) {
   return flourWeight || Number(recipe.flourWeight) || Number(recipe.yield || 1) * 600;
 }
 
-function recipeForm(recipe) {
+function salesOptionsForProductType(settings, productType, stamp = Date.now()) {
+  return productTypeSettingsFor(settings, productType).packagePresets.map((option, index) => ({
+    ...option,
+    id: `type-preset-${productType}-${index}-${stamp}`,
+  }));
+}
+
+function recipeForm(recipe, bakerySettings) {
   const stamp = Date.now();
   if (!recipe) {
+    const typeSettings = productTypeSettingsFor(bakerySettings, "bread");
+    const salesOptions = salesOptionsForProductType(bakerySettings, "bread", stamp);
     return {
       id: `recipe-${stamp}`,
       name: "",
@@ -374,15 +377,9 @@ function recipeForm(recipe) {
       photoUrl: "",
       photoAlt: "",
       yield: 4,
-      unitName: "loaf",
-      price: 13,
-      salesOptions: [{
-        id: `sale-option-${stamp}`,
-        label: "Loaf",
-        units: 1,
-        price: 13,
-        capacityUnits: 1,
-      }],
+      unitName: typeSettings.unitName || "loaf",
+      price: Math.min(...salesOptions.map((option) => Number(option.price || 0))),
+      salesOptions,
       flourWeight: 2400,
       baseWeight: 2400,
       isNew: true,
@@ -390,6 +387,7 @@ function recipeForm(recipe) {
     };
   }
   const productType = recipe.productType || "bread";
+  const typeSettings = productTypeSettingsFor(bakerySettings, productType);
   const formulaMode = recipe.formulaMode || productTypeFor({ productType }).formulaMode;
   const baseWeight = formulaMode === "batch"
     ? Number(recipe.baseWeight || recipe.flourWeight) || Number(recipe.yield || 1) * 250
@@ -401,11 +399,11 @@ function recipeForm(recipe) {
     formulaMode,
     photoUrl: recipe.photoUrl || "",
     photoAlt: recipe.photoAlt || "",
-    unitName: unitNameFor({ productType, unitName: recipe.unitName }),
-    salesOptions: normalizedSalesOptions(recipe).map((option, index) => ({
-      ...option,
-      id: option.id || `sale-option-${index}-${stamp}`,
-    })),
+    unitName: recipe.unitName || typeSettings.unitName || unitNameFor({ productType }),
+    salesOptions: (Array.isArray(recipe.salesOptions) && recipe.salesOptions.length
+      ? normalizedSalesOptions(recipe)
+      : salesOptionsForProductType(bakerySettings, productType, stamp)
+    ).map((option, index) => ({ ...option, id: option.id || `sale-option-${index}-${stamp}` })),
     flourWeight: baseWeight,
     baseWeight,
     ingredients: recipe.ingredients.map((ingredient, index) => ({
@@ -653,13 +651,13 @@ function RecipeTypeSection({ recipes, type, onOpenRecipe }) {
   );
 }
 
-export default function RecipesPage({ inventory, recipes, onDeleteRecipe, onSaveRecipe, setActive, onLogStarter }) {
+export default function RecipesPage({ bakerySettings, inventory, recipes, onDeleteRecipe, onSaveRecipe, setActive, onLogStarter }) {
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState(null);
   const [loaves, setLoaves] = useState(1);
   const [showEditor, setShowEditor] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [form, setForm] = useState(() => recipeForm());
+  const [form, setForm] = useState(() => recipeForm(null, bakerySettings));
   const [formError, setFormError] = useState("");
   const selected = recipes.find((recipe) => recipe.id === selectedId);
   const filtered = useMemo(
@@ -674,7 +672,7 @@ export default function RecipesPage({ inventory, recipes, onDeleteRecipe, onSave
   ), [filtered]);
 
   function openEditor(recipe) {
-    setForm(recipeForm(recipe));
+    setForm(recipeForm(recipe, bakerySettings));
     setFormError("");
     setShowEditor(true);
   }
@@ -724,7 +722,7 @@ export default function RecipesPage({ inventory, recipes, onDeleteRecipe, onSave
         label: option.label.trim() || `Option ${index + 1}`,
         units: Math.max(0.5, Number(option.units || 1)),
         price: Math.max(0, Number(option.price || 0)),
-        capacityUnits: Math.max(1, Math.min(6, Number(option.capacityUnits || 1))),
+        capacityUnits: Math.max(0, Math.min(6, Number(option.capacityUnits ?? 1))),
       })),
       price: Math.min(...form.salesOptions.map((option) => Math.max(0, Number(option.price || 0)))),
       flourWeight: baseWeight,
@@ -852,6 +850,7 @@ export default function RecipesPage({ inventory, recipes, onDeleteRecipe, onSave
             onSubmit={submitRecipe}
             setFormError={setFormError}
             setForm={setForm}
+            bakerySettings={bakerySettings}
             updateIngredient={updateIngredient}
           />
         ) : null}
@@ -900,6 +899,7 @@ export default function RecipesPage({ inventory, recipes, onDeleteRecipe, onSave
           onSubmit={submitRecipe}
           setFormError={setFormError}
           setForm={setForm}
+          bakerySettings={bakerySettings}
           updateIngredient={updateIngredient}
         />
       ) : null}
@@ -907,7 +907,7 @@ export default function RecipesPage({ inventory, recipes, onDeleteRecipe, onSave
   );
 }
 
-function RecipeEditor({ form, formError, onClose, onSubmit, setForm, setFormError, updateIngredient }) {
+function RecipeEditor({ bakerySettings, form, formError, onClose, onSubmit, setForm, setFormError, updateIngredient }) {
   const formulaMode = formulaModeFor(form);
   const flourTotal = form.ingredients.reduce((sum, ingredient) => (
     ingredient.category === "flour" ? sum + Number(ingredient.percent || 0) : sum
@@ -952,17 +952,22 @@ function RecipeEditor({ form, formError, onClose, onSubmit, setForm, setFormErro
           <label>
             Product category
             <select value={form.productType || "bread"} onChange={(event) => {
-              const nextType = productTypeFor({ productType: event.target.value });
+              const nextType = productTypeSettingsFor(bakerySettings, event.target.value);
               setForm((current) => {
                 const shouldSwapTemplate = isUntouchedDefaultFormula(current);
                 const currentUnit = String(current.unitName || "").toLowerCase();
                 const shouldUseTypeUnit = !currentUnit || TYPE_DEFAULT_UNITS.has(currentUnit);
-                const nextSalesOptions = current.salesOptions.map((option, index) => (
-                  index === 0 && shouldUseTypeUnit ? {
-                    ...option,
-                    label: nextType.unitName === "loaf" ? "Loaf" : `Each ${nextType.unitName}`,
-                  } : option
+                const shouldSwapPackages = current.isNew || current.salesOptions.every((option) => (
+                  String(option.id || "").startsWith("type-preset-") || option.id === "default"
                 ));
+                const nextSalesOptions = shouldSwapPackages
+                  ? salesOptionsForProductType(bakerySettings, nextType.value)
+                  : current.salesOptions.map((option, index) => (
+                    index === 0 && shouldUseTypeUnit ? {
+                      ...option,
+                      label: nextType.unitName === "loaf" ? "Loaf" : `Each ${nextType.unitName}`,
+                    } : option
+                  ));
                 return {
                   ...current,
                   productType: nextType.value,
@@ -1068,7 +1073,7 @@ function RecipeEditor({ form, formError, onClose, onSubmit, setForm, setFormErro
                 </label>
                 <label>
                   Bake slots
-                  <input type="number" min="1" max="6" value={option.capacityUnits} onChange={(event) => setForm((current) => ({
+                  <input type="number" min="0" max="6" value={option.capacityUnits} onChange={(event) => setForm((current) => ({
                     ...current,
                     salesOptions: current.salesOptions.map((item) => item.id === option.id ? { ...item, capacityUnits: Number(event.target.value) } : item),
                   }))} />
@@ -1080,7 +1085,7 @@ function RecipeEditor({ form, formError, onClose, onSubmit, setForm, setFormErro
               </div>
             ))}
           </div>
-          <p className="form-help">“Bake slots” controls the six-per-day capacity. Example: one half-dozen bagel package can use one bake slot.</p>
+          <p className="form-help">“Bake slots” controls the six-per-day capacity. Example: one half-dozen bagel package can use one bake slot; use 0 for goods that should not reserve oven capacity.</p>
         </div>
         <label>
           {formulaMode === "batch" ? "Total base batch weight (g)" : "Total flour in base batch (g)"}
