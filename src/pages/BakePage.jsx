@@ -18,6 +18,7 @@ import {
   curvePath,
   recipeFlourBlend,
 } from "../lib/fermentationModel";
+import { normalizeTimelineSettings, recipeUsesStarter } from "../lib/recipeTimeline";
 import { pickupDateKey } from "../lib/orderCapacity";
 import {
   blockBakeryDay,
@@ -107,7 +108,9 @@ export default function BakePage({
   const [availabilityMode, setAvailabilityMode] = useState(false);
   const [availabilitySaving, setAvailabilitySaving] = useState(false);
   const recipe = recipes.find((item) => item.id === recipeId) || recipes[0];
-  const starter = starters.find((item) => item.id === starterId) || starters[0];
+  const timelineSettings = normalizeTimelineSettings(recipe);
+  const usesStarter = recipeUsesStarter(recipe);
+  const starter = usesStarter ? (starters.find((item) => item.id === starterId) || starters[0]) : null;
   const acceptedOrderBakes = useMemo(() => orders.flatMap((order) => {
     if (!order.cloudOrderId || order.status === "Completed") return [];
     const date = pickupDateKey(order.pickupAt);
@@ -131,10 +134,22 @@ export default function BakePage({
   }, [recipeId, recipes]);
 
   useEffect(() => {
+    if (!usesStarter) {
+      if (starterId) setStarterId("");
+      return;
+    }
     if (starters.length && !starters.some((item) => item.id === starterId)) {
       setStarterId(starters[0].id);
     }
-  }, [starterId, starters]);
+  }, [starterId, starters, usesStarter]);
+
+  useEffect(() => {
+    setColdProofHours((current) => (
+      timelineSettings.includeColdProof
+        ? (current || timelineSettings.defaultColdProofHours)
+        : 0
+    ));
+  }, [recipeId, timelineSettings.defaultColdProofHours, timelineSettings.includeColdProof]);
 
   useEffect(() => {
     const bakeryId = cloudAccount.workspace?.bakeryId;
@@ -156,7 +171,7 @@ export default function BakePage({
   }, [cloudAccount.workspace?.bakeryId]);
 
   const model = useMemo(() => {
-    if (!recipe || !starter || !anchorDateTime) return null;
+    if (!recipe || !anchorDateTime || (usesStarter && !starter)) return null;
     return buildBakeSchedule({
       recipe,
       loaves,
@@ -178,6 +193,7 @@ export default function BakePage({
     recipe,
     starter,
     starterLogs,
+    usesStarter,
   ]);
 
   const doughCurve = curvePath(model?.dough.bulkHours || 4.75, "dough");
@@ -193,11 +209,13 @@ export default function BakePage({
   }
 
   function loadPlan(plan) {
+    const planRecipe = recipes.find((item) => item.id === plan.recipeId);
+    const planUsesStarter = recipeUsesStarter(planRecipe);
     setEditingPlanId(plan.id);
     setRecipeId(plan.recipeId);
     setLoaves(plan.loaves);
-    setStarterId(plan.starterId || starters[0]?.id || "");
-    setRatio(plan.ratio || "1:2:2");
+    setStarterId(planUsesStarter ? (plan.starterId || starters[0]?.id || "") : "");
+    setRatio(planUsesStarter ? (plan.ratio || "1:2:2") : "");
     setDoughTemperature(plan.doughTemperature || 76);
     setColdProofHours(plan.coldProofHours ?? 12);
     setAnchorMode(plan.anchorMode || "start");
@@ -207,7 +225,7 @@ export default function BakePage({
   }
 
   function savePlan() {
-    if (!recipe || !starter || !model) return;
+    if (!recipe || !model || (usesStarter && !starter)) return;
     const planId = editingPlanId || Date.now();
     const finishDate = localDateKey(model.bakeEnd);
     onSaveBakePlan({
@@ -216,11 +234,11 @@ export default function BakePage({
       recipeId: recipe.id,
       recipeName: recipe.name,
       loaves,
-      starterId: starter.id,
-      starterName: starter.name,
-      ratio,
+      starterId: usesStarter ? starter.id : "",
+      starterName: usesStarter ? starter.name : "",
+      ratio: usesStarter ? ratio : "",
       doughTemperature,
-      coldProofHours,
+      coldProofHours: timelineSettings.includeColdProof ? coldProofHours : 0,
       anchorMode,
       anchorDateTime,
       bulkHours: Number(model.dough.bulkHours.toFixed(2)),
@@ -315,7 +333,7 @@ export default function BakePage({
       ) : null}
 
       {view === "plan" ? (
-        recipe && starter && model ? (
+        recipe && model ? (
           <>
             <section className="model-controls">
               <div className="anchor-switch">
@@ -339,9 +357,11 @@ export default function BakePage({
                 </label>
                 <label>
                   Starter
-                  <select value={starterId} onChange={(event) => setStarterId(event.target.value)}>
-                    {starters.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-                  </select>
+                  {usesStarter ? (
+                    <select value={starterId} onChange={(event) => setStarterId(event.target.value)}>
+                      {starters.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                    </select>
+                  ) : <span className="planner-static-value">Not used for this recipe</span>}
                 </label>
                 <label>
                   Dough temp °F
@@ -349,11 +369,15 @@ export default function BakePage({
                 </label>
                 <label>
                   Levain ratio
-                  <input value={ratio} onChange={(event) => setRatio(event.target.value)} placeholder="1:2:2" />
+                  {usesStarter ? (
+                    <input value={ratio} onChange={(event) => setRatio(event.target.value)} placeholder="1:2:2" />
+                  ) : <span className="planner-static-value">Not needed</span>}
                 </label>
                 <label>
                   Cold proof hours
-                  <input type="number" min="0" max="48" step="0.5" value={coldProofHours} onChange={(event) => setColdProofHours(Number(event.target.value))} />
+                  {timelineSettings.includeColdProof ? (
+                    <input type="number" min="0" max="48" step="0.5" value={coldProofHours} onChange={(event) => setColdProofHours(Number(event.target.value))} />
+                  ) : <span className="planner-static-value">Skipped</span>}
                 </label>
                 <label>
                   Loaves
@@ -369,7 +393,7 @@ export default function BakePage({
             <section className="dynamic-schedule" aria-label="Estimated bake schedule">
               <div className="section-title-line">
                 <h2>Estimated schedule</h2>
-                <span>{model.dough.bulkHours.toFixed(1)}h bulk · {coldProofHours}h cold</span>
+                <span>{model.dough.bulkHours.toFixed(1)}h {timelineSettings.primaryLabel.toLowerCase()}{timelineSettings.includeColdProof ? ` · ${coldProofHours}h cold` : ""}</span>
               </div>
               {model.steps.map((step) => (
                 <div className="dynamic-schedule-row" key={step.id}>
@@ -392,7 +416,7 @@ export default function BakePage({
                 <Beaker size={22} />
               </div>
               <div className="curve-grid">
-                <div className="science-curve-card">
+                {usesStarter && model.starterPeak ? <div className="science-curve-card">
                   <span>Levain rise</span>
                   <strong>Peak ~{model.starterPeak.hours.toFixed(1)}h</strong>
                   <svg viewBox="0 0 300 100" role="img" aria-label={`Levain rise estimated to peak in ${model.starterPeak.hours.toFixed(1)} hours`}>
@@ -400,15 +424,15 @@ export default function BakePage({
                     <path className="chart-line" d={levainCurve.line} />
                   </svg>
                   <div className="chart-labels"><span>Feed</span><span>{(model.starterPeak.hours / 2).toFixed(1)}h</span><span>{model.starterPeak.hours.toFixed(1)}h</span></div>
-                </div>
+                </div> : null}
                 <div className="science-curve-card">
-                  <span>Bulk progress</span>
-                  <strong>Shape ~{model.dough.bulkHours.toFixed(1)}h</strong>
-                  <svg viewBox="0 0 300 100" role="img" aria-label={`Bulk fermentation estimated at ${model.dough.bulkHours.toFixed(1)} hours`}>
+                  <span>{timelineSettings.primaryLabel} progress</span>
+                  <strong>{timelineSettings.includeShape ? "Shape" : "Check"} ~{model.dough.bulkHours.toFixed(1)}h</strong>
+                  <svg viewBox="0 0 300 100" role="img" aria-label={`${timelineSettings.primaryLabel} estimated at ${model.dough.bulkHours.toFixed(1)} hours`}>
                     <path className="chart-fill dough-fill" d={doughCurve.fill} />
                     <path className="chart-line" d={doughCurve.line} />
                   </svg>
-                  <div className="chart-labels"><span>Mix</span><span>Folds</span><span>Shape</span></div>
+                  <div className="chart-labels"><span>Mix</span><span>{timelineSettings.includeStretchFolds ? "Folds" : "Watch rise"}</span><span>{timelineSettings.includeShape ? "Shape" : "Ready"}</span></div>
                 </div>
               </div>
               <div className="factor-grid">
@@ -417,10 +441,10 @@ export default function BakePage({
                 <span><b>{model.dough.flourRate.toFixed(2)}×</b> flour activity</span>
                 <span><b>{model.dough.structureRate.toFixed(2)}×</b> gas retention</span>
                 <span><b>{model.dough.waterDemandRate.toFixed(2)}×</b> flour water demand</span>
-                <span><b>{model.dough.inoculationRate.toFixed(2)}×</b> {model.dough.inoculation}% starter</span>
+                <span><b>{model.dough.inoculationRate.toFixed(2)}×</b> {model.dough.inoculation}% {model.dough.inoculationKind}</span>
               </div>
               <p className="model-note">
-                Planning estimate, not a guarantee. Fermentation speed and visible rise are different: low-gluten flour may ferment quickly while holding less gas. Watch dough rise and strength; your feed logs gradually calibrate the levain curve.
+                Planning estimate, not a guarantee. Fermentation speed and visible rise are different: low-gluten flour may ferment quickly while holding less gas. Watch dough rise and strength{usesStarter ? "; your feed logs gradually calibrate the levain curve" : ""}.
               </p>
             </section>
 
@@ -456,9 +480,9 @@ export default function BakePage({
           </>
         ) : (
           <div className="planner-empty-stack">
-            {!recipes.length ? <EmptyState title="Add a recipe first" body="The science model needs a recipe’s hydration, flour blend, and starter percentage." /> : null}
-            {!starters.length ? <EmptyState title="Add a starter first" body="Create a starter profile so feed timing and flour blend can be included." /> : null}
-            <button className="primary-button" type="button" onClick={() => setView(!starters.length ? "starter" : "plan")}>Set up baking data</button>
+            {!recipes.length ? <EmptyState title="Add a recipe first" body="The planner needs recipe timing, hydration, and flour settings." /> : null}
+            {usesStarter && !starters.length ? <EmptyState title="Add a starter first" body="Create a starter profile so feed timing and flour blend can be included." /> : null}
+            <button className="primary-button" type="button" onClick={() => setView(usesStarter && !starters.length ? "starter" : "plan")}>Set up baking data</button>
           </div>
         )
       ) : null}
