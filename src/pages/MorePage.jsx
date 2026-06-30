@@ -772,8 +772,8 @@ export default function MorePage({
   return (
     <main className="page">
       <PageHeading
-        title="Trends"
-        subtitle="Costs, stock, sales, and the pulse of your one-person bakery."
+        title="Business"
+        subtitle="Money, stock, purchases, customers, and the pulse of your one-person bakery."
         action={<button className="round-action" type="button" onClick={() => setActive("settings")} aria-label="Open bakery settings"><Settings2 size={20} /></button>}
       />
 
