@@ -645,7 +645,7 @@ export default function SettingsPage({
       <PageHeading
         title="Bakery settings"
         subtitle="Control ordering, capacity, pickup, customer features, and status messages."
-        action={<button className="round-action" type="button" onClick={() => setActive("more")} aria-label="Back to trends"><ArrowLeft size={20} /></button>}
+        action={<button className="round-action" type="button" onClick={() => setActive("business")} aria-label="Back to business"><ArrowLeft size={20} /></button>}
       />
 
       <form onSubmit={saveSettings}>
