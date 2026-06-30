@@ -23,11 +23,13 @@ import {
   buildProductionPlanner,
   DEFAULT_PRODUCTION_AUTOMATION,
 } from "../lib/productionPlanner";
+import { normalizeTimelineSettings, recipeUsesStarter } from "../lib/recipeTimeline";
 
 // kitchen-collapse-v1
 function defaultForm(recipes, starters) {
   const recipe = recipes[0];
-  const starter = starters[0];
+  const starter = recipeUsesStarter(recipe) ? starters[0] : null;
+  const timeline = normalizeTimelineSettings(recipe);
   return {
     name: "",
     recipeId: recipe?.id || "",
@@ -35,7 +37,7 @@ function defaultForm(recipes, starters) {
     starterId: starter?.id || "",
     ratio: "1:2:2",
     doughTemperature: 76,
-    coldProofHours: 12,
+    coldProofHours: timeline.defaultColdProofHours,
     anchorMode: "start",
     anchorDateTime: localDateTimeValue(new Date()),
   };
@@ -109,6 +111,7 @@ function KitchenBakeCard({
   const steps = buildKitchenChecklist(model, bake);
   const progress = kitchenBakeProgress(bake, steps);
   const recipe = recipes.find((item) => item.id === bake.recipeId);
+  const timeline = normalizeTimelineSettings(recipe);
   const checkedIds = bake.checks || {};
 
   function toggleStep(stepId, checked) {
@@ -146,9 +149,9 @@ function KitchenBakeCard({
         <div className="kitchen-bake-meta">
           <span><Clock3 size={14} /> Mix {formatKitchenTime(model.mix)}</span>
           <span>Bake {formatKitchenTime(model.steps.find((step) => step.id === "bake")?.start)}</span>
-          <span>{progress.done}/{progress.total} done</span>
+          <span>{timeline.primaryLabel || "Rise"} · {progress.done}/{progress.total} done</span>
         </div>
-      ) : <p className="kitchen-warning">This bake needs a recipe, starter, and valid time before the checklist can be built.</p>}
+      ) : <p className="kitchen-warning">This bake needs a recipe{recipeUsesStarter(recipe) ? ", starter," : ""} and valid time before the checklist can be built.</p>}
 
       <div className="kitchen-progress-track" aria-label={`${progress.percent}% kitchen checklist complete`}>
         <i style={{ width: `${progress.percent}%` }} />
@@ -223,17 +226,22 @@ export function KitchenBoard({
     .sort((a, b) => new Date(a.anchorDateTime || a.bakeEnd || a.date) - new Date(b.anchorDateTime || b.bakeEnd || b.date))
     .slice(0, 4);
   const recipe = recipes.find((item) => item.id === form.recipeId) || recipes[0];
-  const starter = starters.find((item) => item.id === form.starterId) || starters[0];
+  const timeline = normalizeTimelineSettings(recipe);
+  const usesStarter = recipeUsesStarter(recipe);
+  const starter = usesStarter ? (starters.find((item) => item.id === form.starterId) || starters[0]) : null;
 
   useEffect(() => {
     setForm((current) => {
       const nextRecipe = recipes.find((item) => item.id === current.recipeId) || recipes[0];
-      const nextStarter = starters.find((item) => item.id === current.starterId) || starters[0];
+      const nextUsesStarter = recipeUsesStarter(nextRecipe);
+      const nextStarter = nextUsesStarter ? (starters.find((item) => item.id === current.starterId) || starters[0]) : null;
+      const nextTimeline = normalizeTimelineSettings(nextRecipe);
       return {
         ...current,
         recipeId: nextRecipe?.id || "",
         starterId: nextStarter?.id || "",
         loaves: current.loaves || nextRecipe?.yield || 1,
+        coldProofHours: nextTimeline.includeColdProof ? (current.coldProofHours ?? nextTimeline.defaultColdProofHours) : 0,
       };
     });
   }, [recipes, starters]);
@@ -256,8 +264,10 @@ export function KitchenBoard({
     event.preventDefault();
     const fields = new FormData(event.currentTarget);
     const selectedRecipe = recipes.find((item) => item.id === fields.get("recipeId")) || recipe;
-    const selectedStarter = starters.find((item) => item.id === fields.get("starterId")) || starter;
-    if (!selectedRecipe || !selectedStarter) return;
+    const selectedUsesStarter = recipeUsesStarter(selectedRecipe);
+    const selectedStarter = selectedUsesStarter ? (starters.find((item) => item.id === fields.get("starterId")) || starter) : null;
+    const selectedTimeline = normalizeTimelineSettings(selectedRecipe);
+    if (!selectedRecipe || (selectedUsesStarter && !selectedStarter)) return;
     const mixTime = String(fields.get("anchorDateTime") || form.anchorDateTime);
     const bakeName = String(fields.get("name") || "").trim();
     saveNewBake({
@@ -265,11 +275,11 @@ export function KitchenBoard({
       recipeId: selectedRecipe.id,
       recipeName: selectedRecipe.name,
       loaves: Number(fields.get("loaves") || form.loaves || 1),
-      starterId: selectedStarter.id,
-      starterName: selectedStarter.name,
-      ratio: String(fields.get("ratio") || form.ratio),
+      starterId: selectedStarter?.id || "",
+      starterName: selectedStarter?.name || "",
+      ratio: selectedUsesStarter ? String(fields.get("ratio") || form.ratio) : "",
       doughTemperature: Number(fields.get("doughTemperature") || form.doughTemperature || 76),
-      coldProofHours: Number(fields.get("coldProofHours") || form.coldProofHours || 0),
+      coldProofHours: selectedTimeline.includeColdProof ? Number(fields.get("coldProofHours") || form.coldProofHours || 0) : 0,
       anchorMode: "start",
       anchorDateTime: mixTime,
     });
@@ -278,17 +288,19 @@ export function KitchenBoard({
 
   function addFromPlan(plan) {
     const planRecipe = recipes.find((item) => item.id === plan.recipeId);
-    const planStarter = starters.find((item) => item.id === plan.starterId) || starters[0];
+    const planUsesStarter = recipeUsesStarter(planRecipe);
+    const planTimeline = normalizeTimelineSettings(planRecipe);
+    const planStarter = planUsesStarter ? (starters.find((item) => item.id === plan.starterId) || starters[0]) : null;
     saveNewBake({
       name: plan.name || `${plan.recipeName || planRecipe?.name || "Planned bake"} · ${formatKitchenTime(plan.anchorDateTime || plan.bakeEnd)}`,
       recipeId: plan.recipeId || planRecipe?.id,
       recipeName: plan.recipeName || planRecipe?.name,
       loaves: Number(plan.loaves || planRecipe?.yield || 1),
-      starterId: plan.starterId || planStarter?.id,
-      starterName: plan.starterName || planStarter?.name,
-      ratio: plan.ratio || settings.ratio,
+      starterId: planUsesStarter ? (plan.starterId || planStarter?.id) : "",
+      starterName: planUsesStarter ? (plan.starterName || planStarter?.name) : "",
+      ratio: planUsesStarter ? (plan.ratio || settings.ratio) : "",
       doughTemperature: Number(plan.doughTemperature || settings.doughTemperature),
-      coldProofHours: Number(plan.coldProofHours ?? settings.coldProofHours),
+      coldProofHours: planTimeline.includeColdProof ? Number(plan.coldProofHours ?? settings.coldProofHours) : 0,
       anchorMode: plan.anchorMode || "start",
       anchorDateTime: plan.anchorDateTime || localDateTimeValue(new Date(plan.bakeEnd || `${plan.date}T06:30`)),
       sourcePlanId: plan.id,
@@ -296,17 +308,19 @@ export function KitchenBoard({
   }
 
   function addFromBatch(batch) {
-    const batchStarter = starters[0];
+    const batchUsesStarter = recipeUsesStarter(batch.recipe);
+    const batchTimeline = normalizeTimelineSettings(batch.recipe);
+    const batchStarter = batchUsesStarter ? starters[0] : null;
     saveNewBake({
       name: `${batch.recipeName} · ${batch.pickupDate}`,
       recipeId: batch.recipe.id,
       recipeName: batch.recipe.name,
       loaves: Number(batch.loaves || 1),
-      starterId: batchStarter?.id,
-      starterName: batchStarter?.name,
-      ratio: settings.ratio,
+      starterId: batchUsesStarter ? batchStarter?.id : "",
+      starterName: batchUsesStarter ? batchStarter?.name : "",
+      ratio: batchUsesStarter ? settings.ratio : "",
       doughTemperature: Number(settings.doughTemperature || 76),
-      coldProofHours: Number(settings.coldProofHours ?? 12),
+      coldProofHours: batchTimeline.includeColdProof ? Number(settings.coldProofHours ?? 12) : 0,
       anchorMode: "finish",
       anchorDateTime: localDateTimeValue(batch.schedule.bakeEnd),
       sourceOrderIds: [...new Set(batch.orderIds)],
@@ -335,15 +349,34 @@ export function KitchenBoard({
           <label>Bake name<input name="name" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="Saturday country loaf #1" /></label>
           <label>Recipe<select value={form.recipeId} onChange={(event) => {
             const nextRecipe = recipes.find((item) => item.id === event.target.value);
-            setForm({ ...form, recipeId: event.target.value, loaves: nextRecipe?.yield || form.loaves });
+            const nextTimeline = normalizeTimelineSettings(nextRecipe);
+            setForm({
+              ...form,
+              recipeId: event.target.value,
+              loaves: nextRecipe?.yield || form.loaves,
+              starterId: recipeUsesStarter(nextRecipe) ? (form.starterId || starters[0]?.id || "") : "",
+              coldProofHours: nextTimeline.includeColdProof ? (form.coldProofHours || nextTimeline.defaultColdProofHours) : 0,
+            });
           }} name="recipeId">{recipes.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-          <label>Starter<select name="starterId" value={form.starterId} onChange={(event) => setForm({ ...form, starterId: event.target.value })}>{starters.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+          {usesStarter ? (
+            <label>Starter<select name="starterId" value={form.starterId} onChange={(event) => setForm({ ...form, starterId: event.target.value })}>{starters.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+          ) : (
+            <div className="kitchen-static-field"><span>Starter</span><strong>Not used for this recipe</strong></div>
+          )}
           <label>Mix time<input name="anchorDateTime" type="datetime-local" value={form.anchorDateTime} onChange={(event) => setForm({ ...form, anchorDateTime: event.target.value })} /></label>
           <label>Items<input name="loaves" type="number" min="1" max="60" value={form.loaves} onChange={(event) => setForm({ ...form, loaves: Number(event.target.value) })} /></label>
           <label>Dough °F<input name="doughTemperature" type="number" min="50" max="100" value={form.doughTemperature} onChange={(event) => setForm({ ...form, doughTemperature: Number(event.target.value) })} /></label>
-          <label>Cold proof<input name="coldProofHours" type="number" min="0" max="48" step="0.5" value={form.coldProofHours} onChange={(event) => setForm({ ...form, coldProofHours: Number(event.target.value) })} /></label>
-          <label>Levain ratio<input name="ratio" value={form.ratio} onChange={(event) => setForm({ ...form, ratio: event.target.value })} /></label>
-          <button className="primary-button" type="submit" disabled={!recipe || !starter}>Add to Kitchen</button>
+          {timeline.includeColdProof ? (
+            <label>Cold proof<input name="coldProofHours" type="number" min="0" max="48" step="0.5" value={form.coldProofHours} onChange={(event) => setForm({ ...form, coldProofHours: Number(event.target.value) })} /></label>
+          ) : (
+            <div className="kitchen-static-field"><span>Cold proof</span><strong>Skipped for this recipe</strong></div>
+          )}
+          {usesStarter ? (
+            <label>Levain ratio<input name="ratio" value={form.ratio} onChange={(event) => setForm({ ...form, ratio: event.target.value })} /></label>
+          ) : (
+            <div className="kitchen-static-field"><span>Levain ratio</span><strong>Not needed</strong></div>
+          )}
+          <button className="primary-button" type="submit" disabled={!recipe || (usesStarter && !starter)}>Add to Kitchen</button>
         </form>
 
         {upcomingPlans.length ? (
