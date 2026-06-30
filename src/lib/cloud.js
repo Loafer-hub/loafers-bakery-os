@@ -2,6 +2,8 @@ import { createClient } from "@supabase/supabase-js";
 import { normalizedBakerySettings } from "./bakerySettings";
 import { normalizedSalesOptions } from "./salesOptions";
 
+// customer-options-v1
+
 const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL || "").trim();
 const supabaseKey = (import.meta.env.VITE_SUPABASE_ANON_KEY || "").trim();
 
@@ -452,6 +454,7 @@ export async function listCustomerOrderRequests(bakeryId, status = "requested") 
       notify_email,
       notify_sms,
       payment_method,
+      payment_status,
       pickup_location,
       allergies,
       customer_notes,
