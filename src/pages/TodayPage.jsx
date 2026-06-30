@@ -26,7 +26,8 @@ function BakeTimeline({ model }) {
   }
 
   const steps = model.steps
-    .filter((step) => ["mix", "shape", "bake"].includes(step.id))
+    .filter((step) => ["mix", "primary", "shape", "final-proof", "bake"].includes(step.id))
+    .slice(0, 4)
     .map((step) => ({
       label: step.label.replace(" dough", ""),
       time: step.start.toLocaleString("en-US", { weekday: "short", hour: "numeric", minute: "2-digit" }),
@@ -56,43 +57,50 @@ function visualFermentationState(model) {
       status: "No active dough timeline",
       detail: "Plan a bake and I’ll turn the schedule into a visual fermentation gauge.",
       blocks: "░░░░░░░░░░",
+      word: "fermented",
     };
   }
 
   const now = new Date();
+  const timeline = model.timeline || {};
+  const primaryLabel = timeline.primaryLabel || "Bulk fermentation";
+  const word = timeline.useBulkFermentRules ? "fermented" : "risen";
   const mix = model.steps.find((step) => step.id === "mix")?.start || model.mix;
-  const shape = model.steps.find((step) => step.id === "shape")?.start;
-  const bulkStart = new Date(mix);
-  const bulkEnd = new Date(shape || bulkStart.getTime() + model.dough.bulkHours * 60 * 60 * 1000);
-  const total = Math.max(1, bulkEnd.getTime() - bulkStart.getTime());
-  const rawPercent = (now.getTime() - bulkStart.getTime()) / total * 100;
+  const primaryEnd = timeline.primaryEnd || model.steps.find((step) => ["shape", "primary"].includes(step.id))?.start;
+  const primaryStart = new Date(mix);
+  const primaryDone = new Date(primaryEnd || primaryStart.getTime() + model.dough.bulkHours * 60 * 60 * 1000);
+  const total = Math.max(1, primaryDone.getTime() - primaryStart.getTime());
+  const rawPercent = (now.getTime() - primaryStart.getTime()) / total * 100;
   const percent = Math.round(clamp(rawPercent, 0, 100));
   const filled = Math.round(percent / 10);
   const blocks = `${"█".repeat(filled)}${"░".repeat(10 - filled)}`;
 
-  if (now < bulkStart) {
+  if (now < primaryStart) {
     return {
       percent: 0,
       status: "Waiting to mix",
-      detail: `Bulk starts ${bulkStart.toLocaleString("en-US", { weekday: "short", hour: "numeric", minute: "2-digit" })}.`,
+      detail: `${primaryLabel} starts ${primaryStart.toLocaleString("en-US", { weekday: "short", hour: "numeric", minute: "2-digit" })}.`,
       blocks,
+      word,
     };
   }
 
-  if (now > bulkEnd) {
+  if (now > primaryDone) {
     return {
       percent: 100,
-      status: "Bulk target reached",
+      status: `${primaryLabel} target reached`,
       detail: "Move by dough strength now: shape, chill, or bake according to the plan.",
       blocks,
+      word,
     };
   }
 
   return {
     percent,
-    status: "Bulk fermentation in motion",
-    detail: `${model.dough.bulkHours.toFixed(1)}h model based on temperature, hydration, flour behavior, and starter strength.`,
+    status: `${primaryLabel} in motion`,
+    detail: `${model.dough.bulkHours.toFixed(1)}h model based on temperature, hydration, flour behavior${model.timeline?.usesStarter ? ", and starter strength" : ", and yeast amount"}.`,
     blocks,
+    word,
   };
 }
 
@@ -104,7 +112,7 @@ function FermentationVisual({ model, sourceLabel }) {
       <div className="section-title-line">
         <div>
           <span className="eyebrow-label dark">Visual fermentation</span>
-          <h2>{state.percent}% fermented</h2>
+          <h2>{state.percent}% {state.word}</h2>
           {sourceLabel ? <small className="visual-source-label">{sourceLabel}</small> : null}
         </div>
         <span className="fermentation-blocks" aria-hidden="true">{state.blocks}</span>
@@ -119,7 +127,7 @@ function FermentationVisual({ model, sourceLabel }) {
         <div>
           <strong>{state.status}</strong>
           <p>{state.detail}</p>
-          <div className="fermentation-progress-track" aria-label={`${state.percent}% fermented`}>
+          <div className="fermentation-progress-track" aria-label={`${state.percent}% ${state.word}`}>
             <i style={{ width: `${state.percent}%` }} />
           </div>
           <small>Visuals are a guide. Final call still comes from dough rise, bubbles, doming, and strength.</small>
