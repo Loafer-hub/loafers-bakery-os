@@ -6879,8 +6879,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 
 .customer-product-list {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
+  gap: 9px;
 }
 
 .customer-product {
@@ -6894,6 +6894,93 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   border-radius: 12px;
   background: white;
   transition: border-color .2s ease, transform .2s ease, box-shadow .2s ease;
+}
+
+/* compact-customer-cards-v1 */
+.customer-product.compact-product {
+  min-height: 0;
+  display: block;
+  overflow: hidden;
+  padding: 0;
+}
+
+.customer-product-card-button {
+  width: 100%;
+  min-height: 100%;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 0;
+  padding: 0;
+  color: inherit;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.customer-product.compact-product .customer-product-photo {
+  height: 82px;
+  border-width: 0 0 1px;
+  border-radius: 0;
+}
+
+.customer-product-card-body {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+  padding: 10px;
+}
+
+.customer-product-card-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--accent);
+  font-size: 7px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+.customer-product.compact-product h3 {
+  margin: 0;
+  font-family: "Newsreader", Georgia, serif;
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.customer-product.compact-product p {
+  display: -webkit-box;
+  min-height: 26px;
+  overflow: hidden;
+  margin: 0;
+  color: var(--muted);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: 8px;
+  line-height: 1.35;
+}
+
+.customer-product-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 7px;
+  padding-top: 4px;
+  border-top: 1px solid #eee1d5;
+}
+
+.customer-product-card-footer strong {
+  color: var(--accent);
+  font-size: 10px;
+}
+
+.customer-product-card-footer small {
+  color: var(--muted);
+  font-size: 7px;
+  font-weight: 800;
+  text-align: right;
 }
 
 .customer-product-info {
@@ -6981,6 +7068,10 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   border: 1px dashed #dfd0c0;
   border-radius: 10px;
   background: #fbfaf6;
+}
+
+.customer-product-options.modal-options {
+  background: white;
 }
 
 .customer-product-options > strong {
@@ -7095,6 +7186,10 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   gap: 15px;
 }
 
+.customer-item-window {
+  gap: 13px;
+}
+
 .customer-recipe-photo {
   height: 190px;
   display: grid;
@@ -7163,6 +7258,89 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 
 .customer-recipe-packages {
   margin-top: -6px;
+}
+
+.customer-item-order-panel {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #dfd0c0;
+  border-radius: 14px;
+  background: #fbfaf6;
+}
+
+.customer-modal-package-choice {
+  display: grid;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.customer-modal-package-choice select {
+  width: 100%;
+  padding: 10px 11px;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: white;
+  font-size: 12px;
+}
+
+.customer-modal-quantity-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: white;
+}
+
+.customer-modal-quantity-row span,
+.customer-modal-quantity-row strong,
+.customer-modal-quantity-row small {
+  display: block;
+}
+
+.customer-modal-quantity-row small {
+  padding-top: 2px;
+  color: var(--muted);
+  font-size: 8px;
+  line-height: 1.35;
+}
+
+.customer-item-modal-total {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: white;
+}
+
+.customer-item-modal-total span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px;
+}
+
+.customer-item-modal-total span:first-child {
+  border-right: 1px solid var(--line);
+}
+
+.customer-item-modal-total small {
+  color: var(--muted);
+  font-size: 7px;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+}
+
+.customer-item-modal-total strong {
+  color: var(--accent);
+  font-size: 13px;
 }
 
 .customer-formula-table {
@@ -7238,6 +7416,10 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   align-items: center;
   flex-direction: column-reverse;
   gap: 6px;
+}
+
+.customer-quantity.horizontal {
+  flex-direction: row;
 }
 
 .customer-quantity button {
@@ -8620,7 +8802,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   }
 
   .customer-product-list {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .customer-review-list {
@@ -8635,8 +8817,29 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
     min-height: 125px;
   }
 
+  .customer-product.compact-product {
+    min-height: 0;
+  }
+
+  .customer-product.compact-product .customer-product-photo {
+    height: 66px;
+  }
+
+  .customer-product.compact-product h3 {
+    font-size: 16px;
+  }
+
+  .customer-product-card-body {
+    padding: 9px;
+  }
+
   .customer-package-price {
     align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .customer-modal-quantity-row {
+    align-items: stretch;
     flex-direction: column;
   }
 
