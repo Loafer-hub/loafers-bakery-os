@@ -1,17 +1,21 @@
 import {
   ArrowLeft,
+  ArrowDown,
+  ArrowUp,
   BellRing,
   CheckCircle2,
   Clock3,
   Mail,
   MessageSquareText,
   PackageCheck,
+  Plus,
   RefreshCw,
   Save,
   Send,
   Settings2,
   ShoppingBag,
   Store,
+  Trash2,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { PageHeading } from "../components/AppChrome";
@@ -22,6 +26,9 @@ import {
   sendAutomaticEmailTest,
 } from "../lib/cloud";
 import { normalizedBakerySettings } from "../lib/bakerySettings";
+import { normalizeProductTypeSettings } from "../lib/productTypes";
+
+// product-type-settings-v1
 
 function ToggleRow({ checked, label, note, onChange }) {
   return (
@@ -40,6 +47,86 @@ function TimeWindow({ label, value, onChange }) {
       <label>From<input type="time" value={value.start} onChange={(event) => onChange({ ...value, start: event.target.value })} /></label>
       <label>To<input type="time" value={value.end} onChange={(event) => onChange({ ...value, end: event.target.value })} /></label>
     </div>
+  );
+}
+
+function ProductTypeSettingsCard({
+  index,
+  onAddPackage,
+  onMove,
+  onRemovePackage,
+  onUpdate,
+  onUpdatePackage,
+  total,
+  type,
+}) {
+  return (
+    <article className={type.enabled ? "product-type-card" : "product-type-card disabled"}>
+      <div className="product-type-card-heading">
+        <span className="product-type-badge" aria-hidden="true">{type.icon}</span>
+        <div>
+          <strong>{type.label}</strong>
+          <small>Customer tab #{index + 1} · default unit: {type.unitName}</small>
+        </div>
+        <label className="product-type-switch">
+          <input type="checkbox" checked={type.enabled} onChange={(event) => onUpdate(type.value, { enabled: event.target.checked })} />
+          <span>{type.enabled ? "Shown" : "Hidden"}</span>
+        </label>
+      </div>
+
+      <div className="product-type-order-actions" aria-label={`${type.label} display order`}>
+        <button type="button" disabled={index === 0} onClick={() => onMove(type.value, -1)}><ArrowUp size={14} /> Up</button>
+        <button type="button" disabled={index === total - 1} onClick={() => onMove(type.value, 1)}><ArrowDown size={14} /> Down</button>
+      </div>
+
+      <div className="product-type-fields">
+        <label>
+          Default unit
+          <input value={type.unitName} onChange={(event) => onUpdate(type.value, { unitName: event.target.value })} placeholder="loaf, dozen, bottle, jar" />
+        </label>
+        <label className="span-2">
+          Customer-facing description
+          <textarea value={type.description} onChange={(event) => onUpdate(type.value, { description: event.target.value })} />
+        </label>
+        <label className="span-2">
+          Safety / storage notes
+          <textarea value={type.safetyNotes} onChange={(event) => onUpdate(type.value, { safetyNotes: event.target.value })} />
+        </label>
+      </div>
+
+      <div className="product-package-settings">
+        <div className="product-package-heading">
+          <span>
+            <strong>Default packages</strong>
+            <small>New recipes of this type start with these package/pricing presets.</small>
+          </span>
+          <button type="button" onClick={() => onAddPackage(type.value)}><Plus size={14} /> Add package</button>
+        </div>
+        <div className="product-package-list">
+          {type.packagePresets.map((preset) => (
+            <div className="product-package-row" key={preset.id}>
+              <label>
+                Label
+                <input value={preset.label} onChange={(event) => onUpdatePackage(type.value, preset.id, { label: event.target.value })} />
+              </label>
+              <label>
+                Units
+                <input type="number" min="0.5" max="120" step="0.5" value={preset.units} onChange={(event) => onUpdatePackage(type.value, preset.id, { units: Number(event.target.value) })} />
+              </label>
+              <label>
+                Price
+                <input type="number" min="0" step="0.25" value={preset.price} onChange={(event) => onUpdatePackage(type.value, preset.id, { price: Number(event.target.value) })} />
+              </label>
+              <label>
+                Bake slots
+                <input type="number" min="0" max="6" value={preset.capacityUnits} onChange={(event) => onUpdatePackage(type.value, preset.id, { capacityUnits: Number(event.target.value) })} />
+              </label>
+              <button type="button" className="remove-ingredient-button" disabled={type.packagePresets.length <= 1} aria-label={`Remove ${preset.label}`} onClick={() => onRemovePackage(type.value, preset.id)}><Trash2 size={14} /></button>
+            </div>
+          ))}
+        </div>
+      </div>
+    </article>
   );
 }
 
@@ -108,6 +195,70 @@ export default function SettingsPage({
         windowIndex === index ? value : window
       )),
     }));
+  }
+
+  function updateProductTypes(updater) {
+    setDraft((current) => ({
+      ...current,
+      productTypes: updater(normalizeProductTypeSettings(current)),
+    }));
+  }
+
+  function updateProductType(value, changes) {
+    updateProductTypes((types) => types.map((type) => (
+      type.value === value ? { ...type, ...changes } : type
+    )));
+  }
+
+  function moveProductType(value, direction) {
+    updateProductTypes((types) => {
+      const next = [...types];
+      const index = next.findIndex((type) => type.value === value);
+      const swapIndex = index + direction;
+      if (index < 0 || swapIndex < 0 || swapIndex >= next.length) return next;
+      [next[index], next[swapIndex]] = [next[swapIndex], next[index]];
+      return next.map((type, order) => ({ ...type, order }));
+    });
+  }
+
+  function addProductPackage(typeValue) {
+    updateProductTypes((types) => types.map((type) => {
+      if (type.value !== typeValue) return type;
+      return {
+        ...type,
+        packagePresets: [
+          ...type.packagePresets,
+          {
+            id: `${typeValue}-package-${Date.now()}`,
+            label: type.unitName === "loaf" ? "Loaf" : `Each ${type.unitName || "item"}`,
+            units: 1,
+            price: 0,
+            capacityUnits: 1,
+          },
+        ],
+      };
+    }));
+  }
+
+  function updateProductPackage(typeValue, packageId, changes) {
+    updateProductTypes((types) => types.map((type) => (
+      type.value === typeValue
+        ? {
+          ...type,
+          packagePresets: type.packagePresets.map((preset) => (
+            preset.id === packageId ? { ...preset, ...changes } : preset
+          )),
+        }
+        : type
+    )));
+  }
+
+  function removeProductPackage(typeValue, packageId) {
+    updateProductTypes((types) => types.map((type) => (
+      type.value === typeValue && type.packagePresets.length > 1
+        ? { ...type, packagePresets: type.packagePresets.filter((preset) => preset.id !== packageId) }
+        : type
+    )));
   }
 
   async function saveSettings(event) {
@@ -206,6 +357,7 @@ export default function SettingsPage({
             !emailProvider.hasFromEmail ? "verified sender email" : "",
           ].filter(Boolean).join(" and ")} in Supabase secrets.`
           : "The app is ready. Add the Resend API key and verified sender in Supabase to start delivery.";
+  const productTypes = normalizeProductTypeSettings(draft);
 
   return (
     <main className="page settings-page">
@@ -240,6 +392,34 @@ export default function SettingsPage({
             <small>Leave the message blank to hide the announcement without changing the rest of your storefront.</small>
           </div>
           <label>Pickup location<input value={draft.pickupLocation} onChange={(event) => update("pickupLocation", event.target.value)} /></label>
+        </section>
+
+        <section className="settings-card product-types-settings">
+          <div className="section-title-line">
+            <div>
+              <span className="eyebrow-label dark">Customer menu</span>
+              <h2>Product types</h2>
+            </div>
+            <PackageCheck size={20} />
+          </div>
+          <p className="product-type-settings-note">
+            Choose which category tabs customers see, set the default unit and package prices for new recipes, and keep safety notes visible for sauces, vinegars, oils, and other goods.
+          </p>
+          <div className="product-type-list">
+            {productTypes.map((type, index) => (
+              <ProductTypeSettingsCard
+                key={type.value}
+                index={index}
+                onAddPackage={addProductPackage}
+                onMove={moveProductType}
+                onRemovePackage={removeProductPackage}
+                onUpdate={updateProductType}
+                onUpdatePackage={updateProductPackage}
+                total={productTypes.length}
+                type={type}
+              />
+            ))}
+          </div>
         </section>
 
         <section className="settings-card">
