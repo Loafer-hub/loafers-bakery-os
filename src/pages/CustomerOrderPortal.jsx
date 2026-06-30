@@ -41,6 +41,7 @@ import { productTypeMap, productTypeSettingsFor } from "../lib/productTypes";
 // product-type-settings-v1
 // customer-options-v1
 // compact-customer-cards-v1
+// checkout-flow-v1
 
 const DEFAULT_PICKUP_LOCATION = "Three Bears, Delta Junction, AK";
 const DEFAULT_PAYMENT_METHODS = ["Venmo", "Zelle", "Cash"];
@@ -49,9 +50,37 @@ const PAYMENT_DETAILS = {
   Zelle: "9076161025",
   Cash: "Pay at pickup",
 };
+const CHECKOUT_STEPS = [
+  { id: "browse", label: "Browse menu" },
+  { id: "cart", label: "Review cart" },
+  { id: "pickup", label: "Choose pickup" },
+  { id: "contact", label: "Contact + payment" },
+  { id: "submit", label: "Send request" },
+];
+const PRODUCT_BADGE_LABELS = {
+  preorder: "Preorder",
+  ready_now: "Ready now",
+  spicy: "Spicy",
+  dairy: "Contains dairy",
+  gluten: "Gluten",
+  limited_batch: "Limited batch",
+};
 
 function dollars(cents) {
   return `$${(Number(cents || 0) / 100).toFixed(2)}`;
+}
+
+function checkoutPickupLabel(date, time) {
+  if (!date) return "Pickup not chosen yet";
+  const pickup = new Date(`${date}T${time || "00:00"}`);
+  if (Number.isNaN(pickup.getTime())) return `${date} ${time || ""}`.trim();
+  return pickup.toLocaleString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
 }
 
 function productSalesOptions(product) {
@@ -87,6 +116,25 @@ function productTypeValue(product) {
 
 function productPhotoUrl(product) {
   return String(product?.recipe_details?.photoUrl || "").trim();
+}
+
+function productBadges(product) {
+  return (Array.isArray(product?.recipe_details?.badges) ? product.recipe_details.badges : [])
+    .map((badge) => String(badge || "").trim())
+    .filter((badge) => PRODUCT_BADGE_LABELS[badge])
+    .map((badge) => ({ id: badge, label: PRODUCT_BADGE_LABELS[badge] }));
+}
+
+function productUnavailable(product) {
+  return product?.recipe_details?.available === false
+    || product?.recipe_details?.soldOut === true
+    || product?.recipe_details?.unavailableThisWeek === true;
+}
+
+function productAvailabilityLabel(product) {
+  const note = String(product?.recipe_details?.availabilityNote || "").trim();
+  if (note) return note;
+  return productUnavailable(product) ? "Unavailable this week" : "Available this week";
 }
 
 function productStartingPrice(product) {
@@ -142,6 +190,7 @@ export default function CustomerOrderPortal({
   const [selectedOptions, setSelectedOptions] = useState({});
   const [productOptionSelections, setProductOptionSelections] = useState({});
   const [activeCatalogTab, setActiveCatalogTab] = useState("all");
+  const [checkoutStep, setCheckoutStep] = useState("browse");
   const [accountOpen, setAccountOpen] = useState(false);
   const [accountMode, setAccountMode] = useState("signin");
   const [accountForm, setAccountForm] = useState({ name: "", email: "", password: "" });
@@ -186,6 +235,9 @@ export default function CustomerOrderPortal({
             photoAlt: recipe.photoAlt || recipe.name || "",
             hydration: recipe.hydration,
             ingredients: recipe.ingredients,
+            available: recipe.available !== false,
+            availabilityNote: recipe.availabilityNote || "",
+            badges: Array.isArray(recipe.badges) ? recipe.badges : [],
           },
           sales_options: (recipe.salesOptions || [{
             id: "default",
@@ -265,6 +317,7 @@ export default function CustomerOrderPortal({
         ...item,
         itemType: "shelf",
         quantityKey: `shelf-${item.id}`,
+        availableQuantity: Number(item.quantity || 0),
         quantity: Number(quantities[`shelf-${item.id}`]),
       })),
   ], [productOptionSelections, productSettingsByValue, quantities, rules, storefront, storefrontProducts]);
@@ -322,7 +375,11 @@ export default function CustomerOrderPortal({
     .filter((item) => item.itemType === "shelf")
     .reduce((sum, item) => sum + item.quantity, 0);
   const pickupOptions = pickupTimeOptions(form.pickupDate, rules);
-  const trackedCode = new URLSearchParams(window.location.search).get("track") || "";
+  const urlParams = new URLSearchParams(window.location.search);
+  const trackedCode = urlParams.get("track") || "";
+  const trackedContact = urlParams.get("contact") || "";
+  const ownerPreview = urlParams.get("preview") === "owner" || urlParams.get("ownerPreview") === "1";
+  const checkoutStepIndex = CHECKOUT_STEPS.findIndex((step) => step.id === checkoutStep);
 
   useEffect(() => {
     if (!catalogTabs.some((tab) => tab.id === activeCatalogTab)) {
@@ -334,16 +391,94 @@ export default function CustomerOrderPortal({
     const quantityKey = item.quantityKey || `${item.itemType}-${item.id}`;
     const currentQuantity = Number(quantities[quantityKey] || 0);
     const capacityChange = Number(item.saleOption?.capacity_units ?? 1);
+    if (item.itemType === "product" && change > 0 && productUnavailable(item)) {
+      setError(`${item.name} is ${productAvailabilityLabel(item).toLowerCase()}.`);
+      return;
+    }
     if (item.itemType === "product" && change > 0 && bakeLoafCount + capacityChange > rules.dailyCapacity) {
       setError(`That package would exceed the ${rules.dailyCapacity}-slot daily bake capacity.`);
       return;
     }
-    const maximum = item.itemType === "shelf" ? Number(item.quantity || 0) : 6;
+    const maximum = item.itemType === "shelf" ? Number(item.availableQuantity ?? item.quantity ?? 0) : 6;
     setError("");
     setQuantities((current) => ({
       ...current,
       [quantityKey]: Math.max(0, Math.min(maximum, currentQuantity + change)),
     }));
+  }
+
+  function editCartItem(item) {
+    if (item.itemType !== "product") return;
+    setSelectedOptions((current) => ({ ...current, [item.id]: item.saleOption?.id || current[item.id] }));
+    setSelectedProduct(item);
+  }
+
+  function validateCartChoices() {
+    const missingChoiceItem = selectedItems.find((item) => item.missingCustomerChoices?.length);
+    if (missingChoiceItem) {
+      setError(`Choose ${missingChoiceItem.missingCustomerChoices[0]} for ${missingChoiceItem.name}.`);
+      setCheckoutStep("cart");
+      return false;
+    }
+    return true;
+  }
+
+  function validatePickup() {
+    if (!form.pickupDate) {
+      setError("Choose an available pickup date.");
+      return false;
+    }
+    if (!isPickupTimeAllowed(form.pickupDate, form.pickupTime, rules)) {
+      setError(`Choose a pickup time between ${pickupHoursLabel(form.pickupDate, rules)}.`);
+      return false;
+    }
+    if (selectedCapacity && bakeLoafCount > selectedCapacity.remaining) {
+      setError(`Only ${selectedCapacity.remaining} bake slot${selectedCapacity.remaining === 1 ? "" : "s"} remain for that pickup day.`);
+      return false;
+    }
+    return true;
+  }
+
+  function validateContact() {
+    if (!form.name.trim()) {
+      setError("Add your name so the baker can confirm the request.");
+      return false;
+    }
+    if (!form.email.trim() && !form.phone.trim()) {
+      setError("Add an email or phone number so the baker can reach you.");
+      return false;
+    }
+    return true;
+  }
+
+  function advanceCheckout() {
+    setError("");
+    if (checkoutStep === "browse") {
+      if (!selectedItems.length) {
+        setError("Choose at least one item.");
+        return;
+      }
+      setCheckoutStep("cart");
+      return;
+    }
+    if (checkoutStep === "cart") {
+      if (!selectedItems.length) {
+        setError("Your cart is empty.");
+        return;
+      }
+      if (!validateCartChoices()) return;
+      setCheckoutStep("pickup");
+      return;
+    }
+    if (checkoutStep === "pickup") {
+      if (!validatePickup()) return;
+      setCheckoutStep("contact");
+      return;
+    }
+    if (checkoutStep === "contact") {
+      if (!validateContact()) return;
+      setCheckoutStep("submit");
+    }
   }
 
   async function submitAccount(event) {
@@ -376,6 +511,10 @@ export default function CustomerOrderPortal({
   async function submitOrder(event) {
     event.preventDefault();
     setError("");
+    if (ownerPreview) {
+      setError("Owner preview mode is read-only. Turn off preview to place a real request.");
+      return;
+    }
     if (!cloudAccount.configured) {
       setError("This is the preview. Connect cloud storage before sharing the page with customers.");
       return;
@@ -388,17 +527,7 @@ export default function CustomerOrderPortal({
       setError("Choose an available pickup date.");
       return;
     }
-    const missingChoiceItem = selectedItems.find((item) => item.missingCustomerChoices?.length);
-    if (missingChoiceItem) {
-      setError(`Choose ${missingChoiceItem.missingCustomerChoices[0]} for ${missingChoiceItem.name}.`);
-      return;
-    }
-    if (!isPickupTimeAllowed(form.pickupDate, form.pickupTime, rules)) {
-      setError(`Choose a pickup time between ${pickupHoursLabel(form.pickupDate, rules)}.`);
-      return;
-    }
-    if (selectedCapacity && bakeLoafCount > selectedCapacity.remaining) {
-      setError(`Only ${selectedCapacity.remaining} bake slot${selectedCapacity.remaining === 1 ? "" : "s"} remain for that pickup day.`);
+    if (!validateCartChoices() || !validatePickup() || !validateContact()) {
       return;
     }
     try {
@@ -427,6 +556,7 @@ export default function CustomerOrderPortal({
       setSuccess(result);
       setQuantities({});
       setProductOptionSelections({});
+      setCheckoutStep("browse");
     } catch (nextError) {
       setError(nextError.message);
     }
@@ -487,7 +617,7 @@ export default function CustomerOrderPortal({
           configured={cloudAccount.configured}
           feedbackEnabled={rules.feedbackEnabled}
           initialCode={trackedCode}
-          initialContact={form.email}
+          initialContact={trackedContact || form.email}
           slug={slug}
         />
       </main>
@@ -506,6 +636,7 @@ export default function CustomerOrderPortal({
       </header>
 
       {!cloudAccount.configured ? <div className="portal-preview-banner"><LockKeyhole size={15} /> Preview only · cloud connection still needed</div> : null}
+      {ownerPreview ? <div className="portal-preview-banner owner-preview-banner"><Info size={15} /> Owner preview · this is what customers see before you publish</div> : null}
       {customerAnnouncement ? <CustomerAnnouncement announcement={customerAnnouncement} /> : null}
 
       {accountOpen ? (
@@ -552,16 +683,17 @@ export default function CustomerOrderPortal({
         </section>
       ) : null}
 
-      <CustomerOrderLookup
-        configured={cloudAccount.configured}
-        feedbackEnabled={rules.feedbackEnabled}
-        initialCode={trackedCode}
-        initialContact={form.email}
-        slug={slug}
-      />
+      <form className="customer-checkout-flow" onSubmit={submitOrder}>
+        <CustomerCheckoutSteps
+          currentStep={checkoutStep}
+          currentStepIndex={checkoutStepIndex}
+          onSelectStep={(stepId, stepIndex) => {
+            if (stepIndex <= checkoutStepIndex) setCheckoutStep(stepId);
+          }}
+          steps={CHECKOUT_STEPS}
+        />
 
-      <form onSubmit={submitOrder}>
-        <section className="customer-menu">
+        {checkoutStep === "browse" ? <section className="customer-menu">
           <div className="customer-section-heading"><div><h2>Choose your items</h2><p>Browse by category, ready shelf, or all goods. Requests are confirmed by the baker before they become final orders.</p></div></div>
           <div className="customer-menu-tabs" role="tablist" aria-label="Goods categories">
             {catalogTabs.map((tab) => (
@@ -642,16 +774,22 @@ export default function CustomerOrderPortal({
               <span>Try All goods or check back after the baker republishes the menu.</span>
             </div>
           ) : null}
-        </section>
+        </section> : null}
 
-        <section className="customer-details">
-          <div className="customer-section-heading"><div><h2>Pickup & contact</h2><p>Leave enough information for the baker to confirm your request.</p></div></div>
-          <div className="form-stack">
-            <label>Name<input required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="Your name" /></label>
-            <div className="form-grid">
-              <label>Email<input type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} placeholder="you@example.com" /></label>
-              <label>Phone<input value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} placeholder="Optional if email entered" /></label>
-            </div>
+        {checkoutStep === "cart" ? (
+          <CustomerCartReview
+            items={selectedItems}
+            total={total}
+            onChangeQuantity={changeQuantity}
+            onEditItem={editCartItem}
+            onBackToMenu={() => setCheckoutStep("browse")}
+          />
+        ) : null}
+
+        {checkoutStep === "pickup" ? (
+          <section className="customer-details customer-flow-panel">
+            <div className="customer-section-heading"><div><h2>Choose pickup</h2><p>Select a date and pickup time before entering contact details.</p></div></div>
+            <div className="form-stack">
             <CustomerPickupCalendar
               configured={cloudAccount.configured}
               loafCount={bakeLoafCount}
@@ -680,6 +818,20 @@ export default function CustomerOrderPortal({
               </select>
             </label>
             {form.pickupDate ? <p className="pickup-hours-note"><Clock3 size={14} /> Pickup hours for this day: {pickupHoursLabel(form.pickupDate, rules)}</p> : null}
+              <aside className="pickup-location-card"><Store size={18} /><span><small>Pickup location</small><strong>{storefront.bakery.pickup_location || DEFAULT_PICKUP_LOCATION}</strong></span></aside>
+            </div>
+          </section>
+        ) : null}
+
+        {checkoutStep === "contact" ? (
+          <section className="customer-details customer-flow-panel">
+            <div className="customer-section-heading"><div><h2>Contact + payment</h2><p>Leave enough information for the baker to confirm your request.</p></div></div>
+            <div className="form-stack">
+              <label>Name<input required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="Your name" /></label>
+              <div className="form-grid">
+                <label>Email<input type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} placeholder="you@example.com" /></label>
+                <label>Phone<input value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} placeholder="Optional if email entered" /></label>
+              </div>
             <fieldset className="payment-choice">
               <legend>How would you like to pay?</legend>
               <div>
@@ -699,9 +851,8 @@ export default function CustomerOrderPortal({
             </fieldset>
             <aside className="payment-instructions">
               <Banknote size={18} />
-              <span><small>{form.paymentMethod} payment</small><strong>{PAYMENT_DETAILS[form.paymentMethod]}</strong></span>
+              <span><small>{form.paymentMethod} payment</small><strong>{PAYMENT_DETAILS[form.paymentMethod] || "Pay as arranged with the baker"}</strong></span>
             </aside>
-            <aside className="pickup-location-card"><Store size={18} /><span><small>Pickup location</small><strong>{storefront.bakery.pickup_location || DEFAULT_PICKUP_LOCATION}</strong></span></aside>
             <label>Allergies or food sensitivities<textarea value={form.allergies} onChange={(event) => setForm({ ...form, allergies: event.target.value })} placeholder="List allergies, sensitivities, or write “None.” The baker will confirm before accepting." /></label>
             <aside className="allergy-warning"><strong>Home bakery notice</strong><span>Loafers handles wheat and may handle dairy, seeds, and other allergens. An allergy note is a request for review, not a guarantee against cross-contact.</span></aside>
             <label>Request notes<textarea value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} placeholder="Scoring preference, timing, or anything else the baker should know." /></label>
@@ -718,13 +869,42 @@ export default function CustomerOrderPortal({
             </fieldset>
           </div>
         </section>
+        ) : null}
+
+        {checkoutStep === "submit" ? (
+          <CustomerCheckoutReview
+            form={form}
+            items={selectedItems}
+            pickupLocation={storefront.bakery.pickup_location || DEFAULT_PICKUP_LOCATION}
+            rules={rules}
+            total={total}
+          />
+        ) : null}
 
         <footer className="customer-order-footer">
           <div><ShoppingBag size={18} /><span><strong>{packageCount} {packageCount === 1 ? "package" : "packages"} · {itemCount} {itemCount === 1 ? "item" : "items"}</strong><small>Estimated total {dollars(total)}</small></span></div>
-          <button className="primary-button" type="submit">Send request</button>
+          <button
+            className="primary-button"
+            type={checkoutStep === "submit" ? "submit" : "button"}
+            onClick={checkoutStep === "submit" ? undefined : advanceCheckout}
+          >
+            {checkoutStep === "submit"
+              ? "Send request"
+              : checkoutStep === "contact"
+                ? "Review request"
+                : CHECKOUT_STEPS[Math.min(CHECKOUT_STEPS.length - 1, checkoutStepIndex + 1)]?.label || "Continue"}
+          </button>
         </footer>
         {error ? <p className="form-error customer-form-error" role="alert">{error}</p> : null}
       </form>
+
+      <CustomerOrderLookup
+        configured={cloudAccount.configured}
+        feedbackEnabled={rules.feedbackEnabled}
+        initialCode={trackedCode}
+        initialContact={trackedContact || form.email}
+        slug={slug}
+      />
 
       {selectedProduct ? (
         <CustomerProductOrderModal
@@ -749,6 +929,129 @@ export default function CustomerOrderPortal({
   );
 }
 
+function CustomerCheckoutSteps({ currentStep, currentStepIndex, onSelectStep, steps }) {
+  return (
+    <nav className="customer-checkout-steps" aria-label="Checkout steps">
+      {steps.map((step, index) => (
+        <button
+          className={[
+            currentStep === step.id ? "active" : "",
+            index < currentStepIndex ? "complete" : "",
+          ].filter(Boolean).join(" ")}
+          disabled={index > currentStepIndex}
+          key={step.id}
+          onClick={() => onSelectStep(step.id, index)}
+          type="button"
+        >
+          <span>{index + 1}</span>
+          <strong>{step.label}</strong>
+        </button>
+      ))}
+    </nav>
+  );
+}
+
+function ProductBadgeRow({ product }) {
+  const badges = productBadges(product);
+  const unavailable = productUnavailable(product);
+  if (!badges.length && !unavailable) return null;
+  return (
+    <span className="customer-product-badges">
+      {unavailable ? <small className="product-badge soldout">{productAvailabilityLabel(product)}</small> : null}
+      {badges.map((badge) => <small className={`product-badge badge-${badge.id}`} key={badge.id}>{badge.label}</small>)}
+    </span>
+  );
+}
+
+function CustomerCartReview({ items, onBackToMenu, onChangeQuantity, onEditItem, total }) {
+  return (
+    <section className="customer-details customer-flow-panel customer-cart-panel">
+      <div className="customer-section-heading">
+        <div><h2>Review cart</h2><p>Change quantities here, or reopen a product to adjust package and options.</p></div>
+      </div>
+      {items.length ? (
+        <div className="customer-cart-list">
+          {items.map((item) => (
+            <article className="customer-cart-row" key={item.quantityKey}>
+              <div>
+                <small>{item.itemType === "shelf" ? "Ready now" : item.saleOption?.label || "Package"}</small>
+                <strong>{item.name}</strong>
+                <span>
+                  {item.itemType === "shelf"
+                    ? dollars(item.price_cents)
+                    : `${item.saleOption?.units || 1} ${pluralUnit(item.recipe_details?.unitName || "item", item.saleOption?.units || 1)} · ${dollars(item.price_cents)}`}
+                </span>
+                {item.customerChoices?.length ? (
+                  <em>{item.customerChoices.map((choice) => `${choice.label}: ${choice.value}`).join(" · ")}</em>
+                ) : null}
+                {item.missingCustomerChoices?.length ? <b>Needs {item.missingCustomerChoices.join(", ")}</b> : null}
+              </div>
+              <div className="customer-cart-actions">
+                {item.itemType === "product" ? <button type="button" onClick={() => onEditItem(item)}>Edit options</button> : null}
+                <span className="customer-quantity horizontal">
+                  <button type="button" aria-label={`Remove one ${item.name}`} onClick={() => onChangeQuantity(item, -1)}><Minus size={15} /></button>
+                  <span>{item.quantity}</span>
+                  <button type="button" aria-label={`Add one ${item.name}`} onClick={() => onChangeQuantity(item, 1)}><Plus size={15} /></button>
+                </span>
+                <strong>{dollars(item.price_cents * item.quantity)}</strong>
+              </div>
+            </article>
+          ))}
+          <div className="customer-cart-total"><span>Estimated total</span><strong>{dollars(total)}</strong></div>
+        </div>
+      ) : (
+        <div className="customer-cart-empty">
+          <ShoppingBag size={24} />
+          <strong>Your cart is empty.</strong>
+          <span>Add something from the menu to keep going.</span>
+        </div>
+      )}
+      <button className="secondary-button customer-back-to-menu" type="button" onClick={onBackToMenu}>Browse menu</button>
+    </section>
+  );
+}
+
+function CustomerCheckoutReview({ form, items, pickupLocation, rules, total }) {
+  return (
+    <section className="customer-details customer-flow-panel customer-review-panel">
+      <div className="customer-section-heading">
+        <div><h2>Send request</h2><p>Final check before the baker receives it. This is still a request until accepted.</p></div>
+      </div>
+      <div className="checkout-review-grid">
+        <article>
+          <small>Cart</small>
+          <strong>{items.length} package{items.length === 1 ? "" : "s"}</strong>
+          <span>{items.map((item) => `${item.quantity} × ${item.saleOption?.label ? `${item.saleOption.label} ${item.name}` : item.name}`).join(" · ")}</span>
+        </article>
+        <article>
+          <small>Pickup</small>
+          <strong>{checkoutPickupLabel(form.pickupDate, form.pickupTime)}</strong>
+          <span>{pickupLocation}</span>
+        </article>
+        <article>
+          <small>Contact</small>
+          <strong>{form.name || "Name needed"}</strong>
+          <span>{[form.email, form.phone].filter(Boolean).join(" · ") || "Email or phone needed"}</span>
+        </article>
+        <article>
+          <small>Payment</small>
+          <strong>{form.paymentMethod}</strong>
+          <span>{PAYMENT_DETAILS[form.paymentMethod] || "Pay as arranged with the baker"}</span>
+        </article>
+      </div>
+      {form.allergies ? <aside className="allergy-warning"><strong>Allergy note</strong><span>{form.allergies}</span></aside> : null}
+      {form.notes ? <aside className="customer-request-note"><strong>Request note</strong><span>{form.notes}</span></aside> : null}
+      <div className="checkout-review-total">
+        <span><small>Order status updates</small><strong>{[
+          rules.emailNotifications && form.notifyEmail && form.email.trim() ? "Email" : "",
+          rules.smsNotifications && form.notifySms && form.phone.trim() ? "Text" : "",
+        ].filter(Boolean).join(" + ") || "No automatic updates selected"}</strong></span>
+        <span><small>Estimated total</small><strong>{dollars(total)}</strong></span>
+      </div>
+    </section>
+  );
+}
+
 function CustomerAnnouncement({ announcement }) {
   return (
     <section className="customer-announcement" aria-label="Bakery announcement">
@@ -770,19 +1073,25 @@ function CustomerProductCard({
   const selectedCount = productSelectedPackageCount(product, quantities);
   const selected = selectedCount > 0;
   const photoUrl = productPhotoUrl(product);
+  const unavailable = productUnavailable(product);
   return (
-    <article className={selected ? "customer-product compact-product selected" : "customer-product compact-product"}>
+    <article className={[
+      "customer-product compact-product",
+      selected ? "selected" : "",
+      unavailable ? "unavailable" : "",
+    ].filter(Boolean).join(" ")}>
       <button className="customer-product-card-button" type="button" onClick={onOpenItem} aria-label={`Open options for ${product.name}`}>
         <span className={photoUrl ? "customer-product-photo" : "customer-product-photo empty"}>
           {photoUrl ? <img src={photoUrl} alt={product.recipe_details?.photoAlt || product.name} /> : typeSettings?.icon || productTypeIcon(product)}
         </span>
         <span className="customer-product-card-body">
           <span className="customer-product-card-meta"><Info size={12} /> {typeSettings?.label || productTypeLabel(product)}</span>
+          <ProductBadgeRow product={product} />
           <h3>{product.name}</h3>
           <p>{product.description}</p>
           <span className="customer-product-card-footer">
             <strong>From {dollars(productStartingPrice(product))}</strong>
-            <small>{selected ? `${selectedCount} package${selectedCount === 1 ? "" : "s"} selected` : "Tap for details"}</small>
+            <small>{unavailable ? "Details only" : selected ? `${selectedCount} package${selectedCount === 1 ? "" : "s"} selected` : "Tap for details"}</small>
           </span>
         </span>
       </button>
@@ -813,6 +1122,7 @@ function CustomerProductOrderModal({
   const quantityKey = `product-${product.id}-${selectedOption.id}`;
   const quantity = Number(quantities[quantityKey] || 0);
   const customerOptions = enabledCustomerOptions(typeSettings);
+  const unavailable = productUnavailable(product);
   const nutrition = ingredients.length ? estimateRecipeNutrition({
     yield: baseYield,
     ingredients,
@@ -827,9 +1137,16 @@ function CustomerProductOrderModal({
         <div className="customer-recipe-summary">
           <span><small>Starting price</small><strong>{dollars(Math.min(...salesOptions.map((option) => option.price_cents)))}</strong></span>
           <span><small>Category</small><strong>{typeSettings?.label || productTypeLabel(product)}</strong></span>
-          <span><small>Published formula</small><strong>{baseYield} {pluralUnit(unitName, baseYield)}</strong></span>
+          <span><small>Availability</small><strong>{productAvailabilityLabel(product)}</strong></span>
         </div>
+        <ProductBadgeRow product={product} />
         <p>{product.description || "Small-batch naturally leavened bread."}</p>
+        {unavailable ? (
+          <aside className="customer-recipe-safety-note unavailable-note">
+            <Info size={15} />
+            <span><strong>Not orderable right now</strong><small>{productAvailabilityLabel(product)}</small></span>
+          </aside>
+        ) : null}
         {typeSettings?.safetyNotes ? (
           <aside className="customer-recipe-safety-note">
             <Info size={15} />
@@ -866,7 +1183,7 @@ function CustomerProductOrderModal({
                 itemType: "product",
                 saleOption: selectedOption,
                 quantityKey,
-              }, 1)}><Plus size={15} /></button>
+              }, 1)} disabled={unavailable}><Plus size={15} /></button>
             </div>
           </div>
           <div className="customer-item-modal-total">
