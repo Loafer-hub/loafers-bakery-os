@@ -625,8 +625,8 @@ export default function App() {
       onClick: () => navigate("orders"),
     },
     {
-      label: "Start Kitchen bake",
-      note: "Open Production and track active work",
+      label: "Open Kitchen board",
+      note: "Track active bakes and step checklists",
       icon: ChefHat,
       onClick: () => navigate("production"),
     },
