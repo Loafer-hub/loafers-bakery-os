@@ -31,6 +31,7 @@ import { normalizeProductTypeSettings } from "../lib/productTypes";
 
 // product-type-settings-v1
 // settings-collapse-v1
+// customer-options-v1
 
 function ToggleRow({ checked, label, note, onChange }) {
   return (
@@ -74,11 +75,14 @@ function CollapsibleSettingsCard({ children, className = "", eyebrow, icon, summ
 }
 
 function ProductTypeSettingsCard({
+  onAddCustomerOption,
   index,
   onAddPackage,
   onMove,
+  onRemoveCustomerOption,
   onRemovePackage,
   onUpdate,
+  onUpdateCustomerOption,
   onUpdatePackage,
   total,
   type,
@@ -118,6 +122,71 @@ function ProductTypeSettingsCard({
             Safety / storage notes
             <textarea value={type.safetyNotes} onChange={(event) => onUpdate(type.value, { safetyNotes: event.target.value })} />
           </label>
+        </div>
+
+        <div className="product-customer-options">
+          <div className="product-package-heading">
+            <span>
+              <strong>Customer choices</strong>
+              <small>Show or hide weekly options like slicing, spice level, packaging, or gift notes.</small>
+            </span>
+            <button type="button" onClick={() => onAddCustomerOption(type.value)}><Plus size={14} /> Add choice</button>
+          </div>
+          <div className="product-customer-option-list">
+            {(type.customerOptions || []).map((option) => (
+              <div className={option.enabled ? "product-customer-option-row" : "product-customer-option-row disabled"} key={option.id}>
+                <div className="product-choice-toggle-line">
+                  <label className="product-type-switch">
+                    <input
+                      type="checkbox"
+                      checked={option.enabled !== false}
+                      onChange={(event) => onUpdateCustomerOption(type.value, option.id, { enabled: event.target.checked })}
+                    />
+                    <span>{option.enabled !== false ? "Shown to customers" : "Hidden this week"}</span>
+                  </label>
+                  <label className="product-choice-required">
+                    <input
+                      type="checkbox"
+                      checked={option.required === true}
+                      onChange={(event) => onUpdateCustomerOption(type.value, option.id, { required: event.target.checked })}
+                    />
+                    Required
+                  </label>
+                  <button type="button" className="remove-ingredient-button" aria-label={`Remove ${option.label}`} onClick={() => onRemoveCustomerOption(type.value, option.id)}><Trash2 size={14} /></button>
+                </div>
+                <div className="product-choice-fields">
+                  <label>
+                    Label
+                    <input value={option.label} onChange={(event) => onUpdateCustomerOption(type.value, option.id, { label: event.target.value })} />
+                  </label>
+                  <label>
+                    Field type
+                    <select value={option.type} onChange={(event) => onUpdateCustomerOption(type.value, option.id, { type: event.target.value })}>
+                      <option value="select">Choices</option>
+                      <option value="text">Short text</option>
+                    </select>
+                  </label>
+                  <label className="span-2">
+                    Help text
+                    <input value={option.help || ""} onChange={(event) => onUpdateCustomerOption(type.value, option.id, { help: event.target.value })} placeholder="Tell customers when this choice matters." />
+                  </label>
+                  {option.type === "select" ? (
+                    <label className="span-2">
+                      Choices
+                      <textarea
+                        value={(option.choices || []).join("\n")}
+                        onChange={(event) => onUpdateCustomerOption(type.value, option.id, { choices: event.target.value.split(/\n|,/).map((choice) => choice.trim()).filter(Boolean) })}
+                        placeholder="One option per line"
+                      />
+                    </label>
+                  ) : null}
+                </div>
+              </div>
+            ))}
+            {!(type.customerOptions || []).length ? (
+              <div className="product-choice-empty">No extra customer choices. Add one if this category needs weekly options.</div>
+            ) : null}
+          </div>
         </div>
 
         <div className="product-package-settings">
@@ -288,6 +357,48 @@ export default function SettingsPage({
     )));
   }
 
+  function addCustomerOption(typeValue) {
+    updateProductTypes((types) => types.map((type) => {
+      if (type.value !== typeValue) return type;
+      return {
+        ...type,
+        customerOptions: [
+          ...(type.customerOptions || []),
+          {
+            id: `${typeValue}-choice-${Date.now()}`,
+            label: "Custom choice",
+            type: "text",
+            enabled: true,
+            required: false,
+            help: "",
+            choices: ["Yes", "No"],
+          },
+        ],
+      };
+    }));
+  }
+
+  function updateCustomerOption(typeValue, optionId, changes) {
+    updateProductTypes((types) => types.map((type) => (
+      type.value === typeValue
+        ? {
+          ...type,
+          customerOptions: (type.customerOptions || []).map((option) => (
+            option.id === optionId ? { ...option, ...changes } : option
+          )),
+        }
+        : type
+    )));
+  }
+
+  function removeCustomerOption(typeValue, optionId) {
+    updateProductTypes((types) => types.map((type) => (
+      type.value === typeValue
+        ? { ...type, customerOptions: (type.customerOptions || []).filter((option) => option.id !== optionId) }
+        : type
+    )));
+  }
+
   async function saveSettings(event) {
     event.preventDefault();
     setBusy("save");
@@ -437,10 +548,13 @@ export default function SettingsPage({
               <ProductTypeSettingsCard
                 key={type.value}
                 index={index}
+                onAddCustomerOption={addCustomerOption}
                 onAddPackage={addProductPackage}
                 onMove={moveProductType}
+                onRemoveCustomerOption={removeCustomerOption}
                 onRemovePackage={removeProductPackage}
                 onUpdate={updateProductType}
+                onUpdateCustomerOption={updateCustomerOption}
                 onUpdatePackage={updateProductPackage}
                 total={productTypes.length}
                 type={type}
