@@ -303,7 +303,7 @@ function ProductionDashboard({
             <strong>{readyShelfEnabled ? `${shelfQuantity} ready-shelf items` : "Ready shelf hidden"}</strong>
             <small>{shelfError || (bakeryId ? `${shelfItems.length} listing${shelfItems.length === 1 ? "" : "s"} available now` : "Sign into cloud to count ready stock")}</small>
           </div>
-          <button type="button" className="text-button production-card-link" onClick={() => setActive("menu")}>
+          <button type="button" className="text-button production-card-link" onClick={() => setActive("menu", { menuView: "shelf" })}>
             Open Menu shelf <ChevronRight size={14} />
           </button>
         </article>
