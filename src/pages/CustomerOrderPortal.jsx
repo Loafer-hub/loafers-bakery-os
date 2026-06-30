@@ -13,7 +13,6 @@ import {
   Plus,
   Repeat2,
   Save,
-  Search,
   ShieldCheck,
   ShoppingBag,
   Star,
@@ -199,39 +198,6 @@ function customerTrackingLink(code, contact) {
   }
 }
 
-function normalizeCustomerContact(value) {
-  const raw = String(value || "").trim();
-  if (!raw) return "";
-  if (raw.includes("@")) return raw.toLowerCase();
-  return raw.replace(/[^0-9]/g, "");
-}
-
-function customerMemoryKey(slug, contact, suffix) {
-  const normalized = normalizeCustomerContact(contact);
-  return normalized ? `loafers.customer.${slug}.${normalized}.${suffix}` : "";
-}
-
-function readCustomerMemory(slug, contact, suffix, fallback) {
-  const key = customerMemoryKey(slug, contact, suffix);
-  if (!key) return fallback;
-  try {
-    const saved = window.localStorage.getItem(key);
-    return saved ? JSON.parse(saved) : fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-function writeCustomerMemory(slug, contact, suffix, value) {
-  const key = customerMemoryKey(slug, contact, suffix);
-  if (!key) return;
-  try {
-    window.localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    // Storage can be unavailable in private browsing; ordering still works.
-  }
-}
-
 function defaultCustomerProfile(metadata = {}) {
   return {
     name: metadata.full_name || "",
@@ -281,9 +247,7 @@ export default function CustomerOrderPortal({
   const [accountForm, setAccountForm] = useState({ name: "", email: "", password: "" });
   const [accountBusy, setAccountBusy] = useState("");
   const [accountMessage, setAccountMessage] = useState("");
-  const [accountLookup, setAccountLookup] = useState({ contact: "", searched: false });
   const [accountProfile, setAccountProfile] = useState(defaultCustomerProfile());
-  const [accountLocalHistory, setAccountLocalHistory] = useState([]);
   const [accountCloudHistory, setAccountCloudHistory] = useState([]);
   const [accountHistoryLoading, setAccountHistoryLoading] = useState(false);
   const [selectedCapacity, setSelectedCapacity] = useState(null);
@@ -401,9 +365,6 @@ export default function CustomerOrderPortal({
       allergies: current.allergies || nextProfile.allergies,
       paymentMethod: current.paymentMethod || nextProfile.defaultPaymentMethod || "Venmo",
     }));
-    if (email) {
-      setAccountLookup((current) => ({ ...current, contact: current.contact || email }));
-    }
   }, [cloudAccount.session?.user?.email, cloudAccount.session?.user?.id]);
 
   const rules = normalizedBakerySettings(storefront?.settings || bakerySettings);
@@ -515,13 +476,8 @@ export default function CustomerOrderPortal({
     String(product.id) === String(accountProfile.favoriteProductId)
     || String(product.recipe_id) === String(accountProfile.favoriteProductId)
   ));
-  const accountHistory = [
-    ...accountCloudHistory,
-    ...accountLocalHistory.filter((localOrder) => (
-      !accountCloudHistory.some((cloudOrder) => cloudOrder.request_code === localOrder.request_code)
-    )),
-  ].slice(0, 8);
-  const accountContact = accountProfile.email || accountLookup.contact || form.email || form.phone;
+  const accountHistory = accountCloudHistory.slice(0, 8);
+  const accountContact = accountProfile.email || form.email || form.phone;
 
   useEffect(() => {
     if (!catalogTabs.some((tab) => tab.id === activeCatalogTab)) {
@@ -669,7 +625,7 @@ export default function CustomerOrderPortal({
         name: current.name || accountForm.name,
         email: current.email || accountForm.email,
       }));
-      setAccountOpen(false);
+      setAccountOpen(true);
     } catch (nextError) {
       setError(nextError.message);
     } finally {
@@ -677,47 +633,12 @@ export default function CustomerOrderPortal({
     }
   }
 
-  function applyCustomerProfile(profile, contact = "") {
-    const nextProfile = { ...defaultCustomerProfile(), ...profile };
-    setAccountProfile(nextProfile);
-    setForm((current) => ({
-      ...current,
-      name: current.name || nextProfile.name,
-      email: nextProfile.email || current.email,
-      phone: nextProfile.phone || current.phone,
-      allergies: nextProfile.allergies || current.allergies,
-      paymentMethod: nextProfile.defaultPaymentMethod || current.paymentMethod,
-      notes: current.notes || nextProfile.preferences,
-    }));
-    if (contact) setAccountLookup({ contact, searched: true });
-  }
-
-  function lookupCustomerMemory(event) {
-    event?.preventDefault();
-    const contact = accountLookup.contact || form.email || form.phone;
-    if (!normalizeCustomerContact(contact)) {
-      setAccountMessage("Enter an email or phone number to look up saved customer details on this device.");
-      return;
-    }
-    const savedProfile = readCustomerMemory(slug, contact, "profile", null);
-    const savedHistory = readCustomerMemory(slug, contact, "orders", []);
-    if (savedProfile) {
-      applyCustomerProfile({ ...savedProfile, email: savedProfile.email || (String(contact).includes("@") ? contact : "") }, contact);
-      setAccountMessage("Saved customer details loaded on this device.");
-    } else {
-      setAccountProfile((current) => ({
-        ...current,
-        email: current.email || (String(contact).includes("@") ? contact : ""),
-        phone: current.phone || (!String(contact).includes("@") ? contact : ""),
-      }));
-      setAccountLookup({ contact, searched: true });
-      setAccountMessage("No saved profile on this device yet. You can save one now.");
-    }
-    setAccountLocalHistory(Array.isArray(savedHistory) ? savedHistory : []);
-  }
-
   async function saveCustomerProfileMemory(event) {
     event.preventDefault();
+    if (!cloudAccount.session?.user) {
+      setAccountMessage("Sign in before saving customer preferences.");
+      return;
+    }
     const favorite = storefrontProducts.find((product) => String(product.id) === String(accountProfile.favoriteProductId));
     const nextProfile = {
       ...accountProfile,
@@ -726,62 +647,26 @@ export default function CustomerOrderPortal({
       favoriteProductName: favorite?.name || "",
       updatedAt: new Date().toISOString(),
     };
-    const contact = nextProfile.email || nextProfile.phone || accountLookup.contact;
-    if (!normalizeCustomerContact(contact)) {
-      setAccountMessage("Add an email or phone number before saving preferences.");
-      return;
-    }
     setAccountBusy("profile");
     setAccountMessage("");
     try {
-      writeCustomerMemory(slug, contact, "profile", nextProfile);
-      if (cloudAccount.session?.user) {
-        await saveCustomerAccountDetails(nextProfile);
-      }
-      applyCustomerProfile(nextProfile, contact);
-      setAccountMessage(cloudAccount.session?.user
-        ? "Customer profile saved to this phone and your account."
-        : "Customer profile saved on this phone.");
+      await saveCustomerAccountDetails(nextProfile);
+      setAccountProfile(nextProfile);
+      setForm((current) => ({
+        ...current,
+        name: current.name || nextProfile.name,
+        email: nextProfile.email || current.email,
+        phone: nextProfile.phone || current.phone,
+        allergies: nextProfile.allergies || current.allergies,
+        paymentMethod: nextProfile.defaultPaymentMethod || current.paymentMethod,
+        notes: current.notes || nextProfile.preferences,
+      }));
+      setAccountMessage("Customer profile saved to your account.");
     } catch (nextError) {
       setAccountMessage(nextError.message);
     } finally {
       setAccountBusy("");
     }
-  }
-
-  function rememberSubmittedOrder(result, submittedItems) {
-    const contact = form.email.trim() || form.phone.trim();
-    if (!normalizeCustomerContact(contact)) return;
-    const profile = {
-      ...accountProfile,
-      name: form.name.trim() || accountProfile.name,
-      email: form.email.trim() || accountProfile.email,
-      phone: form.phone.trim() || accountProfile.phone,
-      allergies: form.allergies.trim() || accountProfile.allergies,
-      defaultPaymentMethod: form.paymentMethod,
-      updatedAt: new Date().toISOString(),
-    };
-    const history = readCustomerMemory(slug, contact, "orders", []);
-    const nextOrder = {
-      request_code: result.request_code,
-      status: "requested",
-      pickup_at: pickupDateTimeIso(form.pickupDate, form.pickupTime),
-      subtotal_cents: result.subtotal_cents,
-      created_at: new Date().toISOString(),
-      itemSummary: submittedItems
-        .map((item) => `${item.quantity} × ${item.saleOption?.label || item.name} ${item.name}`)
-        .join(" · "),
-      customer_order_items: submittedItems.map((item) => ({
-        product_name: item.name,
-        quantity: item.quantity,
-        sale_option_label: item.saleOption?.label || (item.itemType === "shelf" ? "Ready now" : "Package"),
-      })),
-    };
-    const nextHistory = [nextOrder, ...history.filter((order) => order.request_code !== nextOrder.request_code)].slice(0, 12);
-    writeCustomerMemory(slug, contact, "profile", profile);
-    writeCustomerMemory(slug, contact, "orders", nextHistory);
-    setAccountProfile(profile);
-    setAccountLocalHistory(nextHistory);
   }
 
   function reorderFavoriteItem(product = favoriteProduct) {
@@ -866,7 +751,6 @@ export default function CustomerOrderPortal({
           sms: Boolean(rules.smsNotifications && form.notifySms && form.phone.trim()),
         },
       });
-      rememberSubmittedOrder(result, selectedItems);
       setSuccess(result);
       setQuantities({});
       setProductOptionSelections({});
@@ -944,7 +828,7 @@ export default function CustomerOrderPortal({
       <header className="customer-header">
         <div className="brand-lockup"><span className="brand-mark"><Wheat size={23} /></span><span className="brand-name">{storefront.bakery.name}</span></div>
         {cloudAccount.session ? (
-          <button type="button" onClick={signOutCloud}><UserRound size={17} /><span>{cloudAccount.session.user.email}</span></button>
+          <button type="button" onClick={() => setAccountOpen((value) => !value)}><UserRound size={17} /><span>{cloudAccount.session.user.email}</span></button>
         ) : (
           <button type="button" onClick={() => setAccountOpen((value) => !value)}><UserRound size={17} /> Customer account</button>
         )}
@@ -967,7 +851,8 @@ export default function CustomerOrderPortal({
           {cloudAccount.session ? (
             <div className="customer-account-signed-in">
               <UserRound size={17} />
-              <span><strong>{cloudAccount.session.user.email}</strong><small>Signed in · cloud order history is private to this account.</small></span>
+              <span><strong>{cloudAccount.session.user.email}</strong><small>Signed in · saved preferences and order history are private to this account.</small></span>
+              <button className="storage-file-button" type="button" onClick={signOutCloud}>Sign out</button>
             </div>
           ) : (
             <>
@@ -981,68 +866,63 @@ export default function CustomerOrderPortal({
                 <label>Password<input required minLength="8" type="password" value={accountForm.password} onChange={(event) => setAccountForm({ ...accountForm, password: event.target.value })} /></label>
                 <button className="primary-button" type="submit" disabled={accountBusy === "auth"}>{accountBusy === "auth" ? "Please wait…" : accountMode === "signin" ? "Sign in" : "Create account"}</button>
               </form>
+              <small className="customer-account-private-note">Saved preferences, allergies, favorite items, and order history are available after sign-in. Guests can still order without an account.</small>
             </>
           )}
 
-          <form className="customer-lookup-form" onSubmit={lookupCustomerMemory}>
-            <label>
-              Lookup saved guest details
-              <span>
-                <input value={accountLookup.contact} onChange={(event) => setAccountLookup({ contact: event.target.value, searched: false })} placeholder="Email or phone" />
-                <button type="submit"><Search size={15} /> Lookup</button>
-              </span>
-            </label>
-          </form>
+          {cloudAccount.session ? (
+            <>
+              <form className="customer-profile-form" onSubmit={saveCustomerProfileMemory}>
+                <div className="form-grid">
+                  <label>Name<input value={accountProfile.name} onChange={(event) => setAccountProfile({ ...accountProfile, name: event.target.value })} placeholder="Name for orders" /></label>
+                  <label>Phone<input value={accountProfile.phone} onChange={(event) => setAccountProfile({ ...accountProfile, phone: event.target.value })} placeholder="Optional" /></label>
+                </div>
+                <label>Email<input type="email" value={accountProfile.email} onChange={(event) => setAccountProfile({ ...accountProfile, email: event.target.value })} placeholder="you@example.com" /></label>
+                <label>Saved allergies<textarea value={accountProfile.allergies} onChange={(event) => setAccountProfile({ ...accountProfile, allergies: event.target.value })} placeholder="Allergies, sensitivities, cross-contact concerns…" /></label>
+                <label>Preferences<textarea value={accountProfile.preferences} onChange={(event) => setAccountProfile({ ...accountProfile, preferences: event.target.value })} placeholder="Favorite slice, crust, spice, pickup notes…" /></label>
+                <label>Address / delivery note<textarea value={accountProfile.address} onChange={(event) => setAccountProfile({ ...accountProfile, address: event.target.value })} placeholder="Optional address or special pickup notes" /></label>
+                <div className="form-grid">
+                  <label>
+                    Default payment
+                    <select value={accountProfile.defaultPaymentMethod} onChange={(event) => setAccountProfile({ ...accountProfile, defaultPaymentMethod: event.target.value })}>
+                      {(storefront.bakery.payment_methods || DEFAULT_PAYMENT_METHODS).map((method) => <option key={method} value={method}>{method}</option>)}
+                    </select>
+                  </label>
+                  <label>
+                    Favorite item
+                    <select value={accountProfile.favoriteProductId} onChange={(event) => setAccountProfile({ ...accountProfile, favoriteProductId: event.target.value })}>
+                      <option value="">Choose favorite</option>
+                      {storefrontProducts.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}
+                    </select>
+                  </label>
+                </div>
+                <div className="customer-account-actions">
+                  <button className="storage-file-button" type="submit" disabled={accountBusy === "profile"}><Save size={15} /> {accountBusy === "profile" ? "Saving…" : "Save profile"}</button>
+                  <button className="storage-file-button" type="button" onClick={() => reorderFavoriteItem()} disabled={!favoriteProduct}><Heart size={15} /> Reorder favorite</button>
+                </div>
+              </form>
 
-          <form className="customer-profile-form" onSubmit={saveCustomerProfileMemory}>
-            <div className="form-grid">
-              <label>Name<input value={accountProfile.name} onChange={(event) => setAccountProfile({ ...accountProfile, name: event.target.value })} placeholder="Name for orders" /></label>
-              <label>Phone<input value={accountProfile.phone} onChange={(event) => setAccountProfile({ ...accountProfile, phone: event.target.value })} placeholder="Optional" /></label>
-            </div>
-            <label>Email<input type="email" value={accountProfile.email} onChange={(event) => setAccountProfile({ ...accountProfile, email: event.target.value })} placeholder="you@example.com" /></label>
-            <label>Saved allergies<textarea value={accountProfile.allergies} onChange={(event) => setAccountProfile({ ...accountProfile, allergies: event.target.value })} placeholder="Allergies, sensitivities, cross-contact concerns…" /></label>
-            <label>Preferences<textarea value={accountProfile.preferences} onChange={(event) => setAccountProfile({ ...accountProfile, preferences: event.target.value })} placeholder="Favorite slice, crust, spice, pickup notes…" /></label>
-            <label>Address / delivery note<textarea value={accountProfile.address} onChange={(event) => setAccountProfile({ ...accountProfile, address: event.target.value })} placeholder="Optional address or special pickup notes" /></label>
-            <div className="form-grid">
-              <label>
-                Default payment
-                <select value={accountProfile.defaultPaymentMethod} onChange={(event) => setAccountProfile({ ...accountProfile, defaultPaymentMethod: event.target.value })}>
-                  {(storefront.bakery.payment_methods || DEFAULT_PAYMENT_METHODS).map((method) => <option key={method} value={method}>{method}</option>)}
-                </select>
-              </label>
-              <label>
-                Favorite item
-                <select value={accountProfile.favoriteProductId} onChange={(event) => setAccountProfile({ ...accountProfile, favoriteProductId: event.target.value })}>
-                  <option value="">Choose favorite</option>
-                  {storefrontProducts.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}
-                </select>
-              </label>
-            </div>
-            <div className="customer-account-actions">
-              <button className="storage-file-button" type="submit" disabled={accountBusy === "profile"}><Save size={15} /> {accountBusy === "profile" ? "Saving…" : "Save profile"}</button>
-              <button className="storage-file-button" type="button" onClick={() => reorderFavoriteItem()} disabled={!favoriteProduct}><Heart size={15} /> Reorder favorite</button>
-            </div>
-          </form>
-
-          <div className="customer-history-panel">
-            <div className="customer-history-title"><ClipboardList size={16} /><span><strong>Order history</strong><small>{accountHistoryLoading ? "Loading…" : accountHistory.length ? `${accountHistory.length} recent request${accountHistory.length === 1 ? "" : "s"}` : "No saved order history yet"}</small></span></div>
-            {accountHistory.length ? (
-              <div className="customer-history-list">
-                {accountHistory.map((order) => (
-                  <article key={order.id || order.request_code}>
-                    <span><strong>{order.request_code}</strong><small>{orderHistoryDate(order.pickup_at || order.created_at)} · {order.status || "requested"}</small></span>
-                    <p>{order.itemSummary || "Customer bakery request"}</p>
-                    <div>
-                      <a href={customerTrackingLink(order.request_code, accountContact)}>Track bake</a>
-                      <button type="button" onClick={() => reorderHistoryItem(order)}><Repeat2 size={14} /> Reorder</button>
-                    </div>
-                  </article>
-                ))}
+              <div className="customer-history-panel">
+                <div className="customer-history-title"><ClipboardList size={16} /><span><strong>Order history</strong><small>{accountHistoryLoading ? "Loading…" : accountHistory.length ? `${accountHistory.length} recent request${accountHistory.length === 1 ? "" : "s"}` : "No saved order history yet"}</small></span></div>
+                {accountHistory.length ? (
+                  <div className="customer-history-list">
+                    {accountHistory.map((order) => (
+                      <article key={order.id || order.request_code}>
+                        <span><strong>{order.request_code}</strong><small>{orderHistoryDate(order.pickup_at || order.created_at)} · {order.status || "requested"}</small></span>
+                        <p>{order.itemSummary || "Customer bakery request"}</p>
+                        <div>
+                          <a href={customerTrackingLink(order.request_code, accountContact)}>Track bake</a>
+                          <button type="button" onClick={() => reorderHistoryItem(order)}><Repeat2 size={14} /> Reorder</button>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                ) : (
+                  <small>Signed-in order history will appear here after requests are placed while using this account.</small>
+                )}
               </div>
-            ) : (
-              <small>Guest history is saved only on this phone. Sign in before ordering to attach future orders to your account.</small>
-            )}
-          </div>
+            </>
+          ) : null}
 
           {accountMessage ? <div className="customer-account-message">{accountMessage}</div> : null}
         </section>
