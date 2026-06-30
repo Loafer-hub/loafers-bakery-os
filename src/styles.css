@@ -3784,19 +3784,12 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   font-size: 9px;
 }
 
-.ai-bake-assistant,
 .flour-database-panel {
   margin: 16px 0;
   padding: 16px;
   border: 1px solid var(--line-strong);
   border-radius: 15px;
   background: rgba(255,255,255,.52);
-}
-
-.ai-bake-assistant {
-  background:
-    radial-gradient(circle at top left, rgba(199, 85, 53, .16), transparent 34%),
-    rgba(255,255,255,.54);
 }
 
 .collapsible-section-header {
@@ -3856,7 +3849,6 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   transition: transform .18s ease;
 }
 
-.ai-bake-assistant.open .collapsible-section-header > svg:last-child,
 .flour-database-panel.open .collapsible-section-header > svg:last-child,
 .recipe-type-section[open] .collapsible-section-header > svg:last-child {
   transform: rotate(180deg);
@@ -3866,18 +3858,6 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   margin-top: 14px;
 }
 
-.assistant-orb {
-  display: grid;
-  place-items: center;
-  width: 48px;
-  height: 48px;
-  color: white;
-  border-radius: 16px;
-  background: var(--accent);
-  box-shadow: 0 10px 20px rgba(199, 85, 53, .18);
-}
-
-.assistant-copy h2,
 .flour-database-panel h2 {
   margin: 1px 0 5px;
   font-family: "Newsreader", Georgia, serif;
@@ -3886,7 +3866,6 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   line-height: 1;
 }
 
-.assistant-copy > p,
 .flour-database-intro {
   margin: 0;
   color: var(--muted);
@@ -3894,156 +3873,10 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   line-height: 1.5;
 }
 
-.assistant-example-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin: 12px 0;
-}
-
-.assistant-example-row button,
 .flour-type-tabs button,
 .flour-brand-tabs button {
   border: 1px solid var(--line);
   background: rgba(255,255,255,.66);
-  cursor: pointer;
-}
-
-.assistant-example-row button {
-  padding: 6px 8px;
-  color: var(--accent);
-  border-radius: 999px;
-  font-size: 8px;
-  font-weight: 700;
-}
-
-.assistant-input {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  color: var(--muted);
-  font-size: 9px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: .08em;
-}
-
-.assistant-question-form {
-  display: grid;
-  gap: 8px;
-}
-
-.assistant-input textarea {
-  min-height: 78px;
-  resize: vertical;
-  padding: 10px;
-  color: var(--ink);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: rgba(255,255,255,.76);
-  font: inherit;
-  font-size: 12px;
-  line-height: 1.45;
-  text-transform: none;
-  letter-spacing: 0;
-}
-
-.assistant-submit-button {
-  min-height: 42px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  color: white;
-  border: 0;
-  border-radius: 10px;
-  background: var(--accent);
-  box-shadow: 0 8px 18px rgba(199, 85, 53, .16);
-  font-size: 11px;
-  font-weight: 800;
-  cursor: pointer;
-}
-
-.assistant-submit-button:hover {
-  background: var(--accent-dark);
-}
-
-.assistant-result {
-  margin-top: 12px;
-  padding: 12px;
-  border: 1px solid rgba(199, 85, 53, .2);
-  border-radius: 12px;
-  background: #fff8ef;
-}
-
-.assistant-result span,
-.assistant-route {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.assistant-result span {
-  color: var(--accent);
-  font-size: 8px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: .08em;
-}
-
-.assistant-result h3 {
-  margin: 5px 0;
-  font-family: "Newsreader", Georgia, serif;
-  font-size: 22px;
-  font-weight: 500;
-}
-
-.assistant-result p,
-.assistant-result li,
-.assistant-route {
-  color: var(--muted);
-  font-size: 10px;
-  line-height: 1.45;
-}
-
-.assistant-result p {
-  margin: 0;
-}
-
-.assistant-result ol {
-  margin: 10px 0;
-  padding-left: 18px;
-}
-
-.assistant-result li + li {
-  margin-top: 5px;
-}
-
-.assistant-route {
-  justify-content: space-between;
-  gap: 8px;
-  padding-top: 10px;
-  border-top: 1px solid rgba(199, 85, 53, .14);
-}
-
-.assistant-route span {
-  flex: 1;
-  color: var(--muted);
-  font-size: 9px;
-  font-weight: 600;
-  text-transform: none;
-  letter-spacing: 0;
-}
-
-.assistant-route button {
-  flex: 0 0 auto;
-  padding: 7px 10px;
-  color: white;
-  border: 0;
-  border-radius: 999px;
-  background: var(--accent);
-  font-size: 9px;
-  font-weight: 800;
   cursor: pointer;
 }
 
@@ -9102,11 +8935,6 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
     grid-template-columns: 30px minmax(0, 1fr) auto;
   }
 
-  .assistant-orb {
-    width: 42px;
-    height: 42px;
-  }
-
   .collapsible-section-header strong {
     font-size: 23px;
   }
@@ -9284,7 +9112,6 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 }
 
 /* responsive-shell-v1 */
-/* ai-assist-responsive-v1 */
 /* recipe-grams-entry-v1 */
 /* yeast-rise-science-v1 */
 @media (min-width: 760px) {
@@ -9370,18 +9197,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
     gap: 14px;
   }
 
-  .ai-bake-assistant,
   .flour-database-panel {
     padding: 20px;
-  }
-
-  .assistant-question-form {
-    grid-template-columns: minmax(0, 1fr) 164px;
-    align-items: end;
-  }
-
-  .assistant-submit-button {
-    min-height: 86px;
   }
 
   .order-list {
