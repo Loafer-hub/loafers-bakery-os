@@ -3,6 +3,7 @@ import { normalizedBakerySettings } from "./bakerySettings";
 import { normalizedSalesOptions } from "./salesOptions";
 
 // customer-options-v1
+// checkout-flow-v1
 
 const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL || "").trim();
 const supabaseKey = (import.meta.env.VITE_SUPABASE_ANON_KEY || "").trim();
@@ -211,6 +212,9 @@ export async function publishRecipeCatalog(bakeryId, recipes) {
         formulaMode: recipe.formulaMode || "bakers",
         photoUrl: recipe.photoUrl || "",
         photoAlt: recipe.photoAlt || recipe.name || "",
+        available: recipe.available !== false,
+        availabilityNote: recipe.availabilityNote || "",
+        badges: Array.isArray(recipe.badges) ? recipe.badges : [],
         hydration: Number(recipe.hydration || 0),
         ingredients: (recipe.ingredients || []).map((ingredient) => ({
           name: ingredient.name,
