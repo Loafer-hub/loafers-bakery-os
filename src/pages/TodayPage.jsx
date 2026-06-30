@@ -476,6 +476,7 @@ export default function TodayPage({
         cloudAccount={cloudAccount}
         enabled={bakerySettings?.readyShelfEnabled !== false}
         onShelfChange={markReadyShelfChanged}
+        recipes={recipes}
       />
 
       <button className="starter-panel" onClick={onLogStarter}>
