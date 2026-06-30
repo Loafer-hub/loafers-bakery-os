@@ -11,6 +11,7 @@ import {
   Plus,
   Route,
   Search,
+  Send,
   Sparkles,
   Trash2,
   Wheat,
@@ -33,6 +34,8 @@ import {
 } from "../lib/salesOptions";
 
 // yeast-breads-v1
+// ai-assist-submit-v1
+// ai-assist-responsive-v1
 
 const INGREDIENT_CATEGORIES = [
   { value: "flour", label: "Flour" },
@@ -478,9 +481,20 @@ function RecipeVisual({ recipe, large = false }) {
 }
 
 function AIBakeAssistant({ setActive, onLogStarter }) {
+  const [assistantDraft, setAssistantDraft] = useState(ASSISTANT_EXAMPLES[0]);
   const [assistantText, setAssistantText] = useState(ASSISTANT_EXAMPLES[0]);
   const [isOpen, setIsOpen] = useState(false);
   const result = useMemo(() => analyzeBakeQuestion(assistantText), [assistantText]);
+
+  function submitAssistant(event) {
+    event.preventDefault();
+    setAssistantText(assistantDraft.trim());
+  }
+
+  function useAssistantExample(example) {
+    setAssistantDraft(example);
+    setAssistantText(example);
+  }
 
   function routeAssistant() {
     if (result.target === "starter" && onLogStarter) {
@@ -512,18 +526,24 @@ function AIBakeAssistant({ setActive, onLogStarter }) {
           <p>Describe the dough, starter, flour, or mistake. The app translates that into timing advice, formula fixes, or the right tool to open.</p>
           <div className="assistant-example-row" aria-label="Example bake questions">
             {ASSISTANT_EXAMPLES.map((example) => (
-              <button type="button" key={example} onClick={() => setAssistantText(example)}>{example}</button>
+              <button type="button" key={example} onClick={() => useAssistantExample(example)}>{example}</button>
             ))}
           </div>
-          <label className="assistant-input">
-            What’s happening?
-            <textarea
-              value={assistantText}
-              onChange={(event) => setAssistantText(event.target.value)}
-              placeholder="My kitchen is 68°F and my dough is sluggish."
-            />
-          </label>
-          <article className="assistant-result">
+          <form className="assistant-question-form" onSubmit={submitAssistant}>
+            <label className="assistant-input">
+              What’s happening?
+              <textarea
+                value={assistantDraft}
+                onChange={(event) => setAssistantDraft(event.target.value)}
+                placeholder="My kitchen is 68°F and my dough is sluggish."
+              />
+            </label>
+            <button className="assistant-submit-button" type="submit">
+              <Send size={15} />
+              Ask assistant
+            </button>
+          </form>
+          <article className="assistant-result" aria-live="polite">
             <div>
               <span><Sparkles size={16} /> Smart route</span>
               <h3>{result.title}</h3>
