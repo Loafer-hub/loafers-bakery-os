@@ -2790,6 +2790,112 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   margin-top: 13px;
 }
 
+.coreprint-copy-panel {
+  margin-top: 12px;
+  padding: 11px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: #fffaf4;
+}
+
+.coreprint-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.coreprint-heading span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--accent);
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.coreprint-heading small {
+  max-width: 280px;
+  color: var(--muted);
+  text-align: right;
+  font-size: 7px;
+  line-height: 1.35;
+}
+
+.coreprint-label-list {
+  display: grid;
+  gap: 10px;
+}
+
+.coreprint-label-card {
+  display: grid;
+  grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr) auto;
+  gap: 10px;
+  align-items: stretch;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: white;
+}
+
+.coreprint-label-preview {
+  display: grid;
+  grid-template-columns: 68px minmax(0, 1fr);
+  gap: 9px;
+  align-items: center;
+}
+
+.coreprint-label-preview img {
+  width: 68px;
+  height: 68px;
+  image-rendering: pixelated;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: white;
+}
+
+.coreprint-label-preview span {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.coreprint-label-preview strong {
+  font-size: 10px;
+}
+
+.coreprint-label-preview small,
+.coreprint-label-preview em {
+  overflow: hidden;
+  color: var(--muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 7px;
+  font-style: normal;
+}
+
+.coreprint-label-card textarea {
+  min-height: 118px;
+  resize: vertical;
+  padding: 9px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fffdf9;
+  color: var(--ink);
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  font-size: 8px;
+  line-height: 1.35;
+}
+
+.coreprint-label-card button {
+  min-width: 128px;
+  align-self: center;
+  padding-inline: 9px;
+  font-size: 8px;
+}
+
 .print-sheet-heading {
   display: flex;
   align-items: baseline;
@@ -2823,7 +2929,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 
 .production-label-card {
   display: flex;
-  min-height: 170px;
+  min-height: 178px;
   flex-direction: column;
   gap: 6px;
   padding: 11px;
@@ -2832,20 +2938,44 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   background: white;
 }
 
-.production-label-card > div {
+.production-label-topline {
   display: flex;
   justify-content: space-between;
   gap: 8px;
 }
 
-.production-label-card > div strong {
+.production-label-topline strong {
   font-size: 11px;
 }
 
-.production-label-card > div span,
+.production-label-topline span,
 .production-label-card small {
   color: var(--muted);
   font-size: 7px;
+}
+
+.production-label-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 74px;
+  gap: 9px;
+  align-items: start;
+}
+
+.production-label-main span {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.production-label-qr {
+  width: 74px;
+  height: 74px;
+  justify-self: end;
+  image-rendering: pixelated;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: white;
 }
 
 .production-label-card h3 {
@@ -11919,6 +12049,32 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 
   .production-label-grid {
     grid-template-columns: 1fr;
+  }
+
+  .coreprint-heading,
+  .production-label-topline {
+    flex-direction: column;
+  }
+
+  .coreprint-heading small {
+    max-width: none;
+    text-align: left;
+  }
+
+  .coreprint-label-card {
+    grid-template-columns: 1fr;
+  }
+
+  .coreprint-label-card button {
+    width: 100%;
+  }
+
+  .production-label-main {
+    grid-template-columns: 1fr;
+  }
+
+  .production-label-qr {
+    justify-self: start;
   }
 
   .inventory-forecast-row {
