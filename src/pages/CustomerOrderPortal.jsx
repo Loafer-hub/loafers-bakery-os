@@ -39,6 +39,7 @@ import { pluralUnit } from "../lib/salesOptions";
 import { productTypeMap, productTypeSettingsFor } from "../lib/productTypes";
 
 // product-type-settings-v1
+// customer-options-v1
 
 const DEFAULT_PICKUP_LOCATION = "Three Bears, Delta Junction, AK";
 const DEFAULT_PAYMENT_METHODS = ["Venmo", "Zelle", "Cash"];
@@ -87,6 +88,34 @@ function productPhotoUrl(product) {
   return String(product?.recipe_details?.photoUrl || "").trim();
 }
 
+function enabledCustomerOptions(typeSettings) {
+  return (typeSettings?.customerOptions || []).filter((option) => option.enabled !== false);
+}
+
+function selectedCustomerChoices(product, typeSettings, selections = {}) {
+  return enabledCustomerOptions(typeSettings)
+    .map((option) => ({
+      id: option.id,
+      label: option.label,
+      required: option.required === true,
+      value: String(selections[option.id] || "").trim(),
+    }))
+    .filter((choice) => choice.value);
+}
+
+function customerChoiceNote(items) {
+  const lines = items
+    .filter((item) => item.customerChoices?.length)
+    .map((item) => {
+      const packageLabel = item.saleOption?.label ? ` (${item.saleOption.label})` : "";
+      const choices = item.customerChoices
+        .map((choice) => `${choice.label}: ${choice.value}`)
+        .join("; ");
+      return `${item.name}${packageLabel}: ${choices}`;
+    });
+  return lines.length ? `Customer choices:\n${lines.join("\n")}` : "";
+}
+
 export default function CustomerOrderPortal({
   bakerySettings,
   cloudAccount,
@@ -99,6 +128,7 @@ export default function CustomerOrderPortal({
   const [success, setSuccess] = useState(null);
   const [quantities, setQuantities] = useState({});
   const [selectedOptions, setSelectedOptions] = useState({});
+  const [productOptionSelections, setProductOptionSelections] = useState({});
   const [activeCatalogTab, setActiveCatalogTab] = useState("all");
   const [accountOpen, setAccountOpen] = useState(false);
   const [accountMode, setAccountMode] = useState("signin");
@@ -200,14 +230,23 @@ export default function CustomerOrderPortal({
   const selectedItems = useMemo(() => [
     ...storefrontProducts.flatMap((product) => productSalesOptions(product)
       .filter((option) => Number(quantities[`product-${product.id}-${option.id}`] || 0) > 0)
-      .map((option) => ({
-        ...product,
-        itemType: "product",
-        saleOption: option,
-        quantityKey: `product-${product.id}-${option.id}`,
-        quantity: Number(quantities[`product-${product.id}-${option.id}`]),
-        price_cents: option.price_cents,
-      }))),
+      .map((option) => {
+        const typeSettings = productSettingsByValue.get(productTypeValue(product))
+          || productTypeSettingsFor(rules, productTypeValue(product));
+        const selections = productOptionSelections[product.id] || {};
+        return {
+          ...product,
+          itemType: "product",
+          saleOption: option,
+          quantityKey: `product-${product.id}-${option.id}`,
+          quantity: Number(quantities[`product-${product.id}-${option.id}`]),
+          price_cents: option.price_cents,
+          customerChoices: selectedCustomerChoices(product, typeSettings, selections),
+          missingCustomerChoices: enabledCustomerOptions(typeSettings)
+            .filter((choice) => choice.required === true && !String(selections[choice.id] || "").trim())
+            .map((choice) => choice.label),
+        };
+      })),
     ...(storefront?.shelf || [])
       .filter((item) => Number(quantities[`shelf-${item.id}`] || 0) > 0)
       .map((item) => ({
@@ -216,7 +255,7 @@ export default function CustomerOrderPortal({
         quantityKey: `shelf-${item.id}`,
         quantity: Number(quantities[`shelf-${item.id}`]),
       })),
-  ], [quantities, storefront, storefrontProducts]);
+  ], [productOptionSelections, productSettingsByValue, quantities, rules, storefront, storefrontProducts]);
   const total = selectedItems.reduce((sum, item) => sum + item.price_cents * item.quantity, 0);
   const readyShelfItems = rules.readyShelfEnabled ? (storefront?.shelf || []) : [];
   const catalogTabs = useMemo(() => {
@@ -337,6 +376,11 @@ export default function CustomerOrderPortal({
       setError("Choose an available pickup date.");
       return;
     }
+    const missingChoiceItem = selectedItems.find((item) => item.missingCustomerChoices?.length);
+    if (missingChoiceItem) {
+      setError(`Choose ${missingChoiceItem.missingCustomerChoices[0]} for ${missingChoiceItem.name}.`);
+      return;
+    }
     if (!isPickupTimeAllowed(form.pickupDate, form.pickupTime, rules)) {
       setError(`Choose a pickup time between ${pickupHoursLabel(form.pickupDate, rules)}.`);
       return;
@@ -362,7 +406,7 @@ export default function CustomerOrderPortal({
         pickupAt: pickupDateTimeIso(form.pickupDate, form.pickupTime),
         paymentMethod: form.paymentMethod,
         allergies: form.allergies.trim(),
-        notes: form.notes.trim(),
+        notes: [form.notes.trim(), customerChoiceNote(selectedItems)].filter(Boolean).join("\n\n"),
         notifications: {
           email: Boolean(rules.emailNotifications && form.notifyEmail && form.email.trim()),
           sms: Boolean(rules.smsNotifications && form.notifySms && form.phone.trim()),
@@ -370,6 +414,7 @@ export default function CustomerOrderPortal({
       });
       setSuccess(result);
       setQuantities({});
+      setProductOptionSelections({});
     } catch (nextError) {
       setError(nextError.message);
     }
@@ -573,6 +618,14 @@ export default function CustomerOrderPortal({
                       selectedOptionId={selectedOptions[product.id]}
                       typeSettings={typeSettings}
                       onChangeOption={(optionId) => setSelectedOptions((current) => ({ ...current, [product.id]: optionId }))}
+                      customerOptionSelections={productOptionSelections[product.id] || {}}
+                      onChangeCustomerOption={(optionId, value) => setProductOptionSelections((current) => ({
+                        ...current,
+                        [product.id]: {
+                          ...(current[product.id] || {}),
+                          [optionId]: value,
+                        },
+                      }))}
                       onChangeQuantity={changeQuantity}
                       onShowDetails={() => setSelectedProduct(product)}
                     />
@@ -696,7 +749,9 @@ function CustomerAnnouncement({ announcement }) {
 }
 
 function CustomerProductCard({
+  customerOptionSelections,
   onChangeOption,
+  onChangeCustomerOption,
   onChangeQuantity,
   onShowDetails,
   product,
@@ -711,6 +766,7 @@ function CustomerProductCard({
   const unitName = product.recipe_details?.unitName || "item";
   const unitsLabel = pluralUnit(unitName, selectedOption.units);
   const photoUrl = productPhotoUrl(product);
+  const customerOptions = enabledCustomerOptions(typeSettings);
   return (
     <article className={selected ? "customer-product selected" : "customer-product"}>
       <div className="customer-product-main">
@@ -729,6 +785,32 @@ function CustomerProductCard({
           </select>
         </label>
         <span className="customer-package-price"><strong>{dollars(selectedOption.price_cents)}</strong><small>{selectedOption.label} · {selectedOption.units} {unitsLabel}</small></span>
+        {customerOptions.length ? (
+          <div className="customer-product-options">
+            <strong>Optional choices</strong>
+            {customerOptions.map((option) => (
+              <label className="customer-product-option" key={option.id}>
+                <span>{option.label}{option.required ? " *" : ""}</span>
+                {option.type === "text" ? (
+                  <input
+                    value={customerOptionSelections[option.id] || ""}
+                    onChange={(event) => onChangeCustomerOption(option.id, event.target.value)}
+                    placeholder="Leave a note"
+                  />
+                ) : (
+                  <select
+                    value={customerOptionSelections[option.id] || ""}
+                    onChange={(event) => onChangeCustomerOption(option.id, event.target.value)}
+                  >
+                    <option value="">{option.required ? "Choose one" : "No preference"}</option>
+                    {(option.choices || []).map((choice) => <option key={choice} value={choice}>{choice}</option>)}
+                  </select>
+                )}
+                {option.help ? <small>{option.help}</small> : null}
+              </label>
+            ))}
+          </div>
+        ) : null}
       </div>
       <div className="customer-quantity">
         <button type="button" aria-label={`Remove one ${selectedOption.label} of ${product.name}`} onClick={() => onChangeQuantity({
