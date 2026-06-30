@@ -395,10 +395,29 @@ export function ProductionPlanner({
 
   async function copyMiniLabel(text) {
     try {
-      await navigator.clipboard.writeText(text);
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        throw new Error("Clipboard API unavailable");
+      }
       setCopyMessage("Copied mini-printer label text.");
     } catch {
-      setCopyMessage("Copy failed. Select the text and copy it manually.");
+      try {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.setAttribute("readonly", "");
+        textarea.style.position = "fixed";
+        textarea.style.left = "-9999px";
+        textarea.style.top = "0";
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        const copied = document.execCommand("copy");
+        document.body.removeChild(textarea);
+        setCopyMessage(copied ? "Copied mini-printer label text." : "Copy failed. Select the text and copy it manually.");
+      } catch {
+        setCopyMessage("Copy failed. Select the text and copy it manually.");
+      }
     }
   }
 
