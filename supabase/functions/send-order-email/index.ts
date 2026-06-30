@@ -1,5 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 
+// checkout-flow-v1
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -97,6 +99,15 @@ function itemSummary(items: Array<Record<string, any>>) {
   )).join(" · ");
 }
 
+function customerTrackingUrl(order: Record<string, any>, bakery: Record<string, any>) {
+  const base = Deno.env.get("PUBLIC_SITE_URL") || "https://itsjustlife.blog/";
+  const url = new URL(base);
+  url.search = "";
+  url.searchParams.set("order", bakery.slug || "loafers");
+  if (order.request_code) url.searchParams.set("track", order.request_code);
+  return url.toString();
+}
+
 function createEmail(order: Record<string, any>, bakery: Record<string, any>, eventType: string) {
   const firstName = String(order.customer_name || "there").trim().split(/\s+/)[0];
   const items = itemSummary(order.customer_order_items || []);
@@ -105,6 +116,7 @@ function createEmail(order: Record<string, any>, bakery: Record<string, any>, ev
   const comment = String(order.baker_notes || "").trim();
   const pickup = pickupLabel(order.pickup_at);
   const location = order.pickup_location || bakery.pickup_location || "Three Bears, Delta Junction, AK";
+  const trackingUrl = customerTrackingUrl(order, bakery);
   const progressLine = eventType === "bakeProgress" && phase
     ? `Current step: ${phaseLabels[phase] || phase}.`
     : "";
@@ -116,6 +128,7 @@ function createEmail(order: Record<string, any>, bakery: Record<string, any>, ev
     `Pickup: ${pickup} at ${location}.`,
     comment ? `Baker note: ${comment}` : "",
     `Request code: ${order.request_code}.`,
+    `Track your bake: ${trackingUrl}`,
     "",
     "Thank you,",
     bakery.name || "Loafers",
@@ -133,6 +146,7 @@ function createEmail(order: Record<string, any>, bakery: Record<string, any>, ev
         <p><strong>Pickup</strong><br>${escapeHtml(pickup)}<br>${escapeHtml(location)}</p>
         ${comment ? `<div style="padding:14px 16px;background:#e9efe6;border-radius:12px"><strong>Baker note</strong><br>${escapeHtml(comment)}</div>` : ""}
         <p style="color:#746b63;font-size:13px">Request code: ${escapeHtml(order.request_code)}</p>
+        <p><a href="${escapeHtml(trackingUrl)}" style="display:inline-block;padding:11px 16px;border-radius:999px;background:#c95332;color:#fff;text-decoration:none;font-weight:700">Track your bake</a></p>
         <p>Thank you,<br><strong>${escapeHtml(bakery.name || "Loafers")}</strong></p>
       </div>
     </div>`;
@@ -184,7 +198,7 @@ Deno.serve(async (request) => {
 
   const { data: bakery, error: bakeryError } = await db
     .from("bakeries")
-    .select("id, owner_id, name, pickup_location")
+    .select("id, owner_id, name, slug, pickup_location")
     .eq("id", bakeryId)
     .single();
   if (bakeryError || !bakery) return jsonResponse({ error: bakeryError?.message || "Bakery not found." }, 400);
