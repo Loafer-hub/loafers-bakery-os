@@ -26,6 +26,8 @@ import {
   unblockBakeryDay,
 } from "../lib/cloud";
 
+// bake-yeast-tab-fix-v1
+
 function localDateTimeValue(date = new Date()) {
   const shifted = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
   return shifted.toISOString().slice(0, 16);
@@ -196,8 +198,8 @@ export default function BakePage({
     usesStarter,
   ]);
 
-  const doughCurve = curvePath(model?.dough.bulkHours || 4.75, "dough");
-  const levainCurve = curvePath(model?.starterPeak.hours || 5, "starter");
+  const doughCurve = curvePath(model?.dough?.bulkHours || 4.75, "dough");
+  const levainCurve = curvePath(model?.starterPeak?.hours || 5, "starter");
   const updateAnchorDateTime = (event) => setAnchorDateTime(event.currentTarget.value);
 
   function resetForDate(date) {
