@@ -393,7 +393,7 @@ export function ProductionPlanner({
     });
   }
 
-  async function copyMiniLabel(text) {
+  async function copyMiniLabel(text, trigger) {
     try {
       if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(text);
@@ -414,9 +414,19 @@ export function ProductionPlanner({
         textarea.select();
         const copied = document.execCommand("copy");
         document.body.removeChild(textarea);
-        setCopyMessage(copied ? "Copied mini-printer label text." : "Copy failed. Select the text and copy it manually.");
+        if (copied) {
+          setCopyMessage("Copied mini-printer label text.");
+        } else {
+          const visibleBox = trigger?.closest(".coreprint-label-card")?.querySelector("textarea");
+          visibleBox?.focus();
+          visibleBox?.select();
+          setCopyMessage("Copy was blocked, so I selected the label text. Use Copy, then paste into Coreprint.");
+        }
       } catch {
-        setCopyMessage("Copy failed. Select the text and copy it manually.");
+        const visibleBox = trigger?.closest(".coreprint-label-card")?.querySelector("textarea");
+        visibleBox?.focus();
+        visibleBox?.select();
+        setCopyMessage("Copy was blocked, so I selected the label text. Use Copy, then paste into Coreprint.");
       }
     }
   }
@@ -588,7 +598,7 @@ export function ProductionPlanner({
                       </span>
                     </div>
                     <textarea readOnly value={label.copyText} aria-label={`${label.heading} Coreprint label text`} />
-                    <button type="button" className="secondary-button" onClick={() => copyMiniLabel(label.copyText)}>
+                    <button type="button" className="secondary-button" onClick={(event) => copyMiniLabel(label.copyText, event.currentTarget)}>
                       <Copy size={15} /> Copy Coreprint text
                     </button>
                   </article>
