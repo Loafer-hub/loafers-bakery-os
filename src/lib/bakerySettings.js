@@ -1,3 +1,7 @@
+import { normalizeProductTypeSettings } from "./productTypes";
+
+// product-type-settings-v1
+
 export const DEFAULT_BAKERY_SETTINGS = {
   onlineOrdering: true,
   reviewsVisible: true,
@@ -78,6 +82,7 @@ export function normalizedBakerySettings(value = {}) {
     orderingIntro: String(settings.orderingIntro || DEFAULT_BAKERY_SETTINGS.orderingIntro).trim(),
     weekdayWindows: normalizedWindows(settings.weekdayWindows, DEFAULT_BAKERY_SETTINGS.weekdayWindows),
     weekendWindows: normalizedWindows(settings.weekendWindows, DEFAULT_BAKERY_SETTINGS.weekendWindows),
+    productTypes: normalizeProductTypeSettings(settings),
   };
 }
 
