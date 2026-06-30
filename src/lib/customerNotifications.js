@@ -7,9 +7,13 @@ const STATUS_LABELS = {
   Deposit: "deposit received",
   Paid: "paid",
   Accepted: "accepted",
+  "In progress": "in progress",
   Scheduled: "scheduled",
   Ready: "ready for pickup",
+  "Picked up": "picked up",
   Completed: "completed",
+  Rejected: "rejected",
+  Cancelled: "cancelled",
 };
 
 function pickupLabel(value) {
