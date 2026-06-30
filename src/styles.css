@@ -10266,13 +10266,19 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   background: var(--sage-soft);
 }
 
+.customer-account-signed-in .storage-file-button {
+  margin-left: auto;
+  padding-inline: 12px;
+  color: #485a40;
+  border-color: #c4d0be;
+}
+
 .customer-account-signed-in > svg,
 .customer-history-title > svg {
   color: var(--sage);
   background: rgba(255,255,255,.7);
 }
 
-.customer-lookup-form label,
 .customer-profile-form label,
 .safety-textarea-grid label {
   display: flex;
@@ -10283,13 +10289,6 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   font-weight: 700;
 }
 
-.customer-lookup-form label > span {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 7px;
-}
-
-.customer-lookup-form input,
 .customer-profile-form input,
 .customer-profile-form select,
 .customer-profile-form textarea,
@@ -10309,22 +10308,6 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .safety-textarea-grid textarea {
   min-height: 74px;
   resize: vertical;
-}
-
-.customer-lookup-form button {
-  min-height: 39px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  padding-inline: 12px;
-  color: white;
-  border: 0;
-  border-radius: 8px;
-  background: var(--accent);
-  font-size: 10px;
-  font-weight: 800;
-  cursor: pointer;
 }
 
 .customer-profile-form {
@@ -10420,6 +10403,17 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   padding: 9px 10px;
   border-radius: 8px;
   background: var(--accent-soft);
+}
+
+.customer-account-private-note {
+  display: block;
+  padding: 10px 11px;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #fffdf9;
+  font-size: 9px;
+  line-height: 1.45;
 }
 
 .safety-log-hero {
@@ -12632,7 +12626,6 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
     grid-template-columns: 1fr;
   }
 
-  .customer-lookup-form label > span,
   .customer-history-list article {
     grid-template-columns: 1fr;
   }
