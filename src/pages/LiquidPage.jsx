@@ -75,9 +75,12 @@ function productTypeLabel(value) {
 }
 
 function safetyFindings(log) {
-  const ph = numeric(log.ph, NaN);
-  const saltPct = numeric(log.saltPct, NaN);
-  const shelfLifeDays = numeric(log.shelfLifeDays, 0);
+  const rawPh = String(log.ph ?? "").trim();
+  const rawSaltPct = String(log.saltPct ?? "").trim();
+  const rawShelfLifeDays = String(log.shelfLifeDays ?? "").trim();
+  const ph = rawPh ? Number(rawPh) : NaN;
+  const saltPct = rawSaltPct ? Number(rawSaltPct) : NaN;
+  const shelfLifeDays = rawShelfLifeDays ? Number(rawShelfLifeDays) : 0;
   const notes = `${log.warningNotes || ""} ${log.storageInstructions || ""}`.toLowerCase();
   const findings = [];
 
