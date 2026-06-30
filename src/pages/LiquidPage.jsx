@@ -1,12 +1,18 @@
 import {
   AlertTriangle,
   Beaker,
+  CalendarDays,
+  ClipboardCheck,
   Droplets,
   Flame,
   Gauge,
   Info,
+  PackageCheck,
+  Save,
+  ShieldCheck,
   Sparkles,
   Thermometer,
+  Trash2,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { PageHeading } from "../components/AppChrome";
@@ -35,6 +41,87 @@ function tempBandLabel(tempF) {
   if (tempF <= 78) return "Balanced";
   if (tempF <= 86) return "Fast and fruity";
   return "Hot stress zone";
+}
+
+const SAFETY_PRODUCT_TYPES = [
+  { value: "hot_sauce", label: "Fermented hot sauce", unit: "bottles" },
+  { value: "vinegar", label: "Vinegar", unit: "bottles" },
+  { value: "infused_oil", label: "Infused oil", unit: "bottles" },
+];
+
+function todayIso() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function defaultSafetyDraft() {
+  const date = todayIso();
+  return {
+    batchName: "",
+    productType: "hot_sauce",
+    lotCode: `LOAF-${date.replace(/-/g, "")}`,
+    batchDate: date,
+    quantity: "",
+    ph: "",
+    saltPct: "",
+    shelfLifeDays: 14,
+    storageInstructions: "Refrigerate after opening. Keep capped and use clean utensils.",
+    warningNotes: "",
+    recallNotes: "",
+  };
+}
+
+function productTypeLabel(value) {
+  return SAFETY_PRODUCT_TYPES.find((type) => type.value === value)?.label || "Liquid product";
+}
+
+function safetyFindings(log) {
+  const ph = numeric(log.ph, NaN);
+  const saltPct = numeric(log.saltPct, NaN);
+  const shelfLifeDays = numeric(log.shelfLifeDays, 0);
+  const notes = `${log.warningNotes || ""} ${log.storageInstructions || ""}`.toLowerCase();
+  const findings = [];
+
+  if (log.productType === "hot_sauce" || log.productType === "vinegar") {
+    if (!Number.isFinite(ph)) {
+      findings.push({ tone: "warning", text: "Record a measured finished pH before selling or storing this batch." });
+    } else if (ph > 4.6) {
+      findings.push({ tone: "danger", text: "Measured pH is above 4.6. Treat this as not shelf-stable without a validated process." });
+    } else {
+      findings.push({ tone: "safe", text: "Measured pH is at or below the common 4.6 acidified-food line." });
+    }
+  }
+
+  if (log.productType === "hot_sauce") {
+    if (!Number.isFinite(saltPct)) {
+      findings.push({ tone: "warning", text: "Record salt percentage for fermentation traceability." });
+    } else if (saltPct < 2) {
+      findings.push({ tone: "danger", text: "Salt is below 2%; fermentation safety margin is thin." });
+    } else if (saltPct > 6) {
+      findings.push({ tone: "warning", text: "Salt is high; it may slow souring and soften product expectations." });
+    } else {
+      findings.push({ tone: "safe", text: "Salt is in a practical lacto-ferment planning range." });
+    }
+  }
+
+  if (log.productType === "infused_oil") {
+    const freshRisk = /fresh|garlic|herb|chile|pepper|zest/.test(notes);
+    findings.push({
+      tone: freshRisk ? "danger" : "warning",
+      text: freshRisk
+        ? "Fresh garlic, herbs, chiles, or zest in oil need conservative refrigeration and short hold notes."
+        : "Oil has no useful pH by itself. Log ingredient water-risk and storage instructions clearly.",
+    });
+  }
+
+  if (!shelfLifeDays) {
+    findings.push({ tone: "warning", text: "Add a shelf-life target so old batches are easier to pull." });
+  }
+
+  if (!String(log.recallNotes || "").trim()) {
+    findings.push({ tone: "info", text: "Add recall notes such as ingredient lots, test method, or who received the batch." });
+  }
+
+  return findings;
 }
 
 function HotSauceLab({ values, onChange }) {
@@ -424,6 +511,154 @@ function OilLab({ values, onChange }) {
   );
 }
 
+function SafetyLogLab({
+  logs = [],
+  onDelete = () => {},
+  onSave = () => {},
+}) {
+  const [draft, setDraft] = useState(defaultSafetyDraft);
+  const findings = safetyFindings(draft);
+
+  function update(key, value) {
+    setDraft((current) => ({ ...current, [key]: value }));
+  }
+
+  function saveLog(event) {
+    event.preventDefault();
+    onSave({
+      ...draft,
+      ph: String(draft.ph).trim(),
+      saltPct: String(draft.saltPct).trim(),
+      quantity: String(draft.quantity).trim(),
+      shelfLifeDays: Math.max(0, Number(draft.shelfLifeDays || 0)),
+      findings: safetyFindings(draft),
+    });
+    setDraft(defaultSafetyDraft());
+  }
+
+  return (
+    <>
+      <section className="liquid-lab-hero safety-log-hero">
+        <div>
+          <span className="eyebrow-label">Traceability</span>
+          <h2>Batch safety log</h2>
+          <p>
+            Keep the boring-but-important facts: pH, salt percentage, batch date,
+            shelf life, storage instructions, warning notes, and recall notes.
+          </p>
+        </div>
+        <ClipboardCheck size={39} />
+      </section>
+
+      <form className="safety-log-form" onSubmit={saveLog}>
+        <section className="model-controls liquid-model-controls">
+          <div className="planner-input-grid">
+            <label>
+              Product type
+              <select value={draft.productType} onChange={(event) => update("productType", event.target.value)}>
+                {SAFETY_PRODUCT_TYPES.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}
+              </select>
+            </label>
+            <label>
+              Batch name
+              <input required value={draft.batchName} onChange={(event) => update("batchName", event.target.value)} placeholder="Blueberry ghost pepper sauce" />
+            </label>
+            <label>
+              Lot / batch code
+              <input value={draft.lotCode} onChange={(event) => update("lotCode", event.target.value)} />
+            </label>
+            <label>
+              Batch date
+              <input type="date" value={draft.batchDate} onChange={(event) => update("batchDate", event.target.value)} />
+            </label>
+            <label>
+              Quantity made
+              <input value={draft.quantity} onChange={(event) => update("quantity", event.target.value)} placeholder={`12 ${SAFETY_PRODUCT_TYPES.find((type) => type.value === draft.productType)?.unit || "items"}`} />
+            </label>
+            <label>
+              Measured pH
+              <input type="number" min="0" max="14" step="0.01" value={draft.ph} onChange={(event) => update("ph", event.target.value)} placeholder={draft.productType === "infused_oil" ? "N/A for oil layer" : "4.10"} />
+            </label>
+            <label>
+              Salt %
+              <input type="number" min="0" max="20" step="0.1" value={draft.saltPct} onChange={(event) => update("saltPct", event.target.value)} placeholder={draft.productType === "hot_sauce" ? "3.0" : "Optional"} />
+            </label>
+            <label>
+              Shelf life days
+              <input type="number" min="0" max="730" value={draft.shelfLifeDays} onChange={(event) => update("shelfLifeDays", event.target.value)} />
+            </label>
+          </div>
+          <div className="safety-textarea-grid">
+            <label>Storage instructions<textarea value={draft.storageInstructions} onChange={(event) => update("storageInstructions", event.target.value)} placeholder="Refrigerate, keep capped, discard after opening date…" /></label>
+            <label>Warning notes<textarea value={draft.warningNotes} onChange={(event) => update("warningNotes", event.target.value)} placeholder="Fresh garlic oil, heat level, cap pressure, allergen/storage warnings…" /></label>
+            <label>Batch recall notes<textarea value={draft.recallNotes} onChange={(event) => update("recallNotes", event.target.value)} placeholder="Ingredient lots, pH meter calibration, where bottles went, pull instructions…" /></label>
+          </div>
+        </section>
+
+        <section className="safety-status-panel">
+          <div className="section-title-line">
+            <div><span className="eyebrow-label">Review before saving</span><h2>Safety flags</h2></div>
+            <ShieldCheck size={20} />
+          </div>
+          <div className="safety-finding-list">
+            {findings.map((finding, index) => (
+              <span className={`safety-finding ${finding.tone}`} key={`${finding.tone}-${index}`}>
+                {finding.tone === "safe" ? <PackageCheck size={14} /> : finding.tone === "info" ? <Info size={14} /> : <AlertTriangle size={14} />}
+                {finding.text}
+              </span>
+            ))}
+          </div>
+          <button className="primary-button" type="submit"><Save size={16} /> Save batch safety log</button>
+        </section>
+      </form>
+
+      <section className="saved-safety-log-panel">
+        <div className="section-title-line">
+          <div><span className="eyebrow-label">Saved records</span><h2>Recent safety logs</h2></div>
+          <CalendarDays size={20} />
+        </div>
+        {logs.length ? (
+          <div className="saved-safety-log-list">
+            {logs.map((log) => {
+              const logFindings = Array.isArray(log.findings) && log.findings.length
+                ? log.findings
+                : safetyFindings(log);
+              const topFinding = logFindings.find((finding) => finding.tone === "danger")
+                || logFindings.find((finding) => finding.tone === "warning")
+                || logFindings[0];
+              return (
+                <article className="saved-safety-log-card" key={log.id}>
+                  <div>
+                    <span className={`safety-log-type ${topFinding?.tone || "info"}`}>{productTypeLabel(log.productType)}</span>
+                    <h3>{log.batchName}</h3>
+                    <small>{log.lotCode || "No lot code"} · {log.batchDate || "No date"} · shelf life {log.shelfLifeDays || 0} days</small>
+                  </div>
+                  <div className="safety-log-measures">
+                    <span><small>pH</small><strong>{log.ph || "—"}</strong></span>
+                    <span><small>Salt</small><strong>{log.saltPct ? `${log.saltPct}%` : "—"}</strong></span>
+                    <span><small>Qty</small><strong>{log.quantity || "—"}</strong></span>
+                  </div>
+                  {topFinding ? <p>{topFinding.text}</p> : null}
+                  {log.storageInstructions ? <p><b>Storage:</b> {log.storageInstructions}</p> : null}
+                  {log.warningNotes ? <p><b>Warnings:</b> {log.warningNotes}</p> : null}
+                  {log.recallNotes ? <p><b>Recall:</b> {log.recallNotes}</p> : null}
+                  <button className="storage-file-button" type="button" onClick={() => onDelete(log.id)}><Trash2 size={14} /> Delete log</button>
+                </article>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="empty-safety-log">
+            <ClipboardCheck size={22} />
+            <strong>No liquid safety batches saved yet.</strong>
+            <span>Use this for sauces, vinegars, infused oils, and any batch you might need to trace later.</span>
+          </div>
+        )}
+      </section>
+    </>
+  );
+}
+
 function ResultCard({ label, value, detail, tone }) {
   return (
     <article className={tone ? `liquid-result-card ${tone}` : "liquid-result-card"}>
@@ -452,7 +687,11 @@ function SafetyCallout({ children }) {
   );
 }
 
-export default function LiquidPage() {
+export default function LiquidPage({
+  liquidSafetyLogs = [],
+  onDeleteLiquidSafetyLog = () => {},
+  onSaveLiquidSafetyLog = () => {},
+}) {
   const [view, setView] = useState("hot-sauce");
   const [hotSauce, setHotSauce] = useState({
     days: 10,
@@ -482,7 +721,9 @@ export default function LiquidPage() {
     ? ["Liquid lab", "Hot sauce salt, pH, and fermentation timing"]
     : view === "vinegar"
       ? ["Vinegar designer", "Alcohol, oxygen, acidity, and conversion pacing"]
-      : ["Infused oils", "Extraction, aroma, and water-risk controls"];
+      : view === "oil"
+        ? ["Infused oils", "Extraction, aroma, and water-risk controls"]
+        : ["Safety log", "pH, salt, shelf life, storage, warnings, and recall notes"];
 
   return (
     <main className="page liquid-page">
@@ -492,6 +733,7 @@ export default function LiquidPage() {
         <button className={view === "hot-sauce" ? "selected" : ""} onClick={() => setView("hot-sauce")}>Hot sauce</button>
         <button className={view === "vinegar" ? "selected" : ""} onClick={() => setView("vinegar")}>Vinegar</button>
         <button className={view === "oil" ? "selected" : ""} onClick={() => setView("oil")}>Oils</button>
+        <button className={view === "safety" ? "selected" : ""} onClick={() => setView("safety")}>Safety log</button>
       </div>
 
       {view === "hot-sauce" ? (
@@ -510,6 +752,13 @@ export default function LiquidPage() {
         <OilLab
           values={oil}
           onChange={(key, value) => setOil((current) => ({ ...current, [key]: value }))}
+        />
+      ) : null}
+      {view === "safety" ? (
+        <SafetyLogLab
+          logs={liquidSafetyLogs}
+          onDelete={onDeleteLiquidSafetyLog}
+          onSave={onSaveLiquidSafetyLog}
         />
       ) : null}
 
