@@ -4,6 +4,7 @@ import {
   ArrowUp,
   BellRing,
   CheckCircle2,
+  ChevronDown,
   Clock3,
   Mail,
   MessageSquareText,
@@ -29,6 +30,7 @@ import { normalizedBakerySettings } from "../lib/bakerySettings";
 import { normalizeProductTypeSettings } from "../lib/productTypes";
 
 // product-type-settings-v1
+// settings-collapse-v1
 
 function ToggleRow({ checked, label, note, onChange }) {
   return (
@@ -50,6 +52,27 @@ function TimeWindow({ label, value, onChange }) {
   );
 }
 
+function CollapsibleSettingsCard({ children, className = "", eyebrow, icon, summary, title }) {
+  return (
+    <details className={`settings-card settings-accordion ${className}`}>
+      <summary className="settings-accordion-summary">
+        <div className="section-title-line">
+          <div>
+            <span className="eyebrow-label dark">{eyebrow}</span>
+            <h2>{title}</h2>
+            {summary ? <small>{summary}</small> : null}
+          </div>
+          <span className="settings-accordion-icon">{icon}</span>
+        </div>
+        <ChevronDown className="settings-accordion-chevron" size={19} />
+      </summary>
+      <div className="settings-accordion-body">
+        {children}
+      </div>
+    </details>
+  );
+}
+
 function ProductTypeSettingsCard({
   index,
   onAddPackage,
@@ -61,72 +84,76 @@ function ProductTypeSettingsCard({
   type,
 }) {
   return (
-    <article className={type.enabled ? "product-type-card" : "product-type-card disabled"}>
-      <div className="product-type-card-heading">
+    <details className={type.enabled ? "product-type-card" : "product-type-card disabled"}>
+      <summary className="product-type-card-heading">
         <span className="product-type-badge" aria-hidden="true">{type.icon}</span>
         <div>
           <strong>{type.label}</strong>
-          <small>Customer tab #{index + 1} · default unit: {type.unitName}</small>
+          <small>{type.enabled ? "Shown" : "Hidden"} · tab #{index + 1} · {type.packagePresets.length} package{type.packagePresets.length === 1 ? "" : "s"} · {type.unitName}</small>
         </div>
-        <label className="product-type-switch">
-          <input type="checkbox" checked={type.enabled} onChange={(event) => onUpdate(type.value, { enabled: event.target.checked })} />
-          <span>{type.enabled ? "Shown" : "Hidden"}</span>
-        </label>
-      </div>
-
-      <div className="product-type-order-actions" aria-label={`${type.label} display order`}>
-        <button type="button" disabled={index === 0} onClick={() => onMove(type.value, -1)}><ArrowUp size={14} /> Up</button>
-        <button type="button" disabled={index === total - 1} onClick={() => onMove(type.value, 1)}><ArrowDown size={14} /> Down</button>
-      </div>
-
-      <div className="product-type-fields">
-        <label>
-          Default unit
-          <input value={type.unitName} onChange={(event) => onUpdate(type.value, { unitName: event.target.value })} placeholder="loaf, dozen, bottle, jar" />
-        </label>
-        <label className="span-2">
-          Customer-facing description
-          <textarea value={type.description} onChange={(event) => onUpdate(type.value, { description: event.target.value })} />
-        </label>
-        <label className="span-2">
-          Safety / storage notes
-          <textarea value={type.safetyNotes} onChange={(event) => onUpdate(type.value, { safetyNotes: event.target.value })} />
-        </label>
-      </div>
-
-      <div className="product-package-settings">
-        <div className="product-package-heading">
-          <span>
-            <strong>Default packages</strong>
-            <small>New recipes of this type start with these package/pricing presets.</small>
-          </span>
-          <button type="button" onClick={() => onAddPackage(type.value)}><Plus size={14} /> Add package</button>
+        <ChevronDown className="settings-accordion-chevron" size={18} />
+      </summary>
+      <div className="product-type-card-body">
+        <div className="product-type-quick-actions">
+          <label className="product-type-switch">
+            <input type="checkbox" checked={type.enabled} onChange={(event) => onUpdate(type.value, { enabled: event.target.checked })} />
+            <span>{type.enabled ? "Shown on customer page" : "Hidden from customer page"}</span>
+          </label>
+          <div className="product-type-order-actions" aria-label={`${type.label} display order`}>
+            <button type="button" disabled={index === 0} onClick={() => onMove(type.value, -1)}><ArrowUp size={14} /> Up</button>
+            <button type="button" disabled={index === total - 1} onClick={() => onMove(type.value, 1)}><ArrowDown size={14} /> Down</button>
+          </div>
         </div>
-        <div className="product-package-list">
-          {type.packagePresets.map((preset) => (
-            <div className="product-package-row" key={preset.id}>
-              <label>
-                Label
-                <input value={preset.label} onChange={(event) => onUpdatePackage(type.value, preset.id, { label: event.target.value })} />
-              </label>
-              <label>
-                Units
-                <input type="number" min="0.5" max="120" step="0.5" value={preset.units} onChange={(event) => onUpdatePackage(type.value, preset.id, { units: Number(event.target.value) })} />
-              </label>
-              <label>
-                Price
-                <input type="number" min="0" step="0.25" value={preset.price} onChange={(event) => onUpdatePackage(type.value, preset.id, { price: Number(event.target.value) })} />
-              </label>
-              <label>
-                Bake slots
-                <input type="number" min="0" max="6" value={preset.capacityUnits} onChange={(event) => onUpdatePackage(type.value, preset.id, { capacityUnits: Number(event.target.value) })} />
-              </label>
-              <button type="button" className="remove-ingredient-button" disabled={type.packagePresets.length <= 1} aria-label={`Remove ${preset.label}`} onClick={() => onRemovePackage(type.value, preset.id)}><Trash2 size={14} /></button>
-            </div>
-          ))}
+
+        <div className="product-type-fields">
+          <label>
+            Default unit
+            <input value={type.unitName} onChange={(event) => onUpdate(type.value, { unitName: event.target.value })} placeholder="loaf, dozen, bottle, jar" />
+          </label>
+          <label className="span-2">
+            Customer-facing description
+            <textarea value={type.description} onChange={(event) => onUpdate(type.value, { description: event.target.value })} />
+          </label>
+          <label className="span-2">
+            Safety / storage notes
+            <textarea value={type.safetyNotes} onChange={(event) => onUpdate(type.value, { safetyNotes: event.target.value })} />
+          </label>
+        </div>
+
+        <div className="product-package-settings">
+          <div className="product-package-heading">
+            <span>
+              <strong>Default packages</strong>
+              <small>New recipes of this type start with these package/pricing presets.</small>
+            </span>
+            <button type="button" onClick={() => onAddPackage(type.value)}><Plus size={14} /> Add package</button>
+          </div>
+          <div className="product-package-list">
+            {type.packagePresets.map((preset) => (
+              <div className="product-package-row" key={preset.id}>
+                <label>
+                  Label
+                  <input value={preset.label} onChange={(event) => onUpdatePackage(type.value, preset.id, { label: event.target.value })} />
+                </label>
+                <label>
+                  Units
+                  <input type="number" min="0.5" max="120" step="0.5" value={preset.units} onChange={(event) => onUpdatePackage(type.value, preset.id, { units: Number(event.target.value) })} />
+                </label>
+                <label>
+                  Price
+                  <input type="number" min="0" step="0.25" value={preset.price} onChange={(event) => onUpdatePackage(type.value, preset.id, { price: Number(event.target.value) })} />
+                </label>
+                <label>
+                  Bake slots
+                  <input type="number" min="0" max="6" value={preset.capacityUnits} onChange={(event) => onUpdatePackage(type.value, preset.id, { capacityUnits: Number(event.target.value) })} />
+                </label>
+                <button type="button" className="remove-ingredient-button" disabled={type.packagePresets.length <= 1} aria-label={`Remove ${preset.label}`} onClick={() => onRemovePackage(type.value, preset.id)}><Trash2 size={14} /></button>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
-    </article>
+    </details>
   );
 }
 
@@ -422,27 +449,39 @@ export default function SettingsPage({
           </div>
         </section>
 
-        <section className="settings-card">
-          <div className="section-title-line"><div><span className="eyebrow-label dark">Order protection</span><h2>Capacity and lead time</h2></div><ShoppingBag size={20} /></div>
+        <CollapsibleSettingsCard
+          eyebrow="Order protection"
+          icon={<ShoppingBag size={20} />}
+          summary={`${draft.dailyCapacity} slots/day · ${draft.orderWindowDays}-day window`}
+          title="Capacity and lead time"
+        >
           <div className="settings-number-grid">
             <label>Daily bake slots<input type="number" min="1" max="24" value={draft.dailyCapacity} onChange={(event) => update("dailyCapacity", Number(event.target.value))} /><small>Maximum future-bake capacity per pickup day.</small></label>
             <label>Order window<input type="number" min="1" max="90" value={draft.orderWindowDays} onChange={(event) => update("orderWindowDays", Number(event.target.value))} /><small>How many days ahead customers may order.</small></label>
             <label>Minimum lead time<input type="number" min="0" max="14" value={draft.leadTimeDays} onChange={(event) => update("leadTimeDays", Number(event.target.value))} /><small>Days required before pickup.</small></label>
             <label>Pickup intervals<select value={draft.pickupIntervalMinutes} onChange={(event) => update("pickupIntervalMinutes", Number(event.target.value))}><option value="15">Every 15 minutes</option><option value="30">Every 30 minutes</option><option value="60">Every hour</option></select><small>Spacing between customer pickup choices.</small></label>
           </div>
-        </section>
+        </CollapsibleSettingsCard>
 
-        <section className="settings-card">
-          <div className="section-title-line"><div><span className="eyebrow-label dark">Pickup schedule</span><h2>Available hours</h2></div><Clock3 size={20} /></div>
+        <CollapsibleSettingsCard
+          eyebrow="Pickup schedule"
+          icon={<Clock3 size={20} />}
+          summary="Weekdays and weekend pickup windows"
+          title="Available hours"
+        >
           <div className="settings-hours-grid">
             <TimeWindow label="Weekday morning" value={draft.weekdayWindows[0]} onChange={(value) => updateWindow("weekdayWindows", 0, value)} />
             <TimeWindow label="Weekday evening" value={draft.weekdayWindows[1]} onChange={(value) => updateWindow("weekdayWindows", 1, value)} />
             <TimeWindow label="Weekend" value={draft.weekendWindows[0]} onChange={(value) => updateWindow("weekendWindows", 0, value)} />
           </div>
-        </section>
+        </CollapsibleSettingsCard>
 
-        <section className="settings-card">
-          <div className="section-title-line"><div><span className="eyebrow-label dark">Status messages</span><h2>Customer notifications</h2></div><BellRing size={20} /></div>
+        <CollapsibleSettingsCard
+          eyebrow="Status messages"
+          icon={<BellRing size={20} />}
+          summary={`${draft.emailNotifications ? "Email on" : "Email off"} · ${draft.smsNotifications ? "texts on" : "texts off"}`}
+          title="Customer notifications"
+        >
           <div className="settings-toggle-list">
             <ToggleRow checked={draft.emailNotifications} label="Email updates" note="Let customers opt into email and enable baker email actions." onChange={(value) => update("emailNotifications", value)} />
             <ToggleRow checked={draft.automaticEmailNotifications} label="Send email automatically" note="Send enabled order updates immediately after your baker action." onChange={(value) => update("automaticEmailNotifications", value)} />
@@ -482,19 +521,24 @@ export default function SettingsPage({
             </button>
             <a className={!draft.smsNotifications || !testSmsHref ? "disabled" : ""} href={draft.smsNotifications ? testSmsHref : undefined}><MessageSquareText size={16} /> Test text</a>
           </div>
-          <div className="email-delivery-history">
-            <div><strong>Recent email delivery</strong><small>{emailDeliveries.length ? "Latest automatic and test messages" : "No email attempts recorded yet."}</small></div>
-            {emailDeliveries.map((delivery) => (
-              <div className={`email-delivery-row status-${delivery.status}`} key={delivery.id}>
-                <span><strong>{delivery.event_type === "bakeProgress" ? "Bake progress" : delivery.event_type}</strong><small>{delivery.recipient}</small></span>
-                <span>
-                  <strong>{delivery.status}</strong>
-                  <small>{delivery.error_message || new Date(delivery.created_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</small>
-                </span>
-              </div>
-            ))}
-          </div>
-        </section>
+          <details className="email-delivery-history">
+            <summary>
+              <span><strong>Recent email delivery</strong><small>{emailDeliveries.length ? `${emailDeliveries.length} latest automatic and test message${emailDeliveries.length === 1 ? "" : "s"}` : "No email attempts recorded yet."}</small></span>
+              <ChevronDown className="settings-accordion-chevron" size={17} />
+            </summary>
+            <div className="email-delivery-list">
+              {emailDeliveries.map((delivery) => (
+                <div className={`email-delivery-row status-${delivery.status}`} key={delivery.id}>
+                  <span><strong>{delivery.event_type === "bakeProgress" ? "Bake progress" : delivery.event_type}</strong><small>{delivery.recipient}</small></span>
+                  <span>
+                    <strong>{delivery.status}</strong>
+                    <small>{delivery.error_message || new Date(delivery.created_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</small>
+                  </span>
+                </div>
+              ))}
+            </div>
+          </details>
+        </CollapsibleSettingsCard>
 
         <section className="settings-card settings-publish-card">
           <div className="section-title-line"><div><span className="eyebrow-label dark">Customer menu</span><h2>Package pricing</h2></div><PackageCheck size={20} /></div>
