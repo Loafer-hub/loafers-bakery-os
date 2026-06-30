@@ -5,9 +5,18 @@ import { normalizedSalesOptions } from "./salesOptions";
 // customer-options-v1
 // checkout-flow-v1
 // yeast-breads-v1
+// release-deleted-order-capacity-v1
 
 const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL || "").trim();
 const supabaseKey = (import.meta.env.VITE_SUPABASE_ANON_KEY || "").trim();
+const NON_RESERVATION_STATUSES = new Set([
+  "Cancelled",
+  "Declined",
+  "Completed",
+  "cancelled",
+  "declined",
+  "completed",
+]);
 
 export const cloudConfigured = Boolean(supabaseUrl && supabaseKey);
 
@@ -529,6 +538,21 @@ export async function completeCustomerOrder(orderId, bakeryId = "") {
   return bakeryId ? sendAutomaticOrderEmail(bakeryId, orderId, "completed") : { sent: false };
 }
 
+export async function cancelCustomerOrderCapacity(orderId, bakeryId = "", bakerNotes = "") {
+  const changes = {
+    status: "cancelled",
+    updated_at: new Date().toISOString(),
+  };
+  if (bakerNotes.trim()) changes.baker_notes = bakerNotes.trim();
+  let query = requireClient()
+    .from("customer_orders")
+    .update(changes)
+    .eq("id", orderId);
+  if (bakeryId) query = query.eq("bakery_id", bakeryId);
+  const { error } = await query;
+  throwIfError(error);
+}
+
 export async function updateCustomerOrderBakeProgress(
   orderId,
   bakeProgress,
@@ -663,7 +687,12 @@ export async function deleteReadyShelfItem(itemId) {
 
 export async function syncBakerCapacityReservations(bakeryId, orders) {
   const reservations = orders.flatMap((order) => {
-    if (order.cloudOrderId || order.isSample || !order.pickupAt) return [];
+    if (
+      order.cloudOrderId
+      || order.isSample
+      || !order.pickupAt
+      || NON_RESERVATION_STATUSES.has(order.status)
+    ) return [];
     const date = new Date(order.pickupAt);
     if (Number.isNaN(date.getTime())) return [];
     const pickupDate = [
