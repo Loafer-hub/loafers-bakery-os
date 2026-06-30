@@ -1,4 +1,4 @@
-import { CalendarDays, CheckCircle2, List, Mail, MessageSquareText, Plus, Search, Send, ShoppingBag, Trash2 } from "lucide-react";
+import { Banknote, CalendarDays, CheckCircle2, List, Mail, MessageSquareText, Plus, Search, Send, ShoppingBag, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { PageHeading } from "../components/AppChrome";
 import { CloudOrderInbox } from "../components/CloudOrderInbox";
@@ -12,7 +12,16 @@ import { emailNotificationHref, smsNotificationHref } from "../lib/customerNotif
 import { normalizedSalesOptions, pluralUnit } from "../lib/salesOptions";
 import { updateCustomerOrderNotificationPreferences } from "../lib/cloud";
 
+// customer-options-v1
+
 const filters = ["Pending", "Completed", "All"];
+const paymentMethods = ["Venmo", "Zelle", "Cash", "Other"];
+const paymentStatuses = [
+  { value: "unpaid", label: "Unpaid" },
+  { value: "deposit", label: "Deposit paid" },
+  { value: "paid", label: "Paid in full" },
+  { value: "refunded", label: "Refunded" },
+];
 
 const sampleCustomers = new Set([
   "Emily Morgan",
@@ -62,6 +71,17 @@ function capacityError(status, requestedSlots) {
   return "";
 }
 
+function paymentStatusLabel(value) {
+  return paymentStatuses.find((status) => status.value === value)?.label || "Unpaid";
+}
+
+function inferredPaymentStatus(order = {}) {
+  if (order.paymentStatus) return order.paymentStatus;
+  if (order.status === "Paid") return "paid";
+  if (order.status === "Deposit") return "deposit";
+  return "unpaid";
+}
+
 export default function OrdersPage({
   bakerySettings,
   cloudAccount,
@@ -101,6 +121,10 @@ export default function OrdersPage({
     customerPhone: "",
     notifyEmail: false,
     notifySms: false,
+    paymentMethod: "Venmo",
+    paymentStatus: "unpaid",
+    paymentAmount: "",
+    paymentNotes: "",
   });
   const [detailProgress, setDetailProgress] = useState(() => normalizedBakeProgress());
   const [form, setForm] = useState({
@@ -114,6 +138,10 @@ export default function OrdersPage({
     notifySms: false,
     pickupAt: defaultPickupInput(),
     status: "New",
+    paymentMethod: "Venmo",
+    paymentStatus: "unpaid",
+    paymentAmount: "",
+    paymentNotes: "",
   });
 
   const filteredOrders = useMemo(() => {
@@ -151,6 +179,10 @@ export default function OrdersPage({
       customerPhone: selectedOrder.customerPhone || "",
       notifyEmail: Boolean(selectedOrder.notifyEmail),
       notifySms: Boolean(selectedOrder.notifySms),
+      paymentMethod: selectedOrder.paymentMethod || "Venmo",
+      paymentStatus: inferredPaymentStatus(selectedOrder),
+      paymentAmount: selectedOrder.paymentAmount ?? "",
+      paymentNotes: selectedOrder.paymentNotes || "",
     });
     setDetailProgress(normalizedBakeProgress(selectedOrder.bakeProgress));
     setNotificationEvent(enabledNotificationEvents[0]?.id || "");
@@ -182,6 +214,10 @@ export default function OrdersPage({
       ...form,
       notifyEmail: Boolean(rules.emailNotifications && form.notifyEmail && form.customerEmail.trim()),
       notifySms: Boolean(rules.smsNotifications && form.notifySms && form.customerPhone.trim()),
+      paymentMethod: form.paymentMethod,
+      paymentStatus: form.paymentStatus,
+      paymentAmount: Number(form.paymentAmount || 0),
+      paymentNotes: form.paymentNotes.trim(),
       product: `${selectedRecipe.name} · ${selectedOption.label}`,
       quantity: formCapacityUnits,
       totalUnits: Number(selectedOption.units || 1) * Number(form.packageCount || 1),
@@ -211,6 +247,10 @@ export default function OrdersPage({
       notifySms: false,
       pickupAt: defaultPickupInput(),
       status: "New",
+      paymentMethod: "Venmo",
+      paymentStatus: "unpaid",
+      paymentAmount: "",
+      paymentNotes: "",
     });
   }
 
@@ -228,6 +268,10 @@ export default function OrdersPage({
       customerPhone: detailForm.customerPhone.trim(),
       notifyEmail: Boolean(rules.emailNotifications && detailForm.notifyEmail && detailForm.customerEmail.trim()),
       notifySms: Boolean(rules.smsNotifications && detailForm.notifySms && detailForm.customerPhone.trim()),
+      paymentMethod: detailForm.paymentMethod,
+      paymentStatus: detailForm.paymentStatus,
+      paymentAmount: Number(detailForm.paymentAmount || 0),
+      paymentNotes: detailForm.paymentNotes.trim(),
       pickupAt: detailForm.pickupAt ? new Date(detailForm.pickupAt).toISOString() : null,
       due: pickupDueLabel(detailForm.pickupAt),
     };
@@ -284,6 +328,10 @@ export default function OrdersPage({
         customerPhone: detailForm.customerPhone.trim(),
         notifyEmail: Boolean(rules.emailNotifications && detailForm.notifyEmail && detailForm.customerEmail.trim()),
         notifySms: Boolean(rules.smsNotifications && detailForm.notifySms && detailForm.customerPhone.trim()),
+        paymentMethod: detailForm.paymentMethod,
+        paymentStatus: detailForm.paymentStatus,
+        paymentAmount: Number(detailForm.paymentAmount || 0),
+        paymentNotes: detailForm.paymentNotes.trim(),
         pickupAt: detailForm.pickupAt ? new Date(detailForm.pickupAt).toISOString() : null,
         due: pickupDueLabel(detailForm.pickupAt),
       });
@@ -400,6 +448,10 @@ export default function OrdersPage({
                   {order.status === "Completed" || order.status === "Paid" ? <CheckCircle2 size={13} /> : <ShoppingBag size={13} />}
                   {order.status}
                 </Status>
+                <span className={`payment-status-chip ${inferredPaymentStatus(order)}`}>
+                  <Banknote size={12} />
+                  {paymentStatusLabel(inferredPaymentStatus(order))}
+                </span>
               </div>
             </div>
           </button>
@@ -467,14 +519,39 @@ export default function OrdersPage({
                 setForm({ ...form, pickupAt: event.target.value });
               }} /></label>
               <label>
-                Payment
+                Order status
                 <select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}>
                   <option>New</option>
+                  <option>Confirmed</option>
                   <option>Deposit</option>
                   <option>Paid</option>
                 </select>
               </label>
             </div>
+            <section className="payment-tracking-panel compact" aria-label="Payment tracking">
+              <div className="section-title-line">
+                <div><strong>Payment tracking</strong><small>Keep Venmo, Zelle, Cash, and deposits separate from bake status.</small></div>
+                <Banknote size={17} />
+              </div>
+              <div className="form-grid">
+                <label>
+                  Method
+                  <select value={form.paymentMethod} onChange={(event) => setForm({ ...form, paymentMethod: event.target.value })}>
+                    {paymentMethods.map((method) => <option key={method}>{method}</option>)}
+                  </select>
+                </label>
+                <label>
+                  Payment status
+                  <select value={form.paymentStatus} onChange={(event) => setForm({ ...form, paymentStatus: event.target.value })}>
+                    {paymentStatuses.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}
+                  </select>
+                </label>
+              </div>
+              <div className="form-grid">
+                <label>Amount received<input type="number" min="0" step="0.01" value={form.paymentAmount} onChange={(event) => setForm({ ...form, paymentAmount: event.target.value })} placeholder="0.00" /></label>
+                <label>Payment notes<input value={form.paymentNotes} onChange={(event) => setForm({ ...form, paymentNotes: event.target.value })} placeholder="Txn note, cash due, deposit…" /></label>
+              </div>
+            </section>
             <div className={`order-capacity-note ${addCapacity.full || addCapacity.feedReserved ? "locked" : ""}`}>
               <strong>{addCapacity.feedReserved ? "Starter-feed day locked" : `${addCapacity.booked} of ${dailyCapacity} bake slots booked`}</strong>
               <span>{addCapacity.feedReserved ? "Choose another pickup day." : `${addCapacity.remaining} remaining before this day closes.`}</span>
@@ -493,6 +570,8 @@ export default function OrdersPage({
               <div><span>Ordered</span><strong>{selectedOrder.itemSummary || `${selectedOrder.quantity} item${selectedOrder.quantity === 1 ? "" : "s"}`}</strong></div>
               <div><span>Total</span><strong>${selectedOrder.total}</strong></div>
               <div><span>Bake capacity</span><strong>{selectedOrder.quantity} slot{selectedOrder.quantity === 1 ? "" : "s"}</strong></div>
+              <div><span>Payment</span><strong>{detailForm.paymentMethod || selectedOrder.paymentMethod || "Not set"}</strong></div>
+              <div><span>Payment status</span><strong>{paymentStatusLabel(detailForm.paymentStatus)}</strong></div>
             </div>
             <label>
               Pickup date and time
@@ -514,11 +593,36 @@ export default function OrdersPage({
                 onChange={(event) => setDetailForm({ ...detailForm, status: event.target.value })}
               >
                 <option>New</option>
+                <option>Confirmed</option>
                 <option>Deposit</option>
                 <option>Paid</option>
                 <option>Completed</option>
               </select>
             </label>
+            <section className="payment-tracking-panel" aria-label="Payment tracking">
+              <div className="section-title-line">
+                <div><strong>Payment tracking</strong><small>Use this for Venmo, Zelle, Cash, deposits, and “paid at pickup” notes.</small></div>
+                <Banknote size={18} />
+              </div>
+              <div className="form-grid">
+                <label>
+                  Method
+                  <select value={detailForm.paymentMethod} onChange={(event) => setDetailForm({ ...detailForm, paymentMethod: event.target.value })}>
+                    {paymentMethods.map((method) => <option key={method}>{method}</option>)}
+                  </select>
+                </label>
+                <label>
+                  Payment status
+                  <select value={detailForm.paymentStatus} onChange={(event) => setDetailForm({ ...detailForm, paymentStatus: event.target.value })}>
+                    {paymentStatuses.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}
+                  </select>
+                </label>
+              </div>
+              <div className="form-grid">
+                <label>Amount received<input type="number" min="0" step="0.01" value={detailForm.paymentAmount} onChange={(event) => setDetailForm({ ...detailForm, paymentAmount: event.target.value })} placeholder="0.00" /></label>
+                <label>Payment notes<input value={detailForm.paymentNotes} onChange={(event) => setDetailForm({ ...detailForm, paymentNotes: event.target.value })} placeholder="Txn note, cash due, deposit…" /></label>
+              </div>
+            </section>
             {detailError ? <p className="form-error" role="alert">{detailError}</p> : null}
             <label>
               Baker notes
