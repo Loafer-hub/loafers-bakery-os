@@ -3,6 +3,7 @@ import {
   getFlourProfile,
   weightedFlourMetric,
 } from "../data/flourProfiles";
+import { normalizeTimelineSettings, recipeUsesStarter } from "./recipeTimeline";
 
 export { FLOUR_TYPES };
 
@@ -31,7 +32,18 @@ export function recipeFlourBlend(recipe) {
 }
 
 function starterPercent(recipe) {
-  return Number(recipe?.ingredients.find((item) => item.name.toLowerCase().includes("starter"))?.percent || 20);
+  return Number(recipe?.ingredients.find((item) => (
+    item.category === "starter"
+    || item.name.toLowerCase().includes("starter")
+    || item.name.toLowerCase().includes("levain")
+  ))?.percent || 20);
+}
+
+function yeastPercent(recipe) {
+  return Number(recipe?.ingredients.find((item) => (
+    item.category === "yeast"
+    || item.name.toLowerCase().includes("yeast")
+  ))?.percent || 1.2);
 }
 
 export function parseRatio(ratio = "1:2:2") {
@@ -97,8 +109,10 @@ export function estimateDoughFermentation({
   doughTemperature = 76,
   starterStrength = 1,
 }) {
+  const timeline = normalizeTimelineSettings(recipe);
+  const usesStarter = recipeUsesStarter(recipe);
   const hydration = Number(recipe?.hydration || 75);
-  const inoculation = starterPercent(recipe);
+  const inoculation = usesStarter ? starterPercent(recipe) : yeastPercent(recipe);
   const blend = recipeFlourBlend(recipe);
   const temperatureRate = clamp(
     Math.pow(1.9, (fahrenheitToCelsius(doughTemperature) - 24) / 10),
@@ -109,9 +123,15 @@ export function estimateDoughFermentation({
   const flourRate = clamp(weightedFlourMetric(blend, "activity"), 0.9, 1.2);
   const structureRate = clamp(weightedFlourMetric(blend, "doughLift"), 0.18, 1.16);
   const waterDemandRate = clamp(weightedFlourMetric(blend, "waterDemand"), 0.9, 1.22);
-  const inoculationRate = clamp(Math.pow(inoculation / 20, 0.45), 0.58, 1.55);
-  const activityRate = temperatureRate * hydrationRate * flourRate * inoculationRate * clamp(starterStrength, 0.75, 1.25);
-  const bulkHours = clamp(4.75 / activityRate, 2.25, 11);
+  const inoculationRate = usesStarter
+    ? clamp(Math.pow(inoculation / 20, 0.45), 0.58, 1.55)
+    : clamp(Math.pow(inoculation / 1.2, 0.35), 0.55, 1.8);
+  const strengthRate = usesStarter ? clamp(starterStrength, 0.75, 1.25) : 1;
+  const activityRate = temperatureRate * hydrationRate * flourRate * inoculationRate * strengthRate;
+  const basePrimaryHours = timeline.useBulkFermentRules ? 4.75 : timeline.primaryRiseHours;
+  const bulkHours = timeline.useBulkFermentRules
+    ? clamp(basePrimaryHours / activityRate, 2.25, 11)
+    : clamp(basePrimaryHours / clamp(temperatureRate * flourRate * inoculationRate, 0.45, 2.5), 0.35, 8);
   const roomProofHours = clamp(1.05 / Math.pow(activityRate, 0.55), 0.55, 2.25);
   return {
     activityRate,
@@ -125,6 +145,8 @@ export function estimateDoughFermentation({
     inoculationRate,
     hydration,
     inoculation,
+    inoculationKind: usesStarter ? "starter" : "yeast",
+    primaryLabel: timeline.primaryLabel,
     flourBlend: blend,
   };
 }
@@ -148,20 +170,28 @@ export function buildBakeSchedule({
   ratio,
   starterLogs,
 }) {
+  const timelineSettings = normalizeTimelineSettings(recipe);
+  const usesStarter = timelineSettings.useStarter;
   const latestLog = starterLogs.find((log) => log.starterId === starter?.id)
     || starterLogs.find((log) => !log.starterId);
   const starterStrength = latestLog?.rise ? clamp(Number(latestLog.rise) / 2, 0.78, 1.22) : 1;
   const dough = estimateDoughFermentation({ recipe, doughTemperature, starterStrength });
-  const calibration = starterCalibration(starterLogs, starter?.id);
-  const starterPeak = estimateStarterPeak({
+  const calibration = usesStarter ? starterCalibration(starterLogs, starter?.id) : 1;
+  const starterPeak = usesStarter ? estimateStarterPeak({
     ratio,
     temperature: latestLog?.temperature || doughTemperature,
     flourBlend: starter?.flourBlend,
     hydration: starter?.hydration,
     calibration,
-  });
+  }) : null;
   const bakeDuration = 0.65 + Math.ceil(Number(loaves || 1) / 10) * 0.55;
-  const coldProof = Number(coldProofHours);
+  const primaryHours = dough.bulkHours;
+  const shapeHours = timelineSettings.includeShape ? timelineSettings.shapeMinutes / 60 : 0;
+  const finalProofHours = timelineSettings.includeFinalProof ? timelineSettings.finalProofHours : 0;
+  const coldProof = timelineSettings.includeColdProof
+    ? Number(coldProofHours ?? timelineSettings.defaultColdProofHours)
+    : 0;
+  const preheatHours = timelineSettings.includePreheat ? timelineSettings.preheatMinutes / 60 : 0;
   const anchor = new Date(anchorDateTime);
   let mix;
   let bakeEnd;
@@ -169,41 +199,92 @@ export function buildBakeSchedule({
   if (anchorMode === "finish") {
     bakeEnd = anchor;
     const bakeStart = subtractHours(bakeEnd, bakeDuration);
-    const preheat = subtractHours(bakeStart, 0.75);
+    const preheat = subtractHours(bakeStart, preheatHours);
     const coldStart = subtractHours(preheat, coldProof);
-    const shape = subtractHours(coldStart, 0.5);
-    mix = subtractHours(shape, dough.bulkHours);
+    const finalProofStart = subtractHours(coldStart, finalProofHours);
+    const shape = subtractHours(finalProofStart, shapeHours);
+    mix = subtractHours(shape, primaryHours);
   } else {
     mix = anchor;
-    const shape = addHours(mix, dough.bulkHours);
-    const coldStart = addHours(shape, 0.5);
+    const shape = addHours(mix, primaryHours);
+    const finalProofStart = addHours(shape, shapeHours);
+    const coldStart = addHours(finalProofStart, finalProofHours);
     const preheat = addHours(coldStart, coldProof);
-    const bakeStart = addHours(preheat, 0.75);
+    const bakeStart = addHours(preheat, preheatHours);
     bakeEnd = addHours(bakeStart, bakeDuration);
   }
 
-  const shape = addHours(mix, dough.bulkHours);
-  const coldStart = addHours(shape, 0.5);
+  const primaryEnd = addHours(mix, primaryHours);
+  const shape = primaryEnd;
+  const finalProofStart = addHours(shape, shapeHours);
+  const coldStart = addHours(finalProofStart, finalProofHours);
   const preheat = addHours(coldStart, coldProof);
-  const bakeStart = addHours(preheat, 0.75);
-  const foldEnd = addHours(mix, Math.min(2.25, dough.bulkHours * 0.58));
-  const starterFeed = subtractHours(mix, starterPeak.hours);
+  const bakeStart = addHours(preheat, preheatHours);
+  bakeEnd = addHours(bakeStart, bakeDuration);
+  const firstFoldHours = timelineSettings.firstFoldMinutes / 60;
+  const foldIntervalHours = timelineSettings.foldIntervalMinutes / 60;
+  const lastFoldOffset = firstFoldHours + Math.max(0, timelineSettings.stretchFoldCount - 1) * foldIntervalHours;
+  const foldEnd = timelineSettings.includeStretchFolds
+    ? addHours(mix, Math.min(lastFoldOffset, Math.max(firstFoldHours, primaryHours * 0.85)))
+    : null;
+  const starterFeed = usesStarter && starterPeak ? subtractHours(mix, starterPeak.hours) : null;
+
+  const steps = [];
+  if (usesStarter && timelineSettings.includeStarterFeed && starterFeed) {
+    steps.push({ id: "feed", label: `Feed ${starter?.name || "starter"}`, start: starterFeed, detail: ratio });
+  }
+  steps.push({ id: "mix", label: "Mix dough", start: mix, detail: `${doughTemperature}°F dough` });
+  if (timelineSettings.includeStretchFolds && timelineSettings.stretchFoldCount > 0) {
+    steps.push({
+      id: "folds",
+      label: timelineSettings.stretchFoldCount === 1 ? "Fold" : "Folds",
+      start: addHours(mix, firstFoldHours),
+      end: foldEnd,
+      detail: `${timelineSettings.stretchFoldCount} × every ${timelineSettings.foldIntervalMinutes} min`,
+    });
+  }
+  if (timelineSettings.includeShape) {
+    steps.push({
+      id: "shape",
+      label: "Shape",
+      start: shape,
+      detail: `${primaryHours.toFixed(1)}h ${timelineSettings.primaryLabel.toLowerCase()} estimate`,
+    });
+  } else {
+    steps.push({
+      id: "primary",
+      label: `${timelineSettings.primaryLabel} check`,
+      start: primaryEnd,
+      detail: `${primaryHours.toFixed(1)}h estimate`,
+    });
+  }
+  if (timelineSettings.includeFinalProof && finalProofHours > 0) {
+    steps.push({ id: "final-proof", label: "Final proof", start: finalProofStart, end: coldStart, detail: `${finalProofHours}h planned` });
+  }
+  if (timelineSettings.includeColdProof && coldProof > 0) {
+    steps.push({ id: "cold", label: "Cold proof", start: coldStart, end: preheat, detail: `${coldProof}h` });
+  }
+  if (timelineSettings.includePreheat && preheatHours > 0) {
+    steps.push({ id: "preheat", label: "Preheat oven", start: preheat, detail: `Load oven after ${timelineSettings.preheatMinutes} min` });
+  }
+  steps.push({ id: "bake", label: "Bake", start: bakeStart, end: bakeEnd, detail: `${Math.ceil(Number(loaves || 1) / 10)} oven load${Number(loaves || 1) > 10 ? "s" : ""}` });
 
   return {
     starterPeak,
     dough,
+    timeline: {
+      ...timelineSettings,
+      primaryHours,
+      primaryEnd,
+      mix,
+      bakeStart,
+      bakeEnd,
+      usesStarter,
+    },
     bakeDuration,
     mix,
     bakeEnd,
-    steps: [
-      { id: "feed", label: `Feed ${starter?.name || "starter"}`, start: starterFeed, detail: ratio },
-      { id: "mix", label: "Mix dough", start: mix, detail: `${doughTemperature}°F dough` },
-      { id: "folds", label: "Folds", start: addHours(mix, 0.5), end: foldEnd, detail: "Bulk development" },
-      { id: "shape", label: "Shape", start: shape, detail: `${dough.bulkHours.toFixed(1)}h bulk estimate` },
-      { id: "cold", label: "Cold proof", start: coldStart, end: preheat, detail: `${coldProof}h` },
-      { id: "preheat", label: "Preheat oven", start: preheat, detail: "Load oven after 45 min" },
-      { id: "bake", label: "Bake", start: bakeStart, end: bakeEnd, detail: `${Math.ceil(Number(loaves || 1) / 10)} oven load${Number(loaves || 1) > 10 ? "s" : ""}` },
-    ],
+    steps,
   };
 }
 
