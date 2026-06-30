@@ -32,11 +32,17 @@ import {
   pluralUnit,
   SALES_OPTION_PRESETS,
 } from "../lib/salesOptions";
+import {
+  defaultTimelineSettingsForProductType,
+  normalizeTimelineSettings,
+  recipeAllowsStarterIngredient,
+} from "../lib/recipeTimeline";
 
 // yeast-breads-v1
 // ai-assist-submit-v1
 // ai-assist-responsive-v1
 // recipe-grams-entry-v1
+// recipe-timeline-controls-v1
 
 const INGREDIENT_CATEGORIES = [
   { value: "flour", label: "Flour" },
@@ -264,6 +270,12 @@ function defaultIngredientsForType(productType, stamp = Date.now()) {
   }));
 }
 
+function sanitizeIngredientsForTimeline(ingredients, recipe) {
+  const allowsStarter = recipeAllowsStarterIngredient(recipe);
+  if (allowsStarter) return ingredients;
+  return ingredients.filter((ingredient) => ingredient.category !== "starter");
+}
+
 function isUntouchedDefaultFormula(recipe) {
   if (!recipe.isNew) return false;
   if (recipe.ingredients.length !== DEFAULT_INGREDIENTS.length) return false;
@@ -457,6 +469,7 @@ function recipeForm(recipe, bakerySettings) {
   if (!recipe) {
     const typeSettings = productTypeSettingsFor(bakerySettings, "bread");
     const salesOptions = salesOptionsForProductType(bakerySettings, "bread", stamp);
+    const timelineSettings = defaultTimelineSettingsForProductType("bread");
     return {
       id: `recipe-${stamp}`,
       name: "",
@@ -474,6 +487,7 @@ function recipeForm(recipe, bakerySettings) {
       salesOptions,
       flourWeight: 2400,
       baseWeight: 2400,
+      timelineSettings,
       isNew: true,
       ingredients: defaultIngredientsForType("bread", stamp),
     };
@@ -481,6 +495,7 @@ function recipeForm(recipe, bakerySettings) {
   const productType = recipe.productType || "bread";
   const typeSettings = productTypeSettingsFor(bakerySettings, productType);
   const formulaMode = recipe.formulaMode || productTypeFor({ productType }).formulaMode;
+  const timelineSettings = normalizeTimelineSettings(recipe);
   const baseWeight = formulaMode === "batch"
     ? Number(recipe.baseWeight || recipe.flourWeight) || Number(recipe.yield || 1) * 250
     : flourWeightFor(recipe);
@@ -501,7 +516,8 @@ function recipeForm(recipe, bakerySettings) {
     ).map((option, index) => ({ ...option, id: option.id || `sale-option-${index}-${stamp}` })),
     flourWeight: baseWeight,
     baseWeight,
-    ingredients: recipe.ingredients.map((ingredient, index) => ({
+    timelineSettings,
+    ingredients: sanitizeIngredientsForTimeline(recipe.ingredients.map((ingredient, index) => ({
       ...ingredient,
       id: ingredient.id || `ingredient-${index}-${stamp}`,
       category: ingredientCategory(ingredient),
@@ -509,7 +525,7 @@ function recipeForm(recipe, bakerySettings) {
         ? getFlourProfile(ingredient.flourType || ingredient.name).name
         : undefined,
       percent: Number(ingredient.percent || 0),
-    })),
+    })), { productType, timelineSettings }),
   };
 }
 
@@ -802,10 +818,12 @@ export default function RecipesPage({ bakerySettings, inventory, recipes, onDele
     event.preventDefault();
     if (!form.name.trim()) return;
     const formulaMode = formulaModeFor(form);
-    const flourTotal = form.ingredients.reduce((sum, ingredient) => (
+    const timelineSettings = normalizeTimelineSettings(form);
+    const ingredientsForSave = sanitizeIngredientsForTimeline(form.ingredients, { ...form, timelineSettings });
+    const flourTotal = ingredientsForSave.reduce((sum, ingredient) => (
       ingredient.category === "flour" ? sum + Number(ingredient.percent || 0) : sum
     ), 0);
-    const batchTotal = form.ingredients.reduce((sum, ingredient) => sum + Number(ingredient.percent || 0), 0);
+    const batchTotal = ingredientsForSave.reduce((sum, ingredient) => sum + Number(ingredient.percent || 0), 0);
     if (formulaMode === "bakers" && Math.abs(flourTotal - 100) > 0.1) {
       setFormError(`Flour percentages must total 100%. They currently total ${flourTotal.toFixed(1)}%.`);
       return;
@@ -814,7 +832,7 @@ export default function RecipesPage({ bakerySettings, inventory, recipes, onDele
       setFormError(`Batch percentages must total 100%. They currently total ${batchTotal.toFixed(1)}%.`);
       return;
     }
-    const liquidTotal = form.ingredients.reduce((sum, ingredient) => (
+    const liquidTotal = ingredientsForSave.reduce((sum, ingredient) => (
       ingredient.category === "liquid" ? sum + Number(ingredient.percent || 0) : sum
     ), 0);
     const baseWeight = Math.max(1, Number(form.baseWeight || form.flourWeight));
@@ -829,6 +847,7 @@ export default function RecipesPage({ bakerySettings, inventory, recipes, onDele
       available: form.available !== false,
       availabilityNote: form.availabilityNote?.trim() || "",
       badges: Array.isArray(form.badges) ? form.badges : [],
+      timelineSettings,
       yield: Number(form.yield),
       unitName: form.unitName.trim() || "item",
       hydration: liquidTotal,
@@ -842,7 +861,7 @@ export default function RecipesPage({ bakerySettings, inventory, recipes, onDele
       price: Math.min(...form.salesOptions.map((option) => Math.max(0, Number(option.price || 0)))),
       flourWeight: baseWeight,
       baseWeight,
-      ingredients: form.ingredients.map(({ id, key, ...ingredient }) => ({
+      ingredients: ingredientsForSave.map(({ id, key, ...ingredient }) => ({
         ...ingredient,
         name: ingredient.category === "flour"
           ? getFlourProfile(ingredient.flourType || ingredient.name).name
@@ -1027,6 +1046,8 @@ function RecipeEditor({ bakerySettings, form, formError, onClose, onSubmit, setF
   const [ingredientEntryMode, setIngredientEntryMode] = useState("grams");
   const formulaMode = formulaModeFor(form);
   const activeBaseWeight = formulaBaseFor(form);
+  const timelineSettings = normalizeTimelineSettings(form);
+  const allowsStarterIngredient = recipeAllowsStarterIngredient({ ...form, timelineSettings });
   const flourTotal = form.ingredients.reduce((sum, ingredient) => (
     ingredient.category === "flour" ? sum + Number(ingredient.percent || 0) : sum
   ), 0);
@@ -1039,6 +1060,26 @@ function RecipeEditor({ bakerySettings, form, formError, onClose, onSubmit, setF
 
   function updateIngredientWeight(ingredientId, nextWeight) {
     setForm((current) => recalculateFormulaFromWeights(current, ingredientId, nextWeight));
+  }
+
+  function updateTimelineSetting(key, value) {
+    setForm((current) => {
+      const nextSettings = normalizeTimelineSettings({
+        ...current,
+        timelineSettings: {
+          ...current.timelineSettings,
+          [key]: value,
+        },
+      });
+      return {
+        ...current,
+        timelineSettings: nextSettings,
+        ingredients: sanitizeIngredientsForTimeline(current.ingredients, {
+          ...current,
+          timelineSettings: nextSettings,
+        }),
+      };
+    });
   }
 
   async function handlePhotoFile(event) {
@@ -1074,10 +1115,11 @@ function RecipeEditor({ bakerySettings, form, formError, onClose, onSubmit, setF
           <label>
             Product category
             <select value={form.productType || "bread"} onChange={(event) => {
-              const nextType = productTypeSettingsFor(bakerySettings, event.target.value);
-              setForm((current) => {
-                const shouldSwapTemplate = isUntouchedDefaultFormula(current);
-                const currentUnit = String(current.unitName || "").toLowerCase();
+                const nextType = productTypeSettingsFor(bakerySettings, event.target.value);
+                setForm((current) => {
+                  const shouldSwapTemplate = isUntouchedDefaultFormula(current);
+                  const nextTimelineSettings = defaultTimelineSettingsForProductType(nextType.value);
+                  const currentUnit = String(current.unitName || "").toLowerCase();
                 const shouldUseTypeUnit = !currentUnit || TYPE_DEFAULT_UNITS.has(currentUnit);
                 const shouldSwapPackages = current.isNew || current.salesOptions.every((option) => (
                   String(option.id || "").startsWith("type-preset-") || option.id === "default"
@@ -1090,13 +1132,19 @@ function RecipeEditor({ bakerySettings, form, formError, onClose, onSubmit, setF
                       label: nextType.unitName === "loaf" ? "Loaf" : `Each ${nextType.unitName}`,
                     } : option
                   ));
+                const nextIngredients = shouldSwapTemplate ? defaultIngredientsForType(nextType.value) : current.ingredients;
                 return {
                   ...current,
                   productType: nextType.value,
                   formulaMode: nextType.formulaMode,
+                  timelineSettings: nextTimelineSettings,
                   unitName: shouldUseTypeUnit ? nextType.unitName : current.unitName,
                   salesOptions: nextSalesOptions,
-                  ingredients: shouldSwapTemplate ? defaultIngredientsForType(nextType.value) : current.ingredients,
+                  ingredients: sanitizeIngredientsForTimeline(nextIngredients, {
+                    ...current,
+                    productType: nextType.value,
+                    timelineSettings: nextTimelineSettings,
+                  }),
                 };
               });
             }}>
@@ -1111,6 +1159,121 @@ function RecipeEditor({ bakerySettings, form, formError, onClose, onSubmit, setF
             </select>
           </label>
         </div>
+        <section className="recipe-timeline-settings">
+          <div className="ingredient-editor-heading">
+            <div>
+              <strong>Timeline + Kitchen planner</strong>
+              <small>Choose which calculated steps this recipe should use on Bake, Kitchen, and Today.</small>
+            </div>
+          </div>
+          <div className="timeline-toggle-grid">
+            <label className="timeline-check">
+              <input
+                type="checkbox"
+                disabled={form.productType === "yeast"}
+                checked={timelineSettings.useStarter}
+                onChange={(event) => updateTimelineSetting("useStarter", event.target.checked)}
+              />
+              <span><strong>Use starter / levain</strong><small>{form.productType === "yeast" ? "Starter is locked off for yeast breads." : "Adds starter feed timing and levain ratio controls."}</small></span>
+            </label>
+            <label className="timeline-check">
+              <input
+                type="checkbox"
+                disabled={!timelineSettings.useStarter}
+                checked={timelineSettings.includeStarterFeed}
+                onChange={(event) => updateTimelineSetting("includeStarterFeed", event.target.checked)}
+              />
+              <span><strong>Starter feed reminder</strong><small>Add feed timing before mix when this recipe uses starter.</small></span>
+            </label>
+            <label className="timeline-check">
+              <input
+                type="checkbox"
+                disabled={!timelineSettings.useStarter}
+                checked={timelineSettings.useBulkFermentRules}
+                onChange={(event) => updateTimelineSetting("useBulkFermentRules", event.target.checked)}
+              />
+              <span><strong>Apply sourdough bulk rules</strong><small>Uses temp, hydration, flour behavior, and starter strength.</small></span>
+            </label>
+            <label className="timeline-check">
+              <input
+                type="checkbox"
+                checked={timelineSettings.includeStretchFolds}
+                onChange={(event) => updateTimelineSetting("includeStretchFolds", event.target.checked)}
+              />
+              <span><strong>Stretch & folds</strong><small>Show fold checkpoints in Kitchen and planner timelines.</small></span>
+            </label>
+            <label className="timeline-check">
+              <input
+                type="checkbox"
+                checked={timelineSettings.includeShape}
+                onChange={(event) => updateTimelineSetting("includeShape", event.target.checked)}
+              />
+              <span><strong>Shape step</strong><small>Turn off for pan pours, sauces, oils, or no-shape workflows.</small></span>
+            </label>
+            <label className="timeline-check">
+              <input
+                type="checkbox"
+                checked={timelineSettings.includeFinalProof}
+                onChange={(event) => updateTimelineSetting("includeFinalProof", event.target.checked)}
+              />
+              <span><strong>Final proof / second rise</strong><small>Useful for yeast breads after shaping.</small></span>
+            </label>
+            <label className="timeline-check">
+              <input
+                type="checkbox"
+                checked={timelineSettings.includeColdProof}
+                onChange={(event) => updateTimelineSetting("includeColdProof", event.target.checked)}
+              />
+              <span><strong>Cold proof</strong><small>Keep for retarded sourdough; off by default for yeast breads.</small></span>
+            </label>
+            <label className="timeline-check">
+              <input
+                type="checkbox"
+                checked={timelineSettings.includePreheat}
+                onChange={(event) => updateTimelineSetting("includePreheat", event.target.checked)}
+              />
+              <span><strong>Preheat reminder</strong><small>Add or remove oven preheat from generated schedules.</small></span>
+            </label>
+          </div>
+          <div className="timeline-number-grid">
+            <label>
+              Main step name
+              <input value={timelineSettings.primaryLabel} onChange={(event) => updateTimelineSetting("primaryLabel", event.target.value)} placeholder="Rise, bulk ferment, prep" />
+            </label>
+            <label>
+              Fixed rise hours
+              <input type="number" min="0.25" max="24" step="0.25" value={timelineSettings.primaryRiseHours} onChange={(event) => updateTimelineSetting("primaryRiseHours", Number(event.target.value))} />
+            </label>
+            <label>
+              Fold count
+              <input type="number" min="0" max="12" value={timelineSettings.stretchFoldCount} disabled={!timelineSettings.includeStretchFolds} onChange={(event) => updateTimelineSetting("stretchFoldCount", Number(event.target.value))} />
+            </label>
+            <label>
+              Fold spacing min
+              <input type="number" min="5" max="360" step="5" value={timelineSettings.foldIntervalMinutes} disabled={!timelineSettings.includeStretchFolds} onChange={(event) => updateTimelineSetting("foldIntervalMinutes", Number(event.target.value))} />
+            </label>
+            <label>
+              First fold after min
+              <input type="number" min="0" max="360" step="5" value={timelineSettings.firstFoldMinutes} disabled={!timelineSettings.includeStretchFolds} onChange={(event) => updateTimelineSetting("firstFoldMinutes", Number(event.target.value))} />
+            </label>
+            <label>
+              Shape minutes
+              <input type="number" min="0" max="240" step="5" value={timelineSettings.shapeMinutes} disabled={!timelineSettings.includeShape} onChange={(event) => updateTimelineSetting("shapeMinutes", Number(event.target.value))} />
+            </label>
+            <label>
+              Final proof hours
+              <input type="number" min="0" max="24" step="0.25" value={timelineSettings.finalProofHours} disabled={!timelineSettings.includeFinalProof} onChange={(event) => updateTimelineSetting("finalProofHours", Number(event.target.value))} />
+            </label>
+            <label>
+              Cold proof hours
+              <input type="number" min="0" max="72" step="0.5" value={timelineSettings.defaultColdProofHours} disabled={!timelineSettings.includeColdProof} onChange={(event) => updateTimelineSetting("defaultColdProofHours", Number(event.target.value))} />
+            </label>
+            <label>
+              Preheat minutes
+              <input type="number" min="0" max="180" step="5" value={timelineSettings.preheatMinutes} disabled={!timelineSettings.includePreheat} onChange={(event) => updateTimelineSetting("preheatMinutes", Number(event.target.value))} />
+            </label>
+          </div>
+        </section>
         <div className="recipe-photo-editor">
           <div className="recipe-photo-preview">
             {photoUrl ? <img src={photoUrl} alt={form.photoAlt || form.name || "Recipe preview"} /> : <span>{productType.icon}</span>}
@@ -1342,6 +1505,9 @@ function RecipeEditor({ bakerySettings, form, formError, onClose, onSubmit, setF
         <div className="ingredient-editor-list">
           {form.ingredients.map((ingredient) => {
             const ingredientWeight = ingredientWeightFromPercent(ingredient, activeBaseWeight);
+            const categoryOptions = allowsStarterIngredient
+              ? INGREDIENT_CATEGORIES
+              : INGREDIENT_CATEGORIES.filter((category) => category.value !== "starter");
             return (
               <div className="ingredient-editor-row" key={ingredient.id}>
                 {ingredient.category === "flour" ? (
@@ -1368,7 +1534,7 @@ function RecipeEditor({ bakerySettings, form, formError, onClose, onSubmit, setF
                       : next;
                   });
                 }}>
-                  {INGREDIENT_CATEGORIES.map((category) => <option key={category.value} value={category.value}>{category.label}</option>)}
+                  {categoryOptions.map((category) => <option key={category.value} value={category.value}>{category.label}</option>)}
                 </select>
                 {ingredientEntryMode === "grams" ? (
                   <label className="ingredient-measure-control">
