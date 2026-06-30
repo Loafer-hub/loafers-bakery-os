@@ -1,3 +1,5 @@
+// yeast-breads-v1
+
 const NUTRITION_PER_100G = {
   breadFlour: { calories: 364, carbs: 76.3, protein: 10.3, fat: 1, fiber: 2.7, sodium: 2 },
   wholeWheat: { calories: 340, carbs: 72, protein: 13.2, fat: 2.5, fiber: 10.7, sodium: 5 },
@@ -15,6 +17,7 @@ const NUTRITION_PER_100G = {
   sugar: { calories: 387, carbs: 100, protein: 0, fat: 0, fiber: 0, sodium: 1 },
   jalapeno: { calories: 29, carbs: 6.5, protein: 0.9, fat: 0.4, fiber: 2.8, sodium: 3 },
   salt: { calories: 0, carbs: 0, protein: 0, fat: 0, fiber: 0, sodium: 39300 },
+  yeast: { calories: 325, carbs: 41, protein: 40, fat: 7.6, fiber: 26.9, sodium: 51 },
   generic: { calories: 300, carbs: 55, protein: 8, fat: 6, fiber: 4, sodium: 80 },
   zero: { calories: 0, carbs: 0, protein: 0, fat: 0, fiber: 0, sodium: 0 },
 };
@@ -23,6 +26,7 @@ function profileForIngredient(ingredient) {
   const name = String(ingredient.name || "").toLowerCase();
   if (name.includes("water")) return NUTRITION_PER_100G.zero;
   if (name.includes("salt")) return NUTRITION_PER_100G.salt;
+  if (name.includes("yeast")) return NUTRITION_PER_100G.yeast;
   if (name.includes("starter") || name.includes("levain")) return NUTRITION_PER_100G.breadFlour;
   if (name.includes("whole wheat") || name.includes("wholemeal")) return NUTRITION_PER_100G.wholeWheat;
   if (name.includes("rye")) return NUTRITION_PER_100G.rye;
