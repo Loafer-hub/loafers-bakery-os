@@ -4864,6 +4864,23 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   background: white;
 }
 
+.ready-shelf-source-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.ready-shelf-details-input {
+  min-height: 132px;
+  line-height: 1.45;
+}
+
+.secondary-button.compact {
+  min-height: 36px;
+  padding: 8px 11px;
+  font-size: 9px;
+}
+
 .inventory-list {
   margin-top: 8px;
   border-top: 1px solid var(--line);
@@ -7851,6 +7868,10 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   background: linear-gradient(145deg, white, #f4f3e9);
 }
 
+.customer-product.shelf-product p {
+  white-space: pre-line;
+}
+
 .shelf-product-label {
   display: inline-flex;
   align-items: center;
@@ -9205,6 +9226,10 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   .package-pricing-row > button {
     grid-column: 3;
     grid-row: 1;
+  }
+
+  .ready-shelf-source-grid {
+    grid-template-columns: 1fr;
   }
 }
 
