@@ -36,6 +36,9 @@ import {
 } from "../lib/pickupHours";
 import { estimateRecipeNutrition } from "../lib/nutrition";
 import { pluralUnit } from "../lib/salesOptions";
+import { productTypeMap, productTypeSettingsFor } from "../lib/productTypes";
+
+// product-type-settings-v1
 
 const DEFAULT_PICKUP_LOCATION = "Three Bears, Delta Junction, AK";
 const DEFAULT_PAYMENT_METHODS = ["Venmo", "Zelle", "Cash"];
@@ -44,39 +47,6 @@ const PAYMENT_DETAILS = {
   Zelle: "9076161025",
   Cash: "Pay at pickup",
 };
-const PRODUCT_TYPE_LABELS = {
-  bread: "Bread",
-  bagel: "Bagels",
-  bun: "Buns / rolls",
-  cake: "Cakes",
-  pastry: "Pastries",
-  hot_sauce: "Hot sauces",
-  vinegar: "Vinegars",
-  infused_oil: "Infused oils",
-  other: "Small-batch item",
-};
-const PRODUCT_TYPE_ICONS = {
-  bread: "🥖",
-  bagel: "🥯",
-  bun: "🍞",
-  cake: "🍰",
-  pastry: "🥐",
-  hot_sauce: "🌶️",
-  vinegar: "🍾",
-  infused_oil: "🫒",
-  other: "🏷️",
-};
-const PRODUCT_TYPE_ORDER = [
-  "bread",
-  "bagel",
-  "bun",
-  "cake",
-  "pastry",
-  "hot_sauce",
-  "vinegar",
-  "infused_oil",
-  "other",
-];
 
 function dollars(cents) {
   return `$${(Number(cents || 0) / 100).toFixed(2)}`;
@@ -89,7 +59,7 @@ function productSalesOptions(product) {
       label: option.label || `Option ${index + 1}`,
       units: Math.max(0.5, Number(option.units || 1)),
       price_cents: Math.max(0, Number(option.price_cents ?? product.price_cents ?? 0)),
-      capacity_units: Math.max(1, Math.min(6, Number(option.capacity_units || 1))),
+      capacity_units: Math.max(0, Math.min(6, Number(option.capacity_units ?? 1))),
     }));
   }
   return [{
@@ -101,14 +71,12 @@ function productSalesOptions(product) {
   }];
 }
 
-function productTypeLabel(product) {
-  const value = productTypeValue(product);
-  return PRODUCT_TYPE_LABELS[value] || PRODUCT_TYPE_LABELS.other;
+function productTypeLabel(product, settings) {
+  return productTypeSettingsFor(settings, productTypeValue(product)).label;
 }
 
-function productTypeIcon(product) {
-  const value = productTypeValue(product);
-  return PRODUCT_TYPE_ICONS[value] || PRODUCT_TYPE_ICONS.other;
+function productTypeIcon(product, settings) {
+  return productTypeSettingsFor(settings, productTypeValue(product)).icon;
 }
 
 function productTypeValue(product) {
@@ -188,7 +156,7 @@ export default function CustomerOrderPortal({
             label: option.label,
             units: option.units,
             price_cents: Math.round(Number(option.price || 0) * 100),
-            capacity_units: option.capacityUnits || 1,
+            capacity_units: option.capacityUnits ?? 1,
           })),
           sort_order: index,
         })),
@@ -222,8 +190,15 @@ export default function CustomerOrderPortal({
     if (email) setForm((current) => ({ ...current, email: current.email || email }));
   }, [cloudAccount.session?.user?.email]);
 
+  const rules = normalizedBakerySettings(storefront?.settings || bakerySettings);
+  const productTypes = rules.productTypes.filter((type) => type.enabled !== false);
+  const productSettingsByValue = productTypeMap(rules);
+  const visibleProductTypeValues = new Set(productTypes.map((type) => type.value));
+  const storefrontProducts = (storefront?.products || []).filter((product) => (
+    visibleProductTypeValues.has(productTypeValue(product))
+  ));
   const selectedItems = useMemo(() => [
-    ...(storefront?.products || []).flatMap((product) => productSalesOptions(product)
+    ...storefrontProducts.flatMap((product) => productSalesOptions(product)
       .filter((option) => Number(quantities[`product-${product.id}-${option.id}`] || 0) > 0)
       .map((option) => ({
         ...product,
@@ -241,17 +216,12 @@ export default function CustomerOrderPortal({
         quantityKey: `shelf-${item.id}`,
         quantity: Number(quantities[`shelf-${item.id}`]),
       })),
-  ], [quantities, storefront]);
+  ], [quantities, storefront, storefrontProducts]);
   const total = selectedItems.reduce((sum, item) => sum + item.price_cents * item.quantity, 0);
-  const rules = normalizedBakerySettings(storefront?.settings || bakerySettings);
-  const storefrontProducts = storefront?.products || [];
   const readyShelfItems = rules.readyShelfEnabled ? (storefront?.shelf || []) : [];
   const catalogTabs = useMemo(() => {
     const availableTypes = new Set(storefrontProducts.map(productTypeValue));
-    const orderedTypes = [
-      ...PRODUCT_TYPE_ORDER.filter((type) => availableTypes.has(type)),
-      ...[...availableTypes].filter((type) => !PRODUCT_TYPE_ORDER.includes(type)),
-    ];
+    const orderedTypes = productTypes.filter((type) => availableTypes.has(type.value));
     return [
       {
         id: "all",
@@ -266,13 +236,15 @@ export default function CustomerOrderPortal({
         count: readyShelfItems.length,
       }] : []),
       ...orderedTypes.map((type) => ({
-        id: type,
-        icon: PRODUCT_TYPE_ICONS[type] || PRODUCT_TYPE_ICONS.other,
-        label: PRODUCT_TYPE_LABELS[type] || PRODUCT_TYPE_LABELS.other,
-        count: storefrontProducts.filter((product) => productTypeValue(product) === type).length,
+        id: type.value,
+        icon: type.icon,
+        label: type.label,
+        description: type.description,
+        safetyNotes: type.safetyNotes,
+        count: storefrontProducts.filter((product) => productTypeValue(product) === type.value).length,
       })),
     ].filter((tab) => tab.count > 0 || tab.id === "all");
-  }, [readyShelfItems, storefrontProducts]);
+  }, [productTypes, readyShelfItems, storefrontProducts]);
   const visibleShelfItems = activeCatalogTab === "all" || activeCatalogTab === "ready"
     ? readyShelfItems
     : [];
@@ -281,6 +253,7 @@ export default function CustomerOrderPortal({
     : activeCatalogTab === "ready"
       ? []
       : storefrontProducts.filter((product) => productTypeValue(product) === activeCatalogTab);
+  const activeCatalogInfo = catalogTabs.find((tab) => tab.id === activeCatalogTab);
   const customerAnnouncement = rules.announcementEnabled && rules.announcementText
     ? {
       title: rules.announcementTitle || "From the baker",
@@ -293,7 +266,7 @@ export default function CustomerOrderPortal({
   ), 0);
   const bakeLoafCount = selectedItems
     .filter((item) => item.itemType === "product")
-    .reduce((sum, item) => sum + item.quantity * Number(item.saleOption?.capacity_units || 1), 0);
+    .reduce((sum, item) => sum + item.quantity * Number(item.saleOption?.capacity_units ?? 1), 0);
   const shelfLoafCount = selectedItems
     .filter((item) => item.itemType === "shelf")
     .reduce((sum, item) => sum + item.quantity, 0);
@@ -309,7 +282,7 @@ export default function CustomerOrderPortal({
   function changeQuantity(item, change) {
     const quantityKey = item.quantityKey || `${item.itemType}-${item.id}`;
     const currentQuantity = Number(quantities[quantityKey] || 0);
-    const capacityChange = Number(item.saleOption?.capacity_units || 1);
+    const capacityChange = Number(item.saleOption?.capacity_units ?? 1);
     if (item.itemType === "product" && change > 0 && bakeLoafCount + capacityChange > rules.dailyCapacity) {
       setError(`That package would exceed the ${rules.dailyCapacity}-slot daily bake capacity.`);
       return;
@@ -579,18 +552,32 @@ export default function CustomerOrderPortal({
 
           {visibleProducts.length ? (
             <div className="customer-tab-panel">
+              {activeCatalogInfo?.description || activeCatalogInfo?.safetyNotes ? (
+                <aside className="customer-product-type-note">
+                  <span>{activeCatalogInfo.icon}</span>
+                  <div>
+                    {activeCatalogInfo.description ? <strong>{activeCatalogInfo.description}</strong> : null}
+                    {activeCatalogInfo.safetyNotes ? <small>{activeCatalogInfo.safetyNotes}</small> : null}
+                  </div>
+                </aside>
+              ) : null}
               <div className="customer-product-list">
-                {visibleProducts.map((product) => (
-                  <CustomerProductCard
-                    key={product.id}
-                    product={product}
-                    quantities={quantities}
-                    selectedOptionId={selectedOptions[product.id]}
-                    onChangeOption={(optionId) => setSelectedOptions((current) => ({ ...current, [product.id]: optionId }))}
-                    onChangeQuantity={changeQuantity}
-                    onShowDetails={() => setSelectedProduct(product)}
-                  />
-                ))}
+                {visibleProducts.map((product) => {
+                  const typeSettings = productSettingsByValue.get(productTypeValue(product))
+                    || productTypeSettingsFor(rules, productTypeValue(product));
+                  return (
+                    <CustomerProductCard
+                      key={product.id}
+                      product={product}
+                      quantities={quantities}
+                      selectedOptionId={selectedOptions[product.id]}
+                      typeSettings={typeSettings}
+                      onChangeOption={(optionId) => setSelectedOptions((current) => ({ ...current, [product.id]: optionId }))}
+                      onChangeQuantity={changeQuantity}
+                      onShowDetails={() => setSelectedProduct(product)}
+                    />
+                  );
+                })}
               </div>
             </div>
           ) : null}
@@ -685,7 +672,13 @@ export default function CustomerOrderPortal({
         {error ? <p className="form-error customer-form-error" role="alert">{error}</p> : null}
       </form>
 
-      {selectedProduct ? <CustomerRecipeDetails product={selectedProduct} onClose={() => setSelectedProduct(null)} /> : null}
+      {selectedProduct ? (
+        <CustomerRecipeDetails
+          product={selectedProduct}
+          typeSettings={productSettingsByValue.get(productTypeValue(selectedProduct)) || productTypeSettingsFor(rules, productTypeValue(selectedProduct))}
+          onClose={() => setSelectedProduct(null)}
+        />
+      ) : null}
     </main>
   );
 }
@@ -709,6 +702,7 @@ function CustomerProductCard({
   product,
   quantities,
   selectedOptionId,
+  typeSettings,
 }) {
   const options = productSalesOptions(product);
   const selectedOption = options.find((option) => option.id === selectedOptionId) || options[0];
@@ -721,10 +715,10 @@ function CustomerProductCard({
     <article className={selected ? "customer-product selected" : "customer-product"}>
       <div className="customer-product-main">
         <span className={photoUrl ? "customer-product-photo" : "customer-product-photo empty"}>
-          {photoUrl ? <img src={photoUrl} alt={product.recipe_details?.photoAlt || product.name} /> : productTypeIcon(product)}
+          {photoUrl ? <img src={photoUrl} alt={product.recipe_details?.photoAlt || product.name} /> : typeSettings?.icon || productTypeIcon(product)}
         </span>
         <button className="customer-product-info" type="button" onClick={onShowDetails} aria-label={`View details for ${product.name}`}>
-          <span><Info size={13} /> {productTypeLabel(product)} · View details</span>
+          <span><Info size={13} /> {typeSettings?.label || productTypeLabel(product)} · View details</span>
           <h3>{product.name}</h3>
           <p>{product.description}</p>
         </button>
@@ -755,7 +749,7 @@ function CustomerProductCard({
   );
 }
 
-function CustomerRecipeDetails({ product, onClose }) {
+function CustomerRecipeDetails({ product, typeSettings, onClose }) {
   const details = product.recipe_details || {};
   const ingredients = Array.isArray(details.ingredients) ? details.ingredients : [];
   const baseYield = Math.max(1, Number(details.yield || 1));
@@ -773,14 +767,20 @@ function CustomerRecipeDetails({ product, onClose }) {
     <Modal title={product.name} onClose={onClose}>
       <div className="customer-recipe-detail">
         <div className={photoUrl ? "customer-recipe-photo" : "customer-recipe-photo empty"}>
-          {photoUrl ? <img src={photoUrl} alt={details.photoAlt || product.name} /> : productTypeIcon(product)}
+          {photoUrl ? <img src={photoUrl} alt={details.photoAlt || product.name} /> : typeSettings?.icon || productTypeIcon(product)}
         </div>
         <div className="customer-recipe-summary">
           <span><small>Starting price</small><strong>{dollars(Math.min(...salesOptions.map((option) => option.price_cents)))}</strong></span>
-          <span><small>Category</small><strong>{productTypeLabel(product)}</strong></span>
+          <span><small>Category</small><strong>{typeSettings?.label || productTypeLabel(product)}</strong></span>
           <span><small>Published formula</small><strong>{baseYield} {pluralUnit(unitName, baseYield)}</strong></span>
         </div>
         <p>{product.description || "Small-batch naturally leavened bread."}</p>
+        {typeSettings?.safetyNotes ? (
+          <aside className="customer-recipe-safety-note">
+            <Info size={15} />
+            <span><strong>Safety & storage</strong><small>{typeSettings.safetyNotes}</small></span>
+          </aside>
+        ) : null}
         <div className="customer-recipe-heading"><h3>Package sizes</h3><small>Choose on the order card</small></div>
         <div className="customer-recipe-packages">
           {salesOptions.map((option) => (
