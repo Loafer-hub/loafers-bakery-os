@@ -217,7 +217,7 @@ export default function App() {
       totalUnits,
       itemSummary: items.map((item) => `${item.quantity} × ${item.sale_option_label || item.product_name}`).join(" · "),
       total: Number(request.subtotal_cents || 0) / 100,
-      status: "New",
+      status: "Accepted",
       due,
       pickupAt: request.pickup_at,
       paymentMethod: request.payment_method,
