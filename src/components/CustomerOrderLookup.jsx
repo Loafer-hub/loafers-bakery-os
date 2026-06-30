@@ -115,7 +115,7 @@ export function CustomerOrderLookup({
   }
 
   return (
-    <section className="customer-tracking" aria-label="Track a bread order">
+    <section className="customer-tracking" id="track-my-bake" aria-label="Track a bread order">
       <div className="customer-section-heading">
         <div><h2>Track my bake</h2><p>Use your request code plus the email or phone used when ordering.</p></div>
       </div>
