@@ -34,6 +34,7 @@ import SettingsPage from "./pages/SettingsPage";
 import TodayPage from "./pages/TodayPage";
 
 // customer-options-v1
+// checkout-flow-v1
 
 const pages = {
   today: TodayPage,
@@ -184,6 +185,7 @@ export default function App() {
       notifyEmail: Boolean(request.notify_email),
       notifySms: Boolean(request.notify_sms),
       requestCode: request.request_code,
+      orderSlug: cloudAccount.workspace?.bakery?.slug || "loafers",
       initials,
       product: product || "Online bread request",
       quantity,
