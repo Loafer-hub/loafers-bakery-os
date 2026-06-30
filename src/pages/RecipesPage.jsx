@@ -36,6 +36,7 @@ import {
 // yeast-breads-v1
 // ai-assist-submit-v1
 // ai-assist-responsive-v1
+// recipe-grams-entry-v1
 
 const INGREDIENT_CATEGORIES = [
   { value: "flour", label: "Flour" },
@@ -275,6 +276,62 @@ function isUntouchedDefaultFormula(recipe) {
 
 function formulaModeFor(recipe = {}) {
   return recipe.formulaMode || productTypeFor(recipe).formulaMode || "bakers";
+}
+
+function safePositiveNumber(value, fallback = 1) {
+  const number = Number(value);
+  return Number.isFinite(number) && number > 0 ? number : fallback;
+}
+
+function formulaBaseFor(recipe = {}) {
+  return safePositiveNumber(recipe.baseWeight || recipe.flourWeight, 1);
+}
+
+function ingredientWeightFromPercent(ingredient, baseWeight) {
+  return formulaBaseFor({ baseWeight }) * Number(ingredient.percent || 0) / 100;
+}
+
+function roundForInput(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return 0;
+  if (Math.abs(number) >= 100) return Math.round(number);
+  return Number(number.toFixed(1));
+}
+
+function percentForDisplay(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return "0";
+  return Number(number.toFixed(1)).toString();
+}
+
+function recalculateFormulaFromWeights(recipe, editedIngredientId, editedWeight) {
+  const formulaMode = formulaModeFor(recipe);
+  const currentBase = formulaBaseFor(recipe);
+  const nextWeights = recipe.ingredients.map((ingredient) => ({
+    id: ingredient.id,
+    category: ingredient.category,
+    weight: ingredient.id === editedIngredientId
+      ? Math.max(0, Number(editedWeight || 0))
+      : Math.max(0, ingredientWeightFromPercent(ingredient, currentBase)),
+  }));
+  const nextBase = formulaMode === "batch"
+    ? nextWeights.reduce((sum, ingredient) => sum + ingredient.weight, 0)
+    : nextWeights.reduce((sum, ingredient) => (
+      ingredient.category === "flour" ? sum + ingredient.weight : sum
+    ), 0);
+  const safeBase = Math.max(1, nextBase);
+  return {
+    ...recipe,
+    baseWeight: safeBase,
+    flourWeight: safeBase,
+    ingredients: recipe.ingredients.map((ingredient) => {
+      const weight = nextWeights.find((item) => item.id === ingredient.id)?.weight || 0;
+      return {
+        ...ingredient,
+        percent: Number((weight / safeBase * 100).toFixed(3)),
+      };
+    }),
+  };
 }
 
 function baseWeightFor(recipe) {
@@ -967,7 +1024,9 @@ export default function RecipesPage({ bakerySettings, inventory, recipes, onDele
 }
 
 function RecipeEditor({ bakerySettings, form, formError, onClose, onSubmit, setForm, setFormError, updateIngredient }) {
+  const [ingredientEntryMode, setIngredientEntryMode] = useState("grams");
   const formulaMode = formulaModeFor(form);
+  const activeBaseWeight = formulaBaseFor(form);
   const flourTotal = form.ingredients.reduce((sum, ingredient) => (
     ingredient.category === "flour" ? sum + Number(ingredient.percent || 0) : sum
   ), 0);
@@ -977,6 +1036,10 @@ function RecipeEditor({ bakerySettings, form, formError, onClose, onSubmit, setF
   ), 0);
   const productType = productTypeFor(form);
   const photoUrl = String(form.photoUrl || "").trim();
+
+  function updateIngredientWeight(ingredientId, nextWeight) {
+    setForm((current) => recalculateFormulaFromWeights(current, ingredientId, nextWeight));
+  }
 
   async function handlePhotoFile(event) {
     const file = event.target.files?.[0];
@@ -1200,60 +1263,147 @@ function RecipeEditor({ bakerySettings, form, formError, onClose, onSubmit, setF
             onChange={(event) => setForm({ ...form, baseWeight: Number(event.target.value), flourWeight: Number(event.target.value) })}
           />
         </label>
+        <div className="ingredient-entry-mode-card">
+          <div>
+            <strong>Ingredient entry</strong>
+            <small>
+              {ingredientEntryMode === "grams"
+                ? (formulaMode === "batch"
+                  ? "Type grams and the app recalculates batch % from the total batch weight."
+                  : "Type grams and the app recalculates baker’s % from your flour grams.")
+                : "Type percentages and the app shows the matching grams for this base batch."}
+            </small>
+          </div>
+          <div className="entry-mode-toggle" role="group" aria-label="Ingredient entry mode">
+            <button
+              type="button"
+              className={ingredientEntryMode === "grams" ? "selected" : ""}
+              onClick={() => setIngredientEntryMode("grams")}
+            >
+              Grams
+            </button>
+            <button
+              type="button"
+              className={ingredientEntryMode === "percent" ? "selected" : ""}
+              onClick={() => setIngredientEntryMode("percent")}
+            >
+              %
+            </button>
+          </div>
+        </div>
         <div className="ingredient-editor-heading">
           <div>
             <strong>Ingredients</strong>
             <small>
               {formulaMode === "batch"
-                ? `Batch total ${batchTotal.toFixed(1)}%`
-                : `Flours total ${flourTotal.toFixed(1)}% · hydration ${hydration.toFixed(1)}%`}
+                ? `Batch total ${batchTotal.toFixed(1)}% · ${Math.round(activeBaseWeight).toLocaleString()}g`
+                : `Flours total ${flourTotal.toFixed(1)}% · hydration ${hydration.toFixed(1)}% · ${Math.round(activeBaseWeight).toLocaleString()}g flour`}
             </small>
           </div>
           <span className="ingredient-add-actions">
-            <button type="button" aria-label="Add flour" onClick={() => setForm((current) => ({
-              ...current,
-              ingredients: [...current.ingredients, {
-                id: `ingredient-flour-${Date.now()}`,
+            <button type="button" aria-label="Add flour" onClick={() => setForm((current) => {
+              const id = `ingredient-flour-${Date.now()}`;
+              const ingredient = {
+                id,
                 name: "Whole wheat",
                 flourType: "Whole wheat",
                 category: "flour",
-                percent: 10,
-              }],
-            }))}><Wheat size={14} /> Flour</button>
-            <button type="button" aria-label="Add other ingredient" onClick={() => setForm((current) => ({
-              ...current,
-              ingredients: [...current.ingredients, {
-                id: `ingredient-${Date.now()}`,
+                percent: ingredientEntryMode === "grams" ? 0 : 10,
+              };
+              const next = {
+                ...current,
+                ingredients: [...current.ingredients, ingredient],
+              };
+              return ingredientEntryMode === "grams"
+                ? recalculateFormulaFromWeights(next, id, formulaBaseFor(current) * 0.1)
+                : next;
+            })}><Wheat size={14} /> Flour</button>
+            <button type="button" aria-label="Add other ingredient" onClick={() => setForm((current) => {
+              const id = `ingredient-${Date.now()}`;
+              const currentFormulaMode = formulaModeFor(current);
+              const ingredient = {
+                id,
                 name: "",
-                category: formulaMode === "batch" ? "other" : "inclusion",
-                percent: formulaMode === "batch" ? Math.max(0, 100 - batchTotal) : 5,
-              }],
-            }))}><Plus size={15} /> Other</button>
+                category: currentFormulaMode === "batch" ? "other" : "inclusion",
+                percent: ingredientEntryMode === "grams"
+                  ? 0
+                  : (currentFormulaMode === "batch" ? Math.max(0, 100 - batchTotal) : 5),
+              };
+              const next = {
+                ...current,
+                ingredients: [...current.ingredients, ingredient],
+              };
+              return ingredientEntryMode === "grams"
+                ? recalculateFormulaFromWeights(next, id, formulaBaseFor(current) * 0.05)
+                : next;
+            })}><Plus size={15} /> Other</button>
           </span>
         </div>
         <div className="ingredient-editor-list">
-          {form.ingredients.map((ingredient) => (
-            <div className="ingredient-editor-row" key={ingredient.id}>
-              {ingredient.category === "flour" ? (
-                <select className="ingredient-name-control" aria-label={`${ingredient.flourType || ingredient.name} flour type`} value={ingredient.flourType || getFlourProfile(ingredient.name).name} onChange={(event) => updateIngredient(ingredient.id, { name: event.target.value, flourType: event.target.value })}>
-                  {FLOUR_PROFILES.map((profile) => <option value={profile.name} key={profile.name}>{profile.name}</option>)}
+          {form.ingredients.map((ingredient) => {
+            const ingredientWeight = ingredientWeightFromPercent(ingredient, activeBaseWeight);
+            return (
+              <div className="ingredient-editor-row" key={ingredient.id}>
+                {ingredient.category === "flour" ? (
+                  <select className="ingredient-name-control" aria-label={`${ingredient.flourType || ingredient.name} flour type`} value={ingredient.flourType || getFlourProfile(ingredient.name).name} onChange={(event) => updateIngredient(ingredient.id, { name: event.target.value, flourType: event.target.value })}>
+                    {FLOUR_PROFILES.map((profile) => <option value={profile.name} key={profile.name}>{profile.name}</option>)}
+                  </select>
+                ) : (
+                  <input className="ingredient-name-control" aria-label="Ingredient name" value={ingredient.name} onChange={(event) => updateIngredient(ingredient.id, { name: event.target.value })} placeholder="Ingredient" required />
+                )}
+                <select className="ingredient-category-control" aria-label={`${ingredient.name || "Ingredient"} category`} value={ingredient.category} onChange={(event) => {
+                  const nextCategory = event.target.value;
+                  const currentWeight = ingredientWeightFromPercent(ingredient, activeBaseWeight);
+                  setForm((current) => {
+                    const next = {
+                      ...current,
+                      ingredients: current.ingredients.map((item) => item.id === ingredient.id ? {
+                        ...item,
+                        category: nextCategory,
+                        ...(nextCategory === "flour" ? { name: "Bread flour", flourType: "Bread flour" } : { flourType: undefined }),
+                      } : item),
+                    };
+                    return ingredientEntryMode === "grams"
+                      ? recalculateFormulaFromWeights(next, ingredient.id, currentWeight)
+                      : next;
+                  });
+                }}>
+                  {INGREDIENT_CATEGORIES.map((category) => <option key={category.value} value={category.value}>{category.label}</option>)}
                 </select>
-              ) : (
-                <input className="ingredient-name-control" aria-label="Ingredient name" value={ingredient.name} onChange={(event) => updateIngredient(ingredient.id, { name: event.target.value })} placeholder="Ingredient" required />
-              )}
-              <select className="ingredient-category-control" aria-label={`${ingredient.name || "Ingredient"} category`} value={ingredient.category} onChange={(event) => updateIngredient(ingredient.id, {
-                category: event.target.value,
-                ...(event.target.value === "flour" ? { name: "Bread flour", flourType: "Bread flour" } : { flourType: undefined }),
-              })}>
-                {INGREDIENT_CATEGORIES.map((category) => <option key={category.value} value={category.value}>{category.label}</option>)}
-              </select>
-              <label><span>{formulaMode === "batch" ? "Batch %" : "Baker’s %"}</span><input aria-label={`${ingredient.name || "Ingredient"} percent`} type="number" min="0" step="0.1" value={ingredient.percent} onChange={(event) => updateIngredient(ingredient.id, { percent: Number(event.target.value) })} /></label>
-              <button type="button" className="remove-ingredient-button" aria-label={`Remove ${ingredient.name || "ingredient"}`} disabled={form.ingredients.length <= 1} onClick={() => setForm((current) => ({
-                ...current,
-                ingredients: current.ingredients.filter((item) => item.id !== ingredient.id),
-              }))}><Trash2 size={15} /></button>
-            </div>
-          ))}
+                {ingredientEntryMode === "grams" ? (
+                  <label className="ingredient-measure-control">
+                    <span>Grams</span>
+                    <input
+                      aria-label={`${ingredient.name || "Ingredient"} grams`}
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={roundForInput(ingredientWeight)}
+                      onChange={(event) => updateIngredientWeight(ingredient.id, event.target.value)}
+                    />
+                    <small>{percentForDisplay(ingredient.percent)}%</small>
+                  </label>
+                ) : (
+                  <label className="ingredient-measure-control">
+                    <span>{formulaMode === "batch" ? "Batch %" : "Baker’s %"}</span>
+                    <input
+                      aria-label={`${ingredient.name || "Ingredient"} percent`}
+                      type="number"
+                      min="0"
+                      step="0.1"
+                      value={ingredient.percent}
+                      onChange={(event) => updateIngredient(ingredient.id, { percent: Number(event.target.value) })}
+                    />
+                    <small>{Math.round(ingredientWeight).toLocaleString()}g</small>
+                  </label>
+                )}
+                <button type="button" className="remove-ingredient-button" aria-label={`Remove ${ingredient.name || "ingredient"}`} disabled={form.ingredients.length <= 1} onClick={() => setForm((current) => ({
+                  ...current,
+                  ingredients: current.ingredients.filter((item) => item.id !== ingredient.id),
+                }))}><Trash2 size={15} /></button>
+              </div>
+            );
+          })}
         </div>
         {form.ingredients.some((ingredient) => ingredient.category === "flour") ? <div className="recipe-builder-science">
           <div className="section-title-line"><h3>What these flours change</h3><span>Dough + starter</span></div>
