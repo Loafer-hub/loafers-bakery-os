@@ -110,6 +110,15 @@ const TYPE_DEFAULT_UNITS = new Set(PRODUCT_TYPES.map((type) => type.unitName.toL
 
 // recipe-type-collapse-v1
 // product-type-settings-v1
+// checkout-flow-v1
+const PRODUCT_BADGE_OPTIONS = [
+  { value: "preorder", label: "Preorder" },
+  { value: "ready_now", label: "Ready now" },
+  { value: "spicy", label: "Spicy" },
+  { value: "dairy", label: "Contains dairy" },
+  { value: "gluten", label: "Gluten" },
+  { value: "limited_batch", label: "Limited batch" },
+];
 const ASSISTANT_EXAMPLES = [
   "My kitchen is 68°F and my dough is sluggish.",
   "I accidentally added too much water.",
@@ -376,6 +385,9 @@ function recipeForm(recipe, bakerySettings) {
       formulaMode: "bakers",
       photoUrl: "",
       photoAlt: "",
+      available: true,
+      availabilityNote: "",
+      badges: [],
       yield: 4,
       unitName: typeSettings.unitName || "loaf",
       price: Math.min(...salesOptions.map((option) => Number(option.price || 0))),
@@ -399,6 +411,9 @@ function recipeForm(recipe, bakerySettings) {
     formulaMode,
     photoUrl: recipe.photoUrl || "",
     photoAlt: recipe.photoAlt || "",
+    available: recipe.available !== false,
+    availabilityNote: recipe.availabilityNote || "",
+    badges: Array.isArray(recipe.badges) ? recipe.badges : [],
     unitName: recipe.unitName || typeSettings.unitName || unitNameFor({ productType }),
     salesOptions: (Array.isArray(recipe.salesOptions) && recipe.salesOptions.length
       ? normalizedSalesOptions(recipe)
@@ -714,6 +729,9 @@ export default function RecipesPage({ bakerySettings, inventory, recipes, onDele
       formulaMode,
       photoUrl: form.photoUrl?.trim() || "",
       photoAlt: form.photoAlt?.trim() || form.name.trim(),
+      available: form.available !== false,
+      availabilityNote: form.availabilityNote?.trim() || "",
+      badges: Array.isArray(form.badges) ? form.badges : [],
       yield: Number(form.yield),
       unitName: form.unitName.trim() || "item",
       hydration: liquidTotal,
@@ -766,6 +784,7 @@ export default function RecipesPage({ bakerySettings, inventory, recipes, onDele
           <span><Droplets size={17} /> {ratioLabelFor(selected)}</span>
           <span>From ${price.toFixed(2)}</span>
           <span>{selected.yield} {pluralUnit(unitName, selected.yield)} / base batch</span>
+          <span>{selected.available === false ? "Unavailable this week" : "Available this week"}</span>
           <button className="inline-edit-button" type="button" onClick={() => openEditor(selected)}><Pencil size={14} /> Edit recipe</button>
         </div>
         <section className="recipe-package-pricing">
@@ -1013,6 +1032,50 @@ function RecipeEditor({ bakerySettings, form, formError, onClose, onSubmit, setF
             {photoUrl ? <button type="button" className="small-action-button" onClick={() => setForm({ ...form, photoUrl: "", photoAlt: "" })}>Clear photo</button> : null}
           </div>
         </div>
+        <section className="recipe-sales-state-editor">
+          <div className="ingredient-editor-heading">
+            <div><strong>Customer menu status</strong><small>Control what shoppers see this week before you publish.</small></div>
+          </div>
+          <label className="recipe-availability-toggle">
+            <input
+              type="checkbox"
+              checked={form.available !== false}
+              onChange={(event) => setForm({ ...form, available: event.target.checked })}
+            />
+            <span>{form.available !== false ? "Available to order this week" : "Sold out / unavailable this week"}</span>
+          </label>
+          <label>
+            Availability note
+            <input
+              value={form.availabilityNote || ""}
+              onChange={(event) => setForm({ ...form, availabilityNote: event.target.value })}
+              placeholder={form.available === false ? "Example: Sold out until next bake day" : "Optional note customers can see"}
+            />
+          </label>
+          <fieldset className="recipe-badge-picker">
+            <legend>Product badges</legend>
+            <div>
+              {PRODUCT_BADGE_OPTIONS.map((badge) => {
+                const selected = (form.badges || []).includes(badge.value);
+                return (
+                  <label className={selected ? "selected" : ""} key={badge.value}>
+                    <input
+                      type="checkbox"
+                      checked={selected}
+                      onChange={(event) => setForm((current) => ({
+                        ...current,
+                        badges: event.target.checked
+                          ? [...(current.badges || []), badge.value]
+                          : (current.badges || []).filter((item) => item !== badge.value),
+                      }))}
+                    />
+                    {badge.label}
+                  </label>
+                );
+              })}
+            </div>
+          </fieldset>
+        </section>
         <div className="form-grid">
           <label>Base batch yield<input type="number" min="1" max="120" value={form.yield} onChange={(event) => setForm({ ...form, yield: Number(event.target.value) })} /></label>
           <label>Item name<input value={form.unitName} onChange={(event) => setForm({ ...form, unitName: event.target.value })} placeholder="loaf, bagel, bun" /></label>
