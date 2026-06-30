@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   ChevronDown,
   Clock3,
+  EyeOff,
   Mail,
   MessageSquareText,
   PackageCheck,
@@ -16,6 +17,7 @@ import {
   Settings2,
   ShoppingBag,
   Store,
+  Tag,
   Trash2,
 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -228,6 +230,135 @@ function ProductTypeSettingsCard({
   );
 }
 
+const PRODUCT_BADGE_OPTIONS = [
+  { value: "preorder", label: "Preorder" },
+  { value: "ready_now", label: "Ready now" },
+  { value: "spicy", label: "Spicy" },
+  { value: "dairy", label: "Contains dairy" },
+  { value: "gluten", label: "Gluten" },
+  { value: "limited_batch", label: "Limited batch" },
+];
+
+function availabilityDraft(recipe) {
+  return {
+    available: recipe.available !== false,
+    soldOut: recipe.soldOut === true,
+    unavailableThisWeek: recipe.unavailableThisWeek === true,
+    hiddenThisWeek: recipe.hiddenThisWeek === true,
+    availabilityNote: recipe.availabilityNote || "",
+    badges: Array.isArray(recipe.badges) ? recipe.badges : [],
+  };
+}
+
+function productTypeLabelFor(recipe, productTypes) {
+  const type = productTypes.find((item) => item.value === (recipe.productType || "bread"));
+  return type?.label || recipe.productType || "Bread";
+}
+
+function ProductAvailabilityCard({ onSaveRecipe, productTypes, recipe }) {
+  const [draft, setDraft] = useState(() => availabilityDraft(recipe));
+
+  useEffect(() => {
+    setDraft(availabilityDraft(recipe));
+  }, [recipe]);
+
+  function toggleBadge(value, checked) {
+    setDraft((current) => ({
+      ...current,
+      badges: checked
+        ? [...new Set([...(current.badges || []), value])]
+        : (current.badges || []).filter((badge) => badge !== value),
+    }));
+  }
+
+  function saveAvailability() {
+    if (!onSaveRecipe) return;
+    onSaveRecipe({
+      ...recipe,
+      available: draft.available,
+      soldOut: draft.soldOut,
+      unavailableThisWeek: draft.unavailableThisWeek,
+      hiddenThisWeek: draft.hiddenThisWeek,
+      availabilityNote: draft.availabilityNote.trim(),
+      badges: draft.badges,
+    });
+  }
+
+  const badgeSummary = [
+    !draft.available ? "Unavailable" : "",
+    draft.soldOut ? "Sold out" : "",
+    draft.unavailableThisWeek ? "Unavailable week" : "",
+    draft.hiddenThisWeek ? "Hidden" : "",
+    ...(draft.badges || []).map((badge) => PRODUCT_BADGE_OPTIONS.find((item) => item.value === badge)?.label).filter(Boolean),
+  ].filter(Boolean);
+  const summary = badgeSummary.length ? badgeSummary.join(" · ") : "Orderable";
+
+  return (
+    <details className={`product-availability-card ${draft.hiddenThisWeek ? "hidden-week" : ""}`}>
+      <summary className="product-availability-heading">
+        <span className="product-availability-icon" aria-hidden="true">{draft.hiddenThisWeek ? <EyeOff size={18} /> : <PackageCheck size={18} />}</span>
+        <div>
+          <strong>{recipe.name}</strong>
+          <small>{productTypeLabelFor(recipe, productTypes)} · {summary}</small>
+        </div>
+        <ChevronDown className="settings-accordion-chevron" size={18} />
+      </summary>
+      <div className="product-availability-body">
+        <div className="product-availability-toggle-grid">
+          <label className="product-type-switch">
+            <input type="checkbox" checked={draft.available} onChange={(event) => setDraft({ ...draft, available: event.target.checked })} />
+            <span>Orderable</span>
+          </label>
+          <label className="product-type-switch">
+            <input type="checkbox" checked={draft.soldOut} onChange={(event) => setDraft({ ...draft, soldOut: event.target.checked })} />
+            <span>Sold out</span>
+          </label>
+          <label className="product-type-switch">
+            <input type="checkbox" checked={draft.unavailableThisWeek} onChange={(event) => setDraft({ ...draft, unavailableThisWeek: event.target.checked })} />
+            <span>Unavailable this week</span>
+          </label>
+          <label className="product-type-switch">
+            <input type="checkbox" checked={draft.hiddenThisWeek} onChange={(event) => setDraft({ ...draft, hiddenThisWeek: event.target.checked })} />
+            <span>Hidden from customer menu</span>
+          </label>
+        </div>
+
+        <label className="product-availability-note">
+          Customer note
+          <input
+            value={draft.availabilityNote}
+            onChange={(event) => setDraft({ ...draft, availabilityNote: event.target.value })}
+            placeholder={draft.soldOut ? "Example: Sold out until Friday" : "Optional note customers can see"}
+          />
+        </label>
+
+        <fieldset className="recipe-badge-picker">
+          <legend>Customer badges</legend>
+          <div>
+            {PRODUCT_BADGE_OPTIONS.map((badge) => {
+              const selected = (draft.badges || []).includes(badge.value);
+              return (
+                <label className={selected ? "selected" : ""} key={badge.value}>
+                  <input
+                    type="checkbox"
+                    checked={selected}
+                    onChange={(event) => toggleBadge(badge.value, event.target.checked)}
+                  />
+                  {badge.label}
+                </label>
+              );
+            })}
+          </div>
+        </fieldset>
+
+        <button className="secondary-button product-availability-save" type="button" onClick={saveAvailability} disabled={!onSaveRecipe}>
+          <Save size={15} /> Save product status
+        </button>
+      </div>
+    </details>
+  );
+}
+
 const notificationEvents = [
   ["accepted", "Order accepted", "Confirmation after you approve a customer request."],
   ["bakeProgress", "Bake progress", "Starter, mix, proof, oven, and cooling updates."],
@@ -241,6 +372,7 @@ export default function SettingsPage({
   bakerySettings,
   cloudAccount,
   onSaveBakerySettings,
+  onSaveRecipe,
   recipes,
   setActive,
 }) {
@@ -573,6 +705,32 @@ export default function SettingsPage({
             ))}
           </div>
         </section>
+
+        <CollapsibleSettingsCard
+          className="product-availability-settings"
+          eyebrow="Weekly menu"
+          icon={<Tag size={20} />}
+          summary={`${recipes.length} product${recipes.length === 1 ? "" : "s"} · sold out, preorder, hidden, ready now`}
+          title="Product availability"
+        >
+          <p className="product-type-settings-note">
+            One clean board for this week’s storefront. Hidden items disappear from the customer menu; sold-out and unavailable items can still show details without accepting orders.
+          </p>
+          <div className="product-availability-list">
+            {recipes.map((recipe) => (
+              <ProductAvailabilityCard
+                key={recipe.id}
+                onSaveRecipe={onSaveRecipe}
+                productTypes={productTypes}
+                recipe={recipe}
+              />
+            ))}
+          </div>
+          <aside className="settings-provider-note">
+            <Send size={18} />
+            <span><strong>Publish after status changes</strong><small>Saving updates your owner app immediately. Use Republish recipes below when you want customers to see the new weekly menu.</small></span>
+          </aside>
+        </CollapsibleSettingsCard>
 
         <CollapsibleSettingsCard
           eyebrow="Order protection"
