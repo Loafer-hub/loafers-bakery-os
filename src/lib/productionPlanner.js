@@ -1,5 +1,6 @@
 import { buildBakeSchedule } from "./fermentationModel";
 import { pickupDateKey } from "./orderCapacity";
+import { normalizeTimelineSettings, recipeUsesStarter } from "./recipeTimeline";
 
 export const DEFAULT_PRODUCTION_AUTOMATION = {
   enabled: true,
@@ -83,7 +84,9 @@ export function orderProductionLines(order, recipes) {
 }
 
 function createSchedule(batch, starter, starterLogs, settings) {
-  if (!settings.autoSchedule || !batch.recipe || !starter || !batch.pickupAt) return null;
+  if (!settings.autoSchedule || !batch.recipe || !batch.pickupAt) return null;
+  const timeline = normalizeTimelineSettings(batch.recipe);
+  if (recipeUsesStarter(batch.recipe) && !starter) return null;
   const pickup = new Date(batch.pickupAt);
   if (Number.isNaN(pickup.getTime())) return null;
   const bakeFinish = new Date(pickup.getTime() - Number(settings.coolingHours || 0) * 3600000);
@@ -91,7 +94,7 @@ function createSchedule(batch, starter, starterLogs, settings) {
     recipe: batch.recipe,
     loaves: batch.loaves,
     doughTemperature: Number(settings.doughTemperature || 76),
-    coldProofHours: Number(settings.coldProofHours || 12),
+    coldProofHours: timeline.includeColdProof ? Number(settings.coldProofHours || timeline.defaultColdProofHours) : 0,
     anchorMode: "finish",
     anchorDateTime: localDateTimeValue(bakeFinish),
     starter,
@@ -220,18 +223,21 @@ export function buildProductionPlanner({
   const totalPackages = batches.reduce((sum, batch) => sum + batch.packages, 0);
   const stock = inventoryStatus(requirements, inventory, totalPackages, resolvedSettings.includePackaging);
   const calendarPlans = batches.flatMap((batch) => {
-    if (!batch.schedule || !batch.recipe || !starter) return [];
+    if (!batch.schedule || !batch.recipe) return [];
+    const usesStarter = recipeUsesStarter(batch.recipe);
+    if (usesStarter && !starter) return [];
+    const timeline = normalizeTimelineSettings(batch.recipe);
     return [{
       id: `production-${batch.key}`,
       date: localDateKey(batch.schedule.bakeEnd),
       recipeId: batch.recipe.id,
       recipeName: batch.recipe.name,
       loaves: batch.loaves,
-      starterId: starter.id,
-      starterName: starter.name,
-      ratio: resolvedSettings.ratio,
+      starterId: usesStarter ? starter.id : "",
+      starterName: usesStarter ? starter.name : "",
+      ratio: usesStarter ? resolvedSettings.ratio : "",
       doughTemperature: resolvedSettings.doughTemperature,
-      coldProofHours: resolvedSettings.coldProofHours,
+      coldProofHours: timeline.includeColdProof ? resolvedSettings.coldProofHours : 0,
       anchorMode: "finish",
       anchorDateTime: localDateTimeValue(batch.schedule.bakeEnd),
       bulkHours: Number(batch.schedule.dough.bulkHours.toFixed(2)),
