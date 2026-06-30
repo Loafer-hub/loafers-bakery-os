@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { PageHeading } from "../components/AppChrome";
+import { Modal } from "../components/Primitives";
 import {
   getAutomaticEmailStatus,
   listEmailNotificationDeliveries,
@@ -359,6 +360,212 @@ function ProductAvailabilityCard({ onSaveRecipe, productTypes, recipe }) {
   );
 }
 
+function SettingsCommandCenter({
+  draft,
+  emailStatusTitle,
+  hasCloudWorkspace,
+  onOpenWizard,
+  productTypes,
+  recipes,
+}) {
+  const shownTypes = productTypes.filter((type) => type.enabled !== false).length;
+  const hiddenProducts = recipes.filter((recipe) => recipe.hiddenThisWeek || recipe.soldOut || recipe.unavailableThisWeek).length;
+  const commandCards = [
+    {
+      icon: <Store size={18} />,
+      label: "Storefront",
+      value: draft.onlineOrdering ? "Taking requests" : "Paused",
+      note: `${draft.readyShelfEnabled ? "Ready shelf on" : "Ready shelf off"} · ${draft.reviewsVisible ? "reviews visible" : "reviews hidden"}`,
+    },
+    {
+      icon: <ShoppingBag size={18} />,
+      label: "Orders",
+      value: `${draft.dailyCapacity} slots/day`,
+      note: `${draft.orderWindowDays}-day window · ${draft.leadTimeDays} day lead time`,
+    },
+    {
+      icon: <Clock3 size={18} />,
+      label: "Pickup",
+      value: draft.pickupLocation || "No location",
+      note: `${draft.pickupIntervalMinutes}-minute pickup intervals`,
+    },
+    {
+      icon: <PackageCheck size={18} />,
+      label: "Product types",
+      value: `${shownTypes} shown`,
+      note: `${productTypes.length - shownTypes} hidden · ${hiddenProducts} weekly product flag${hiddenProducts === 1 ? "" : "s"}`,
+    },
+    {
+      icon: <BellRing size={18} />,
+      label: "Notifications",
+      value: draft.emailNotifications || draft.smsNotifications ? "Customer updates on" : "Updates off",
+      note: draft.automaticEmailNotifications ? emailStatusTitle : "Manual messages only",
+    },
+    {
+      icon: <CheckCircle2 size={18} />,
+      label: "Cloud",
+      value: hasCloudWorkspace ? "Connected" : "Device only",
+      note: hasCloudWorkspace ? "Settings can sync to the customer page." : "Sign in under Storage when ready.",
+    },
+  ];
+
+  return (
+    <section className="settings-command-center">
+      <div className="settings-command-hero">
+        <span><Settings2 size={22} /></span>
+        <div>
+          <small>Setup command center</small>
+          <h2>Make the public bakery match how you actually work.</h2>
+          <p>Use the wizard for the basics, then open only the deeper setting cards you need.</p>
+        </div>
+        <button type="button" onClick={onOpenWizard}>Open setup wizard</button>
+      </div>
+      <div className="settings-command-grid">
+        {commandCards.map((card) => (
+          <article key={card.label}>
+            <span>{card.icon}</span>
+            <div><small>{card.label}</small><strong>{card.value}</strong><em>{card.note}</em></div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function OwnerSetupWizard({
+  draft,
+  onClose,
+  productTypes,
+  update,
+  updateProductType,
+  updateWindow,
+}) {
+  const [step, setStep] = useState(0);
+  const steps = [
+    "Storefront",
+    "Capacity",
+    "Pickup",
+    "Products",
+    "Updates",
+    "Finish",
+  ];
+  const shownTypes = productTypes.filter((type) => type.enabled !== false);
+
+  function nextStep() {
+    if (step >= steps.length - 1) {
+      onClose();
+      return;
+    }
+    setStep((current) => current + 1);
+  }
+
+  return (
+    <Modal title="Owner setup wizard" onClose={onClose}>
+      <div className="owner-setup-wizard">
+        <nav className="owner-setup-steps" aria-label="Setup wizard steps">
+          {steps.map((label, index) => (
+            <button
+              className={[
+                index === step ? "active" : "",
+                index < step ? "complete" : "",
+              ].filter(Boolean).join(" ")}
+              key={label}
+              onClick={() => setStep(index)}
+              type="button"
+            >
+              <span>{index + 1}</span>
+              {label}
+            </button>
+          ))}
+        </nav>
+
+        {step === 0 ? (
+          <section className="owner-setup-panel">
+            <span className="eyebrow-label dark">Customer page</span>
+            <h3>Start with what customers see first.</h3>
+            <ToggleRow checked={draft.onlineOrdering} label="Accept online requests" note="Turn this off when you need a quiet week." onChange={(value) => update("onlineOrdering", value)} />
+            <ToggleRow checked={draft.readyShelfEnabled} label="Show ready shelf" note="Let customers grab prebaked items when available." onChange={(value) => update("readyShelfEnabled", value)} />
+            <label>Customer intro<textarea value={draft.orderingIntro} onChange={(event) => update("orderingIntro", event.target.value)} /></label>
+            <label>Pickup location<input value={draft.pickupLocation} onChange={(event) => update("pickupLocation", event.target.value)} /></label>
+          </section>
+        ) : null}
+
+        {step === 1 ? (
+          <section className="owner-setup-panel">
+            <span className="eyebrow-label dark">Order protection</span>
+            <h3>Protect your future self from too many bakes.</h3>
+            <div className="settings-number-grid">
+              <label>Daily bake slots<input type="number" min="1" max="24" value={draft.dailyCapacity} onChange={(event) => update("dailyCapacity", Number(event.target.value))} /></label>
+              <label>Order window<input type="number" min="1" max="90" value={draft.orderWindowDays} onChange={(event) => update("orderWindowDays", Number(event.target.value))} /></label>
+              <label>Minimum lead time<input type="number" min="0" max="14" value={draft.leadTimeDays} onChange={(event) => update("leadTimeDays", Number(event.target.value))} /></label>
+              <label>Pickup intervals<select value={draft.pickupIntervalMinutes} onChange={(event) => update("pickupIntervalMinutes", Number(event.target.value))}><option value="15">Every 15 minutes</option><option value="30">Every 30 minutes</option><option value="60">Every hour</option></select></label>
+            </div>
+          </section>
+        ) : null}
+
+        {step === 2 ? (
+          <section className="owner-setup-panel">
+            <span className="eyebrow-label dark">Pickup hours</span>
+            <h3>Only show pickup windows you really want.</h3>
+            <div className="settings-hours-grid">
+              <TimeWindow label="Weekday morning" value={draft.weekdayWindows[0]} onChange={(value) => updateWindow("weekdayWindows", 0, value)} />
+              <TimeWindow label="Weekday evening" value={draft.weekdayWindows[1]} onChange={(value) => updateWindow("weekdayWindows", 1, value)} />
+              <TimeWindow label="Weekend" value={draft.weekendWindows[0]} onChange={(value) => updateWindow("weekendWindows", 0, value)} />
+            </div>
+          </section>
+        ) : null}
+
+        {step === 3 ? (
+          <section className="owner-setup-panel">
+            <span className="eyebrow-label dark">Menu categories</span>
+            <h3>Pick the product tabs customers can browse.</h3>
+            <div className="owner-setup-product-grid">
+              {productTypes.map((type) => (
+                <label className={type.enabled !== false ? "selected" : ""} key={type.value}>
+                  <input type="checkbox" checked={type.enabled !== false} onChange={(event) => updateProductType(type.value, { enabled: event.target.checked })} />
+                  <span>{type.icon}</span>
+                  <strong>{type.label}</strong>
+                </label>
+              ))}
+            </div>
+            <p>{shownTypes.length} category tab{shownTypes.length === 1 ? "" : "s"} will show on the customer page.</p>
+          </section>
+        ) : null}
+
+        {step === 4 ? (
+          <section className="owner-setup-panel">
+            <span className="eyebrow-label dark">Customer updates</span>
+            <h3>Choose how much communication the app should support.</h3>
+            <ToggleRow checked={draft.emailNotifications} label="Email updates" note="Let customers opt into email status messages." onChange={(value) => update("emailNotifications", value)} />
+            <ToggleRow checked={draft.automaticEmailNotifications} label="Automatic email" note="Send enabled updates after owner actions when Resend is connected." onChange={(value) => update("automaticEmailNotifications", value)} />
+            <ToggleRow checked={draft.smsNotifications} label="Text message links" note="Show text-message actions for customers who opt in." onChange={(value) => update("smsNotifications", value)} />
+            <ToggleRow checked={draft.announcementEnabled} label="Announcement banner" note="Show a baker note at the top of the customer page." onChange={(value) => update("announcementEnabled", value)} />
+          </section>
+        ) : null}
+
+        {step === 5 ? (
+          <section className="owner-setup-panel finish">
+            <CheckCircle2 size={28} />
+            <h3>Setup pass is ready.</h3>
+            <p>Close the wizard, review any deeper cards you want, then tap “Save bakery settings.” If your menu is already published, republish recipes so customers see the latest product tabs, prices, and notes.</p>
+            <ul>
+              <li>{draft.onlineOrdering ? "Online requests are on." : "Online requests are paused."}</li>
+              <li>{draft.dailyCapacity} bake slots per pickup day.</li>
+              <li>{shownTypes.length} customer product categories visible.</li>
+              <li>{draft.emailNotifications || draft.smsNotifications ? "Customer update options are enabled." : "Customer update options are off."}</li>
+            </ul>
+          </section>
+        ) : null}
+
+        <footer className="owner-setup-footer">
+          <button type="button" className="secondary-button" disabled={step === 0} onClick={() => setStep((current) => Math.max(0, current - 1))}>Back</button>
+          <button type="button" className="primary-button" onClick={nextStep}>{step === steps.length - 1 ? "Finish wizard" : "Next"}</button>
+        </footer>
+      </div>
+    </Modal>
+  );
+}
+
 const notificationEvents = [
   ["accepted", "Order accepted", "Confirmation after you approve a customer request."],
   ["bakeProgress", "Bake progress", "Starter, mix, proof, oven, and cooling updates."],
@@ -386,6 +593,7 @@ export default function SettingsPage({
   const [error, setError] = useState("");
   const [emailProvider, setEmailProvider] = useState(null);
   const [emailDeliveries, setEmailDeliveries] = useState([]);
+  const [setupWizardOpen, setSetupWizardOpen] = useState(false);
 
   useEffect(() => {
     setDraft(normalizedBakerySettings(bakerySettings));
@@ -657,8 +865,21 @@ export default function SettingsPage({
           </span>
         </section>
 
-        <section className="settings-card">
-          <div className="section-title-line"><div><span className="eyebrow-label dark">Customer storefront</span><h2>Features</h2></div><Store size={20} /></div>
+        <SettingsCommandCenter
+          draft={draft}
+          emailStatusTitle={emailStatusTitle}
+          hasCloudWorkspace={hasCloudWorkspace}
+          onOpenWizard={() => setSetupWizardOpen(true)}
+          productTypes={productTypes}
+          recipes={recipes}
+        />
+
+        <CollapsibleSettingsCard
+          eyebrow="Customer storefront"
+          icon={<Store size={20} />}
+          summary={`${draft.onlineOrdering ? "Ordering on" : "Ordering paused"} · ${draft.readyShelfEnabled ? "ready shelf on" : "ready shelf off"} · ${draft.reviewsVisible ? "reviews visible" : "reviews hidden"}`}
+          title="Storefront and checkout"
+        >
           <div className="settings-toggle-list">
             <ToggleRow checked={draft.onlineOrdering} label="Online ordering" note="Pause new customer requests without removing the order lookup." onChange={(value) => update("onlineOrdering", value)} />
             <ToggleRow checked={draft.readyShelfEnabled} label="Ready-to-go shelf" note="Show prebaked inventory on the customer order page." onChange={(value) => update("readyShelfEnabled", value)} />
@@ -673,16 +894,15 @@ export default function SettingsPage({
             <small>Leave the message blank to hide the announcement without changing the rest of your storefront.</small>
           </div>
           <label>Pickup location<input value={draft.pickupLocation} onChange={(event) => update("pickupLocation", event.target.value)} /></label>
-        </section>
+        </CollapsibleSettingsCard>
 
-        <section className="settings-card product-types-settings">
-          <div className="section-title-line">
-            <div>
-              <span className="eyebrow-label dark">Customer menu</span>
-              <h2>Product types</h2>
-            </div>
-            <PackageCheck size={20} />
-          </div>
+        <CollapsibleSettingsCard
+          className="product-types-settings"
+          eyebrow="Customer menu"
+          icon={<PackageCheck size={20} />}
+          summary={`${productTypes.filter((type) => type.enabled !== false).length} category tab${productTypes.filter((type) => type.enabled !== false).length === 1 ? "" : "s"} shown · package presets and customer choices`}
+          title="Product types"
+        >
           <p className="product-type-settings-note">
             Choose which category tabs customers see, set the default unit and package prices for new recipes, and keep safety notes visible for sauces, vinegars, oils, and other goods.
           </p>
@@ -704,7 +924,7 @@ export default function SettingsPage({
               />
             ))}
           </div>
-        </section>
+        </CollapsibleSettingsCard>
 
         <CollapsibleSettingsCard
           className="product-availability-settings"
@@ -838,6 +1058,17 @@ export default function SettingsPage({
           <Save size={17} /> {busy === "save" ? "Saving…" : "Save bakery settings"}
         </button>
       </form>
+
+      {setupWizardOpen ? (
+        <OwnerSetupWizard
+          draft={draft}
+          onClose={() => setSetupWizardOpen(false)}
+          productTypes={productTypes}
+          update={update}
+          updateProductType={updateProductType}
+          updateWindow={updateWindow}
+        />
+      ) : null}
     </main>
   );
 }
