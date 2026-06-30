@@ -32,10 +32,13 @@ import {
   SALES_OPTION_PRESETS,
 } from "../lib/salesOptions";
 
+// yeast-breads-v1
+
 const INGREDIENT_CATEGORIES = [
   { value: "flour", label: "Flour" },
   { value: "liquid", label: "Liquid" },
   { value: "starter", label: "Starter / preferment" },
+  { value: "yeast", label: "Yeast / leavener" },
   { value: "salt", label: "Salt" },
   { value: "sweetener", label: "Sweetener" },
   { value: "fat", label: "Fat / oil" },
@@ -56,6 +59,14 @@ const DEFAULT_INGREDIENTS = [
 
 const PRODUCT_TEMPLATES = {
   bread: DEFAULT_INGREDIENTS,
+  yeast: [
+    { key: "flour", name: "Bread flour", category: "flour", percent: 100 },
+    { key: "water", name: "Water or milk", category: "liquid", percent: 63 },
+    { key: "yeast", name: "Instant yeast", category: "yeast", percent: 1.2 },
+    { key: "sugar", name: "Sugar", category: "sweetener", percent: 5 },
+    { key: "fat", name: "Butter or oil", category: "fat", percent: 5 },
+    { key: "salt", name: "Salt", category: "salt", percent: 2 },
+  ],
   bagel: [
     { key: "flour", name: "Bread flour", category: "flour", percent: 100 },
     { key: "water", name: "Water", category: "liquid", percent: 58 },
@@ -277,6 +288,14 @@ function ratioLabelFor(recipe) {
 
 function defaultMethodNotes(recipe) {
   const type = productTypeFor(recipe).value;
+  if (type === "yeast") {
+    return [
+      ["Mix", "Mix until hydrated, then knead or fold until the dough is smooth and elastic."],
+      ["Bulk rise", "Rise warm until roughly doubled. Yeast dough responds faster to warmth than sourdough."],
+      ["Shape", "Degas gently, shape for a loaf pan or rolls, and proof until puffy."],
+      ["Bake", "Bake when the dough springs slowly to the touch; cool fully before slicing or bagging."],
+    ];
+  }
   if (type === "hot_sauce") {
     return [
       ["Prep", "Wash, trim, and weigh peppers and aromatics."],
@@ -354,6 +373,7 @@ function ingredientCategory(ingredient) {
   ))) return "flour";
   if (name.includes("water") || name.includes("milk") || name.includes("juice")) return "liquid";
   if (name.includes("starter") || name.includes("levain")) return "starter";
+  if (name.includes("yeast") || name.includes("leavener")) return "yeast";
   if (name.includes("salt")) return "salt";
   return "inclusion";
 }
@@ -907,7 +927,7 @@ export default function RecipesPage({ bakerySettings, inventory, recipes, onDele
         <Droplets size={21} />
         <div>
           <h3>Baker’s percentage, without the math headache</h3>
-          <p>Add flours, liquids, inclusions, salt, cultures, oils, produce, and spices. Bread can stay in baker’s %, while non-bread items can use batch %.</p>
+          <p>Add flours, liquids, yeast, starters, inclusions, salt, cultures, oils, produce, and spices. Bread and yeast breads can stay in baker’s %, while non-bread items can use batch %.</p>
         </div>
       </aside>
       {showEditor ? (
