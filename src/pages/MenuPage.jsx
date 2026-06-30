@@ -1,5 +1,5 @@
 import { Eye, Globe2, PackageCheck, Settings2, Store, Tags } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { PageHeading } from "../components/AppChrome";
 import { ReadyShelf } from "../components/ReadyShelf";
 import RecipesPage from "./RecipesPage";
@@ -33,11 +33,20 @@ const menuViews = [
 ];
 
 export default function MenuPage(props) {
-  const [view, setView] = useState("recipes");
+  const [view, setView] = useState(props.menuView || "recipes");
   const previewUrl = useMemo(() => {
     const slug = props.cloudAccount?.workspace?.bakery?.slug || "loafers";
     return `?order=${encodeURIComponent(slug)}&preview=owner&release=menu-hub-v1`;
   }, [props.cloudAccount?.workspace?.bakery?.slug]);
+
+  useEffect(() => {
+    if (props.menuView && props.menuView !== view) setView(props.menuView);
+  }, [props.menuView, view]);
+
+  function changeView(nextView) {
+    setView(nextView);
+    props.onChangeMenuView?.(nextView);
+  }
 
   return (
     <>
@@ -56,7 +65,7 @@ export default function MenuPage(props) {
               aria-selected={view === id}
               className={view === id ? "selected" : ""}
               key={id}
-              onClick={() => setView(id)}
+              onClick={() => changeView(id)}
             >
               <Icon size={18} />
               <span><strong>{label}</strong><small>{note}</small></span>
