@@ -1,20 +1,73 @@
 import {
+  AlertTriangle,
   ArrowRight,
+  CheckCircle2,
   ChevronRight,
+  Clock3,
   Gauge,
+  PackageCheck,
   ShoppingBag,
+  Store,
   Thermometer,
   TrendingUp,
   Wheat,
 } from "lucide-react";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { BrandHeader } from "../components/AppChrome";
 import { ReadyShelf } from "../components/ReadyShelf";
+import { listReadyShelfItems } from "../lib/cloud";
 import { buildBakeSchedule } from "../lib/fermentationModel";
 import { activeKitchenBakes, buildKitchenBakeSchedule } from "../lib/kitchenBakes";
 import { pickupDateKey } from "../lib/orderCapacity";
+import { buildProductionPlanner, DEFAULT_PRODUCTION_AUTOMATION } from "../lib/productionPlanner";
 
 const clamp = (value, minimum, maximum) => Math.min(maximum, Math.max(minimum, value));
+const CLOSED_ORDER_STATUSES = new Set(["completed", "rejected", "cancelled", "canceled"]);
+
+function isOpenProductionOrder(order) {
+  return order?.isSample !== true && !CLOSED_ORDER_STATUSES.has(String(order?.status || "").toLowerCase());
+}
+
+function money(value) {
+  return Number(value || 0).toFixed(2);
+}
+
+function timeLabel(value) {
+  if (!value) return "Arrange";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+}
+
+function dateTimeLabel(value) {
+  if (!value) return "Not scheduled";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function pickupWindowsFor(date, settings) {
+  const isWeekend = [0, 6].includes(date.getDay());
+  const windows = isWeekend ? settings?.weekendWindows : settings?.weekdayWindows;
+  return (windows || [])
+    .filter((window) => window?.start && window?.end)
+    .map((window) => `${timeLabel(`2026-01-01T${window.start}`)}–${timeLabel(`2026-01-01T${window.end}`)}`);
+}
+
+function inventoryAmount(row) {
+  if (!row) return "Missing";
+  if (row.matched === false) return "No inventory match";
+  const unit = row.item?.unit || "";
+  const needed = row.needed !== undefined ? Number(row.needed).toFixed(row.needed >= 10 ? 0 : 1) : "—";
+  const available = row.available !== undefined ? Number(row.available).toFixed(row.available >= 10 ? 0 : 1) : "—";
+  return `${available}/${needed} ${unit}`.trim();
+}
 
 function BakeTimeline({ model }) {
   if (!model) {
@@ -137,10 +190,174 @@ function FermentationVisual({ model, sourceLabel }) {
   );
 }
 
+function ProductionDashboard({
+  bakerySettings,
+  cloudAccount,
+  inventory,
+  kitchenBakes,
+  onOpenOrder,
+  orders,
+  productionAutomation,
+  recipes,
+  setActive,
+  starterLogs,
+  starters,
+}) {
+  const [shelfItems, setShelfItems] = useState([]);
+  const [shelfError, setShelfError] = useState("");
+  const todayKey = pickupDateKey(new Date());
+  const dailyCapacity = Math.max(1, Number(bakerySettings?.dailyCapacity || 6));
+  const acceptedToday = orders
+    .filter(isOpenProductionOrder)
+    .filter((order) => (
+      pickupDateKey(order.pickupAt) === todayKey || (!order.pickupAt && String(order.due || "").toLowerCase() === "today")
+    ))
+    .sort((a, b) => new Date(a.pickupAt || a.createdAt || 0) - new Date(b.pickupAt || b.createdAt || 0));
+  const acceptedSlots = acceptedToday.reduce((sum, order) => sum + Number(order.quantity || 0), 0);
+  const activeBakes = useMemo(() => activeKitchenBakes(kitchenBakes), [kitchenBakes]);
+  const productionPlan = useMemo(() => buildProductionPlanner({
+    orders: orders.filter(isOpenProductionOrder),
+    recipes,
+    inventory,
+    starters,
+    starterLogs,
+    settings: { ...DEFAULT_PRODUCTION_AUTOMATION, ...productionAutomation },
+  }), [inventory, orders, productionAutomation, recipes, starterLogs, starters]);
+  const lowInventory = inventory
+    .filter((item) => Number(item.target || 0) > 0 && Number(item.amount || 0) < Number(item.target || 0))
+    .map((item) => ({
+      name: item.name,
+      matched: true,
+      needed: Number(item.target || 0),
+      available: Number(item.amount || 0),
+      item,
+      lowStock: true,
+    }));
+  const shortageRows = [...productionPlan.shortages, ...lowInventory]
+    .filter((row, index, rows) => rows.findIndex((item) => item.name === row.name) === index)
+    .slice(0, 5);
+  const windows = pickupWindowsFor(new Date(), bakerySettings);
+  const readyShelfEnabled = bakerySettings?.readyShelfEnabled !== false;
+  const bakeryId = cloudAccount.workspace?.bakeryId;
+
+  useEffect(() => {
+    let active = true;
+    if (!readyShelfEnabled || !bakeryId) {
+      setShelfItems([]);
+      setShelfError("");
+      return () => {
+        active = false;
+      };
+    }
+    listReadyShelfItems(bakeryId)
+      .then((items) => {
+        if (active) {
+          setShelfItems(items.filter((item) => item.active !== false && Number(item.quantity || 0) > 0));
+          setShelfError("");
+        }
+      })
+      .catch((error) => {
+        if (active) setShelfError(error.message || "Shelf check failed");
+      });
+    return () => {
+      active = false;
+    };
+  }, [bakeryId, readyShelfEnabled]);
+
+  const shelfQuantity = shelfItems.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+
+  return (
+    <section className="production-dashboard" aria-label="Daily production dashboard">
+      <div className="section-title-line">
+        <div>
+          <span className="eyebrow-label dark">Daily production</span>
+          <h2>Command center</h2>
+          <small>Accepted orders, ready shelf, active bakes, pickups, and shortages in one place.</small>
+        </div>
+        <Store size={22} />
+      </div>
+
+      <div className="production-dashboard-grid">
+        <article className="production-card production-orders-card">
+          <span className="production-card-icon"><ShoppingBag size={18} /></span>
+          <div>
+            <strong>{acceptedToday.length} accepted today</strong>
+            <small>{acceptedSlots} of {dailyCapacity} bake slots · ${money(acceptedToday.reduce((sum, order) => sum + Number(order.total || 0), 0))}</small>
+          </div>
+          <div className="production-mini-list">
+            {acceptedToday.slice(0, 3).map((order) => (
+              <button type="button" key={order.id} onClick={() => onOpenOrder?.(order.id)}>
+                <span>{timeLabel(order.pickupAt || order.createdAt)}</span>
+                <strong>{order.customer}</strong>
+                <small>{order.itemSummary || `${order.quantity || 1} × ${order.product}`}</small>
+              </button>
+            ))}
+            {!acceptedToday.length ? <small>No accepted pickups for today yet.</small> : null}
+          </div>
+        </article>
+
+        <article className="production-card">
+          <span className="production-card-icon"><PackageCheck size={18} /></span>
+          <div>
+            <strong>{readyShelfEnabled ? `${shelfQuantity} ready-shelf items` : "Ready shelf hidden"}</strong>
+            <small>{shelfError || (bakeryId ? `${shelfItems.length} listing${shelfItems.length === 1 ? "" : "s"} available now` : "Sign into cloud to count ready stock")}</small>
+          </div>
+          <button type="button" className="text-button production-card-link" onClick={() => setActive("today")}>
+            Manage shelf below <ChevronRight size={14} />
+          </button>
+        </article>
+
+        <article className="production-card">
+          <span className="production-card-icon"><Wheat size={18} /></span>
+          <div>
+            <strong>{activeBakes.length} in-progress bake{activeBakes.length === 1 ? "" : "s"}</strong>
+            <small>{activeBakes[0] ? `${activeBakes[0].name || activeBakes[0].recipeName} · ${activeBakes[0].status || "working"}` : "Start a Kitchen bake to track steps live."}</small>
+          </div>
+          <button type="button" className="text-button production-card-link" onClick={() => setActive("bake")}>
+            Open Kitchen <ChevronRight size={14} />
+          </button>
+        </article>
+
+        <article className="production-card">
+          <span className="production-card-icon"><Clock3 size={18} /></span>
+          <div>
+            <strong>Pickup windows</strong>
+            <small>{windows.length ? windows.join(" · ") : "No pickup hours set for today"}</small>
+          </div>
+          <div className="production-window-list">
+            {acceptedToday.slice(0, 4).map((order) => (
+              <span key={order.id}><b>{timeLabel(order.pickupAt)}</b> {order.customer}</span>
+            ))}
+            {!acceptedToday.length ? <span>No pickups to stage.</span> : null}
+          </div>
+        </article>
+
+        <article className={`production-card production-shortage-card ${shortageRows.length ? "warning" : "clear"}`}>
+          <span className="production-card-icon">{shortageRows.length ? <AlertTriangle size={18} /> : <CheckCircle2 size={18} />}</span>
+          <div>
+            <strong>{shortageRows.length ? `${shortageRows.length} shortage flag${shortageRows.length === 1 ? "" : "s"}` : "No shortage flags"}</strong>
+            <small>{shortageRows.length ? "Based on open orders, recipes, packaging, and restock targets." : "Inventory looks okay for current open production."}</small>
+          </div>
+          <div className="production-shortage-list">
+            {shortageRows.map((row) => (
+              <span key={row.name}>
+                <b>{row.name}</b>
+                <small>{row.lowStock ? "Below target" : inventoryAmount(row)}</small>
+              </span>
+            ))}
+          </div>
+        </article>
+      </div>
+    </section>
+  );
+}
+
 export default function TodayPage({
   bakerySettings,
   cloudAccount,
+  inventory,
   orders,
+  productionAutomation,
   setActive,
   onLogStarter,
   onOpenOrder,
@@ -234,6 +451,20 @@ export default function TodayPage({
       ) : null}
 
       <FermentationVisual model={visualModel} sourceLabel={visualSourceLabel} />
+
+      <ProductionDashboard
+        bakerySettings={bakerySettings}
+        cloudAccount={cloudAccount}
+        inventory={inventory}
+        kitchenBakes={kitchenBakes}
+        onOpenOrder={onOpenOrder}
+        orders={orders}
+        productionAutomation={productionAutomation}
+        recipes={recipes}
+        setActive={setActive}
+        starterLogs={starterLogs}
+        starters={starters}
+      />
 
       <ReadyShelf cloudAccount={cloudAccount} enabled={bakerySettings?.readyShelfEnabled !== false} />
 
