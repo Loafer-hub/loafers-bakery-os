@@ -23,9 +23,13 @@ import { buildProductionPlanner, DEFAULT_PRODUCTION_AUTOMATION } from "../lib/pr
 
 const clamp = (value, minimum, maximum) => Math.min(maximum, Math.max(minimum, value));
 const CLOSED_ORDER_STATUSES = new Set(["completed", "rejected", "cancelled", "canceled"]);
+const PRODUCTION_READY_STATUSES = new Set(["accepted", "paid", "deposit", "confirmed", "in progress", "ready", "picked up"]);
 
 function isOpenProductionOrder(order) {
-  return order?.isSample !== true && !CLOSED_ORDER_STATUSES.has(String(order?.status || "").toLowerCase());
+  const status = String(order?.status || "").toLowerCase();
+  return order?.isSample !== true
+    && !CLOSED_ORDER_STATUSES.has(status)
+    && (!status || PRODUCTION_READY_STATUSES.has(status));
 }
 
 function money(value) {
