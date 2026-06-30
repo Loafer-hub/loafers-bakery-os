@@ -2624,6 +2624,322 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   font-weight: 700;
 }
 
+.production-day-mode,
+.production-print-center,
+.inventory-forecast-panel {
+  padding: 13px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: rgba(255,255,255,.56);
+}
+
+.production-day-mode .section-title-line h2,
+.production-print-center .section-title-line h2,
+.inventory-forecast-panel .section-title-line h2 {
+  margin: 1px 0 0;
+  font-size: 24px;
+}
+
+.production-day-toolbar,
+.inventory-forecast-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 9px;
+  align-items: end;
+  margin-top: 11px;
+}
+
+.production-day-toolbar label,
+.inventory-forecast-toolbar label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 700;
+}
+
+.production-day-toolbar select,
+.inventory-forecast-toolbar input {
+  min-height: 38px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: white;
+  color: var(--ink);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.inventory-forecast-toolbar label > span {
+  display: grid;
+  grid-template-columns: 78px auto;
+  gap: 7px;
+  align-items: center;
+}
+
+.inventory-forecast-toolbar > strong {
+  padding: 10px 12px;
+  border-radius: 999px;
+  background: #f4ebe3;
+  color: var(--accent);
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+.production-day-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  overflow: hidden;
+  margin-top: 11px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: white;
+}
+
+.production-day-stats span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 5px;
+  text-align: center;
+  border-right: 1px solid var(--line);
+}
+
+.production-day-stats span:last-child {
+  border-right: 0;
+}
+
+.production-day-stats strong {
+  font-family: "Newsreader", Georgia, serif;
+  font-size: 22px;
+  font-weight: 500;
+}
+
+.production-day-stats small {
+  color: var(--muted);
+  font-size: 7px;
+}
+
+.production-day-timeline {
+  display: grid;
+  gap: 7px;
+  margin-top: 11px;
+}
+
+.production-day-event {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  gap: 8px 10px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--line-strong);
+  border-radius: 10px;
+  background: white;
+}
+
+.production-day-event time {
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.production-day-event > span {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.production-day-event strong {
+  font-size: 10px;
+}
+
+.production-day-event small,
+.production-day-event em {
+  color: var(--muted);
+  font-size: 7px;
+  font-style: normal;
+  line-height: 1.35;
+}
+
+.production-day-event em {
+  grid-column: 2;
+}
+
+.production-day-event.feed { border-left-color: #c95535; }
+.production-day-event.mix { border-left-color: #8c5a3c; }
+.production-day-event.fold { border-left-color: #d59f4f; }
+.production-day-event.bake { border-left-color: #2f2520; }
+.production-day-event.pickup { border-left-color: #7b4a2b; background: #fff8ef; }
+
+.production-print-actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 11px;
+}
+
+.production-print-actions button {
+  min-width: 0;
+  padding-inline: 8px;
+  font-size: 8px;
+}
+
+.production-label-sheet {
+  margin-top: 13px;
+}
+
+.print-sheet-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 9px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+}
+
+.print-sheet-heading span,
+.print-sheet-heading small {
+  color: var(--muted);
+  font-size: 7px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.print-sheet-heading strong {
+  font-family: "Newsreader", Georgia, serif;
+  font-size: 22px;
+  font-weight: 500;
+}
+
+.production-label-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.production-label-card {
+  display: flex;
+  min-height: 170px;
+  flex-direction: column;
+  gap: 6px;
+  padding: 11px;
+  border: 1px dashed #b9aa9b;
+  border-radius: 10px;
+  background: white;
+}
+
+.production-label-card > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.production-label-card > div strong {
+  font-size: 11px;
+}
+
+.production-label-card > div span,
+.production-label-card small {
+  color: var(--muted);
+  font-size: 7px;
+}
+
+.production-label-card h3 {
+  margin: 0;
+  font-family: "Newsreader", Georgia, serif;
+  font-size: 20px;
+  font-weight: 500;
+}
+
+.production-label-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 7px;
+  line-height: 1.35;
+}
+
+.production-label-card b {
+  color: var(--ink);
+}
+
+.inventory-forecast-list {
+  display: grid;
+  gap: 7px;
+  margin-top: 11px;
+}
+
+.inventory-forecast-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(110px, auto);
+  gap: 10px;
+  align-items: center;
+  padding: 10px 11px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: white;
+}
+
+.inventory-forecast-row > span {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.inventory-forecast-row > span:last-child {
+  text-align: right;
+}
+
+.inventory-forecast-row strong {
+  font-size: 10px;
+}
+
+.inventory-forecast-row small {
+  color: var(--muted);
+  font-size: 7px;
+  line-height: 1.35;
+}
+
+.inventory-forecast-row.short,
+.inventory-forecast-row.missing {
+  border-color: #e0b4a4;
+  background: #fff3ef;
+}
+
+.inventory-forecast-row.low {
+  border-color: #ead0a4;
+  background: #fff9ed;
+}
+
+.inventory-forecast-row.ok {
+  border-color: #c8d4be;
+}
+
+.shopping-list-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 12px;
+  padding-top: 11px;
+  border-top: 1px solid var(--line);
+}
+
+.shopping-list-summary strong,
+.shopping-list-summary span {
+  padding: 7px 9px;
+  border-radius: 999px;
+  background: white;
+  font-size: 8px;
+}
+
+.shopping-list-summary strong {
+  color: var(--accent);
+}
+
 .anchor-switch {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -11586,6 +11902,34 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   }
 }
 
+@media (max-width: 540px) {
+  .production-day-toolbar,
+  .inventory-forecast-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .production-day-stats,
+  .production-print-actions {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .production-day-event {
+    grid-template-columns: 62px minmax(0, 1fr);
+  }
+
+  .production-label-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .inventory-forecast-row {
+    grid-template-columns: 1fr;
+  }
+
+  .inventory-forecast-row > span:last-child {
+    text-align: left;
+  }
+}
+
 @media print {
   body {
     min-width: 0;
@@ -11596,12 +11940,21 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
     visibility: hidden !important;
   }
 
-  #production-sheet,
-  #production-sheet * {
+  body[data-print-mode="batch"] #production-sheet,
+  body[data-print-mode="batch"] #production-sheet *,
+  body[data-print-mode="day"] #production-day-sheet,
+  body[data-print-mode="day"] #production-day-sheet *,
+  body[data-print-mode="labels"] #production-label-sheet,
+  body[data-print-mode="labels"] #production-label-sheet *,
+  body[data-print-mode="shopping"] #production-shopping-sheet,
+  body[data-print-mode="shopping"] #production-shopping-sheet * {
     visibility: visible !important;
   }
 
-  #production-sheet {
+  #production-sheet,
+  #production-day-sheet,
+  #production-label-sheet,
+  #production-shopping-sheet {
     position: absolute;
     inset: 0;
     width: 100%;
@@ -11612,8 +11965,23 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 
   #production-sheet .production-batch-card,
   #production-sheet .production-stock-list,
-  #production-sheet .production-summary-grid {
+  #production-sheet .production-summary-grid,
+  #production-day-sheet .production-day-event,
+  #production-label-sheet .production-label-card,
+  #production-shopping-sheet .inventory-forecast-row {
     break-inside: avoid;
     box-shadow: none;
+  }
+
+  .production-day-toolbar,
+  .production-print-actions,
+  .production-actions,
+  .master-automation-toggle,
+  .production-settings-button {
+    display: none !important;
+  }
+
+  .production-label-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
