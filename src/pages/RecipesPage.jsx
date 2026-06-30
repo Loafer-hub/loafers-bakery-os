@@ -33,9 +33,11 @@ import {
   SALES_OPTION_PRESETS,
 } from "../lib/salesOptions";
 import {
+  applyYeastTimingSuggestion,
   defaultTimelineSettingsForProductType,
   normalizeTimelineSettings,
   recipeAllowsStarterIngredient,
+  suggestYeastTimeline,
 } from "../lib/recipeTimeline";
 
 // yeast-breads-v1
@@ -43,6 +45,7 @@ import {
 // ai-assist-responsive-v1
 // recipe-grams-entry-v1
 // recipe-timeline-controls-v1
+// yeast-rise-science-v1
 
 const INGREDIENT_CATEGORIES = [
   { value: "flour", label: "Flour" },
@@ -276,6 +279,14 @@ function sanitizeIngredientsForTimeline(ingredients, recipe) {
   return ingredients.filter((ingredient) => ingredient.category !== "starter");
 }
 
+function refreshRecipeTiming(recipe, options = {}) {
+  const sanitized = {
+    ...recipe,
+    ingredients: sanitizeIngredientsForTimeline(recipe.ingredients || [], recipe),
+  };
+  return applyYeastTimingSuggestion(sanitized, options);
+}
+
 function isUntouchedDefaultFormula(recipe) {
   if (!recipe.isNew) return false;
   if (recipe.ingredients.length !== DEFAULT_INGREDIENTS.length) return false;
@@ -499,7 +510,7 @@ function recipeForm(recipe, bakerySettings) {
   const baseWeight = formulaMode === "batch"
     ? Number(recipe.baseWeight || recipe.flourWeight) || Number(recipe.yield || 1) * 250
     : flourWeightFor(recipe);
-  return {
+  return refreshRecipeTiming({
     ...recipe,
     isNew: false,
     productType,
@@ -526,7 +537,7 @@ function recipeForm(recipe, bakerySettings) {
         : undefined,
       percent: Number(ingredient.percent || 0),
     })), { productType, timelineSettings }),
-  };
+  });
 }
 
 function inventoryCostForIngredient(ingredient, weight, inventory) {
@@ -806,7 +817,7 @@ export default function RecipesPage({ bakerySettings, inventory, recipes, onDele
   }
 
   function updateIngredient(id, changes) {
-    setForm((current) => ({
+    setForm((current) => refreshRecipeTiming({
       ...current,
       ingredients: current.ingredients.map((ingredient) => (
         ingredient.id === id ? { ...ingredient, ...changes } : ingredient
@@ -1048,6 +1059,7 @@ function RecipeEditor({ bakerySettings, form, formError, onClose, onSubmit, setF
   const activeBaseWeight = formulaBaseFor(form);
   const timelineSettings = normalizeTimelineSettings(form);
   const allowsStarterIngredient = recipeAllowsStarterIngredient({ ...form, timelineSettings });
+  const yeastTimingSuggestion = form.productType === "yeast" ? suggestYeastTimeline(form) : null;
   const flourTotal = form.ingredients.reduce((sum, ingredient) => (
     ingredient.category === "flour" ? sum + Number(ingredient.percent || 0) : sum
   ), 0);
@@ -1059,15 +1071,17 @@ function RecipeEditor({ bakerySettings, form, formError, onClose, onSubmit, setF
   const photoUrl = String(form.photoUrl || "").trim();
 
   function updateIngredientWeight(ingredientId, nextWeight) {
-    setForm((current) => recalculateFormulaFromWeights(current, ingredientId, nextWeight));
+    setForm((current) => refreshRecipeTiming(recalculateFormulaFromWeights(current, ingredientId, nextWeight)));
   }
 
   function updateTimelineSetting(key, value) {
     setForm((current) => {
+      const manualTimingOverride = ["primaryRiseHours", "finalProofHours"].includes(key);
       const nextSettings = normalizeTimelineSettings({
         ...current,
         timelineSettings: {
           ...current.timelineSettings,
+          ...(manualTimingOverride ? { autoYeastTiming: false } : {}),
           [key]: value,
         },
       });
@@ -1080,6 +1094,32 @@ function RecipeEditor({ bakerySettings, form, formError, onClose, onSubmit, setF
         }),
       };
     });
+  }
+
+  function toggleAutoYeastTiming(checked) {
+    setForm((current) => {
+      const next = {
+        ...current,
+        timelineSettings: normalizeTimelineSettings({
+          ...current,
+          timelineSettings: {
+            ...current.timelineSettings,
+            autoYeastTiming: checked,
+          },
+        }),
+      };
+      return checked ? refreshRecipeTiming(next, { force: true }) : next;
+    });
+  }
+
+  function applyYeastSuggestion() {
+    setForm((current) => refreshRecipeTiming({
+      ...current,
+      timelineSettings: {
+        ...current.timelineSettings,
+        autoYeastTiming: true,
+      },
+    }, { force: true }));
   }
 
   async function handlePhotoFile(event) {
@@ -1133,7 +1173,7 @@ function RecipeEditor({ bakerySettings, form, formError, onClose, onSubmit, setF
                     } : option
                   ));
                 const nextIngredients = shouldSwapTemplate ? defaultIngredientsForType(nextType.value) : current.ingredients;
-                return {
+                return refreshRecipeTiming({
                   ...current,
                   productType: nextType.value,
                   formulaMode: nextType.formulaMode,
@@ -1145,7 +1185,7 @@ function RecipeEditor({ bakerySettings, form, formError, onClose, onSubmit, setF
                     productType: nextType.value,
                     timelineSettings: nextTimelineSettings,
                   }),
-                };
+                }, { force: nextType.value === "yeast" });
               });
             }}>
               {PRODUCT_TYPES.map((type) => <option key={type.value} value={type.value}>{type.icon} {type.label}</option>)}
@@ -1273,6 +1313,34 @@ function RecipeEditor({ bakerySettings, form, formError, onClose, onSubmit, setF
               <input type="number" min="0" max="180" step="5" value={timelineSettings.preheatMinutes} disabled={!timelineSettings.includePreheat} onChange={(event) => updateTimelineSetting("preheatMinutes", Number(event.target.value))} />
             </label>
           </div>
+          {yeastTimingSuggestion ? (
+            <div className="yeast-timing-suggestion">
+              <div>
+                <span className="eyebrow-label dark">Yeast timing science</span>
+                <strong>{yeastTimingSuggestion.firstRiseHours}h rise · {yeastTimingSuggestion.finalProofHours}h final proof</strong>
+                <p>{yeastTimingSuggestion.summary} Baseline assumes a 76°F dough; Bake/Kitchen still adjust for the dough temp you enter there.</p>
+              </div>
+              <div className="yeast-timing-actions">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={timelineSettings.autoYeastTiming}
+                    onChange={(event) => toggleAutoYeastTiming(event.target.checked)}
+                  />
+                  Auto-update from formula
+                </label>
+                <button type="button" onClick={applyYeastSuggestion}>Apply suggestion</button>
+              </div>
+              <div className="yeast-factor-pills">
+                {yeastTimingSuggestion.reasons.map((reason) => (
+                  <span className={reason.tone} key={reason.label}>
+                    <strong>{reason.label}</strong>
+                    <small>{reason.value}</small>
+                  </span>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </section>
         <div className="recipe-photo-editor">
           <div className="recipe-photo-preview">
@@ -1478,8 +1546,8 @@ function RecipeEditor({ bakerySettings, form, formError, onClose, onSubmit, setF
                 ingredients: [...current.ingredients, ingredient],
               };
               return ingredientEntryMode === "grams"
-                ? recalculateFormulaFromWeights(next, id, formulaBaseFor(current) * 0.1)
-                : next;
+                ? refreshRecipeTiming(recalculateFormulaFromWeights(next, id, formulaBaseFor(current) * 0.1))
+                : refreshRecipeTiming(next);
             })}><Wheat size={14} /> Flour</button>
             <button type="button" aria-label="Add other ingredient" onClick={() => setForm((current) => {
               const id = `ingredient-${Date.now()}`;
@@ -1497,8 +1565,8 @@ function RecipeEditor({ bakerySettings, form, formError, onClose, onSubmit, setF
                 ingredients: [...current.ingredients, ingredient],
               };
               return ingredientEntryMode === "grams"
-                ? recalculateFormulaFromWeights(next, id, formulaBaseFor(current) * 0.05)
-                : next;
+                ? refreshRecipeTiming(recalculateFormulaFromWeights(next, id, formulaBaseFor(current) * 0.05))
+                : refreshRecipeTiming(next);
             })}><Plus size={15} /> Other</button>
           </span>
         </div>
@@ -1530,8 +1598,8 @@ function RecipeEditor({ bakerySettings, form, formError, onClose, onSubmit, setF
                       } : item),
                     };
                     return ingredientEntryMode === "grams"
-                      ? recalculateFormulaFromWeights(next, ingredient.id, currentWeight)
-                      : next;
+                      ? refreshRecipeTiming(recalculateFormulaFromWeights(next, ingredient.id, currentWeight))
+                      : refreshRecipeTiming(next);
                   });
                 }}>
                   {categoryOptions.map((category) => <option key={category.value} value={category.value}>{category.label}</option>)}
@@ -1563,7 +1631,7 @@ function RecipeEditor({ bakerySettings, form, formError, onClose, onSubmit, setF
                     <small>{Math.round(ingredientWeight).toLocaleString()}g</small>
                   </label>
                 )}
-                <button type="button" className="remove-ingredient-button" aria-label={`Remove ${ingredient.name || "ingredient"}`} disabled={form.ingredients.length <= 1} onClick={() => setForm((current) => ({
+                <button type="button" className="remove-ingredient-button" aria-label={`Remove ${ingredient.name || "ingredient"}`} disabled={form.ingredients.length <= 1} onClick={() => setForm((current) => refreshRecipeTiming({
                   ...current,
                   ingredients: current.ingredients.filter((item) => item.id !== ingredient.id),
                 }))}><Trash2 size={15} /></button>
