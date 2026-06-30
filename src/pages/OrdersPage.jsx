@@ -13,6 +13,7 @@ import { normalizedSalesOptions, pluralUnit } from "../lib/salesOptions";
 import { updateCustomerOrderNotificationPreferences } from "../lib/cloud";
 
 // customer-options-v1
+// checkout-flow-v1
 
 const filters = ["Pending", "Completed", "All"];
 const paymentMethods = ["Venmo", "Zelle", "Cash", "Other"];
@@ -660,6 +661,7 @@ export default function OrdersPage({
                     ...selectedOrder,
                     ...detailForm,
                     customerEmail: detailForm.customerEmail.trim(),
+                    orderSlug: cloudAccount.workspace?.bakery?.slug || "loafers",
                   }, detailProgress, notificationEvent) : undefined}
                 ><Mail size={16} /> Email status</a>
                 <a
@@ -669,6 +671,7 @@ export default function OrdersPage({
                     ...selectedOrder,
                     ...detailForm,
                     customerPhone: detailForm.customerPhone.trim(),
+                    orderSlug: cloudAccount.workspace?.bakery?.slug || "loafers",
                   }, detailProgress, notificationEvent) : undefined}
                 ><MessageSquareText size={16} /> Text status</a>
               </div>
