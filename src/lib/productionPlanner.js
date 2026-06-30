@@ -17,6 +17,8 @@ export const DEFAULT_PRODUCTION_AUTOMATION = {
 };
 
 const SKIP_INVENTORY_NAMES = ["water", "starter", "levain"];
+const CLOSED_ORDER_STATUSES = new Set(["completed", "rejected", "cancelled", "canceled"]);
+const PRODUCTION_READY_STATUSES = new Set(["accepted", "paid", "deposit", "confirmed", "in progress", "ready", "picked up"]);
 
 function normalizedName(value) {
   return String(value || "")
@@ -105,7 +107,13 @@ function createSchedule(batch, starter, starterLogs, settings) {
 
 function buildBatches(orders, recipes, starter, starterLogs, settings) {
   const lines = orders
-    .filter((order) => order.status !== "Completed" && !order.isSample && order.pickupAt)
+    .filter((order) => {
+      const status = String(order.status || "").toLowerCase();
+      return order.isSample !== true
+        && order.pickupAt
+        && !CLOSED_ORDER_STATUSES.has(status)
+        && (!status || PRODUCTION_READY_STATUSES.has(status));
+    })
     .flatMap((order) => orderProductionLines(order, recipes))
     .sort((a, b) => new Date(a.pickupAt) - new Date(b.pickupAt));
   const groups = new Map();
