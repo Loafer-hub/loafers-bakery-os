@@ -5160,6 +5160,99 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   font-size: 8px;
 }
 
+.recipe-timeline-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 11px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fbfaf6;
+}
+
+.timeline-toggle-grid,
+.timeline-number-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.timeline-check {
+  min-height: 58px;
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  align-items: start;
+  gap: 8px;
+  padding: 9px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: white;
+}
+
+.timeline-check input {
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  accent-color: var(--accent);
+}
+
+.timeline-check span {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.timeline-check strong {
+  font-size: 10px;
+}
+
+.timeline-check small {
+  color: var(--muted);
+  font-size: 8px;
+  line-height: 1.35;
+}
+
+.timeline-number-grid label {
+  min-width: 0;
+}
+
+.planner-static-value,
+.kitchen-static-field {
+  min-height: 39px;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfaf6;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.kitchen-static-field {
+  min-height: auto;
+  align-items: flex-start;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 10px;
+}
+
+.kitchen-static-field span {
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.kitchen-static-field strong {
+  color: var(--ink);
+  font-size: 10px;
+}
+
 .ingredient-editor-heading {
   display: flex;
   align-items: center;
@@ -8939,6 +9032,11 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 
   .recipe-photo-preview {
     min-height: 170px;
+  }
+
+  .timeline-toggle-grid,
+  .timeline-number-grid {
+    grid-template-columns: 1fr;
   }
 
   .ingredient-entry-mode-card {
