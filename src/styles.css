@@ -5217,6 +5217,109 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   min-width: 0;
 }
 
+.yeast-timing-suggestion {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid #d9c7ad;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #fff8e8, #f9f0df);
+}
+
+.yeast-timing-suggestion > div:first-child {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.yeast-timing-suggestion strong {
+  font-family: "Newsreader", Georgia, serif;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.yeast-timing-suggestion p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.yeast-timing-actions {
+  display: flex;
+  align-items: flex-end;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.yeast-timing-actions label {
+  min-height: auto;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.yeast-timing-actions input {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--accent);
+}
+
+.yeast-timing-actions button {
+  padding: 7px 10px;
+  color: white;
+  border: 0;
+  border-radius: 8px;
+  background: var(--accent);
+  font-size: 9px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.yeast-factor-pills {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.yeast-factor-pills span {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 7px;
+  border: 1px solid rgba(149, 112, 73, .22);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, .72);
+}
+
+.yeast-factor-pills span.faster {
+  border-color: rgba(95, 132, 83, .28);
+  background: #f3f8ed;
+}
+
+.yeast-factor-pills span.slower {
+  border-color: rgba(202, 120, 70, .3);
+  background: #fff1e7;
+}
+
+.yeast-factor-pills strong,
+.yeast-factor-pills small {
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 8px;
+}
+
+.yeast-factor-pills small {
+  color: var(--muted);
+  font-weight: 800;
+}
+
 .planner-static-value,
 .kitchen-static-field {
   min-height: 39px;
@@ -9039,6 +9142,22 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
     grid-template-columns: 1fr;
   }
 
+  .yeast-timing-suggestion {
+    grid-template-columns: 1fr;
+  }
+
+  .yeast-timing-actions {
+    align-items: stretch;
+  }
+
+  .yeast-timing-actions label {
+    justify-content: space-between;
+  }
+
+  .yeast-factor-pills {
+    grid-template-columns: 1fr;
+  }
+
   .ingredient-entry-mode-card {
     align-items: stretch;
     flex-direction: column;
@@ -9167,6 +9286,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 /* responsive-shell-v1 */
 /* ai-assist-responsive-v1 */
 /* recipe-grams-entry-v1 */
+/* yeast-rise-science-v1 */
 @media (min-width: 760px) {
   .app-stage {
     padding: clamp(20px, 3vw, 36px);
