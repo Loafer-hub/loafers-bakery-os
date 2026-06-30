@@ -8773,6 +8773,85 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   padding: 17px;
 }
 
+/* settings-collapse-v1 */
+.settings-accordion {
+  gap: 0;
+  overflow: hidden;
+  padding: 0;
+}
+
+.settings-accordion-summary,
+.email-delivery-history summary,
+.product-type-card-heading {
+  list-style: none;
+  cursor: pointer;
+}
+
+.settings-accordion-summary::-webkit-details-marker,
+.email-delivery-history summary::-webkit-details-marker,
+.product-type-card-heading::-webkit-details-marker {
+  display: none;
+}
+
+.settings-accordion-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 17px;
+}
+
+.settings-accordion-summary .section-title-line {
+  min-width: 0;
+}
+
+.settings-accordion-summary .section-title-line > div {
+  min-width: 0;
+}
+
+.settings-accordion-summary .section-title-line small {
+  display: block;
+  max-width: 100%;
+  padding-top: 3px;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-accordion-icon {
+  display: grid;
+  place-items: center;
+}
+
+.settings-accordion-chevron {
+  flex: 0 0 auto;
+  color: var(--muted);
+  transition: transform .18s ease;
+}
+
+.settings-accordion[open] > .settings-accordion-summary .settings-accordion-chevron,
+.email-delivery-history[open] > summary .settings-accordion-chevron,
+.product-type-card[open] > .product-type-card-heading .settings-accordion-chevron {
+  transform: rotate(180deg);
+}
+
+.settings-accordion-body {
+  display: grid;
+  gap: 14px;
+  padding: 0 17px 17px;
+}
+
+.settings-accordion-body > label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
 .settings-card .section-title-line {
   margin: 0;
 }
@@ -8847,8 +8926,9 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 
 .product-type-card {
   display: grid;
-  gap: 12px;
-  padding: 13px;
+  gap: 0;
+  overflow: hidden;
+  padding: 0;
   border: 1px solid var(--line);
   border-radius: 16px;
   background: #fbfaf6;
@@ -8863,6 +8943,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   grid-template-columns: 42px minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
+  padding: 13px;
 }
 
 .product-type-card-heading strong,
@@ -8874,6 +8955,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   padding-top: 2px;
   color: var(--muted);
   font-size: 10px;
+  line-height: 1.35;
 }
 
 .product-type-badge {
@@ -8902,6 +8984,26 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   height: 18px;
   padding: 0;
   accent-color: var(--sage);
+}
+
+.product-type-card-body {
+  display: grid;
+  gap: 12px;
+  padding: 0 13px 13px;
+}
+
+.product-type-card-body::before {
+  content: "";
+  display: block;
+  border-top: 1px solid var(--line);
+}
+
+.product-type-quick-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 9px;
 }
 
 .product-type-order-actions {
@@ -9165,20 +9267,36 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 
 .email-delivery-history {
   display: grid;
-  gap: 7px;
-  padding-top: 4px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fbfaf6;
 }
 
-.email-delivery-history > div:first-child,
-.email-delivery-history > div:first-child strong,
-.email-delivery-history > div:first-child small {
+.email-delivery-history summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 11px 12px;
+}
+
+.email-delivery-history summary span,
+.email-delivery-history summary strong,
+.email-delivery-history summary small {
   display: block;
 }
 
-.email-delivery-history > div:first-child small {
+.email-delivery-history summary small {
   padding-top: 2px;
   color: var(--muted);
   font-size: 11px;
+}
+
+.email-delivery-list {
+  display: grid;
+  gap: 7px;
+  padding: 0 11px 11px;
 }
 
 .email-delivery-row {
@@ -9257,6 +9375,18 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
     padding: 14px;
   }
 
+  .settings-accordion {
+    padding: 0;
+  }
+
+  .settings-accordion-summary {
+    padding: 14px;
+  }
+
+  .settings-accordion-body {
+    padding: 0 14px 14px;
+  }
+
   .settings-sync-pill {
     grid-column: 1 / -1;
     justify-self: start;
@@ -9276,7 +9406,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   }
 
   .product-type-card-heading {
-    grid-template-columns: 36px minmax(0, 1fr);
+    grid-template-columns: 36px minmax(0, 1fr) auto;
   }
 
   .product-type-badge {
@@ -9285,9 +9415,9 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
     border-radius: 12px;
   }
 
-  .product-type-switch,
-  .product-type-order-actions {
-    grid-column: 1 / -1;
+  .product-type-quick-actions {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .product-type-fields {
