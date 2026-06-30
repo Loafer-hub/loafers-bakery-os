@@ -3,12 +3,18 @@ import {
   CheckCircle2,
   ChevronLeft,
   Clock3,
+  ClipboardList,
+  Heart,
   Info,
   LockKeyhole,
   Megaphone,
   Minus,
   PackageCheck,
   Plus,
+  Repeat2,
+  Save,
+  Search,
+  ShieldCheck,
   ShoppingBag,
   Star,
   Store,
@@ -18,9 +24,12 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { CustomerPickupCalendar } from "../components/CustomerPickupCalendar";
 import { CustomerOrderLookup } from "../components/CustomerOrderLookup";
+import { InstallAppPrompt } from "../components/InstallAppPrompt";
 import { Modal } from "../components/Primitives";
 import {
+  listSignedInCustomerOrders,
   loadPublicStorefront,
+  saveCustomerAccountDetails,
   signInWithEmail,
   signOutCloud,
   signUpCustomer,
@@ -190,6 +199,68 @@ function customerTrackingLink(code, contact) {
   }
 }
 
+function normalizeCustomerContact(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  if (raw.includes("@")) return raw.toLowerCase();
+  return raw.replace(/[^0-9]/g, "");
+}
+
+function customerMemoryKey(slug, contact, suffix) {
+  const normalized = normalizeCustomerContact(contact);
+  return normalized ? `loafers.customer.${slug}.${normalized}.${suffix}` : "";
+}
+
+function readCustomerMemory(slug, contact, suffix, fallback) {
+  const key = customerMemoryKey(slug, contact, suffix);
+  if (!key) return fallback;
+  try {
+    const saved = window.localStorage.getItem(key);
+    return saved ? JSON.parse(saved) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function writeCustomerMemory(slug, contact, suffix, value) {
+  const key = customerMemoryKey(slug, contact, suffix);
+  if (!key) return;
+  try {
+    window.localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // Storage can be unavailable in private browsing; ordering still works.
+  }
+}
+
+function defaultCustomerProfile(metadata = {}) {
+  return {
+    name: metadata.full_name || "",
+    email: "",
+    phone: metadata.phone || "",
+    allergies: metadata.allergies || "",
+    preferences: metadata.preferences || "",
+    address: metadata.address || "",
+    defaultPaymentMethod: metadata.default_payment_method || "Venmo",
+    favoriteProductId: metadata.favorite_product_id || "",
+    favoriteOptionId: metadata.favorite_option_id || "",
+  };
+}
+
+function normalizeCloudCustomerOrder(order) {
+  return {
+    ...order,
+    itemSummary: (order.customer_order_items || [])
+      .map((item) => `${item.quantity} × ${item.sale_option_label || item.product_name}`)
+      .join(" · "),
+  };
+}
+
+function orderHistoryDate(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Pickup not set";
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
 export default function CustomerOrderPortal({
   bakerySettings,
   cloudAccount,
@@ -208,6 +279,13 @@ export default function CustomerOrderPortal({
   const [accountOpen, setAccountOpen] = useState(false);
   const [accountMode, setAccountMode] = useState("signin");
   const [accountForm, setAccountForm] = useState({ name: "", email: "", password: "" });
+  const [accountBusy, setAccountBusy] = useState("");
+  const [accountMessage, setAccountMessage] = useState("");
+  const [accountLookup, setAccountLookup] = useState({ contact: "", searched: false });
+  const [accountProfile, setAccountProfile] = useState(defaultCustomerProfile());
+  const [accountLocalHistory, setAccountLocalHistory] = useState([]);
+  const [accountCloudHistory, setAccountCloudHistory] = useState([]);
+  const [accountHistoryLoading, setAccountHistoryLoading] = useState(false);
   const [selectedCapacity, setSelectedCapacity] = useState(null);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [form, setForm] = useState({
@@ -300,6 +378,33 @@ export default function CustomerOrderPortal({
     const email = cloudAccount.session?.user?.email;
     if (email) setForm((current) => ({ ...current, email: current.email || email }));
   }, [cloudAccount.session?.user?.email]);
+
+  useEffect(() => {
+    const email = cloudAccount.session?.user?.email || "";
+    const metadata = cloudAccount.session?.user?.user_metadata || {};
+    if (!email && !Object.keys(metadata).length) return;
+    const nextProfile = {
+      ...defaultCustomerProfile(metadata),
+      email,
+    };
+    setAccountProfile((current) => ({ ...current, ...nextProfile }));
+    setAccountForm((current) => ({
+      ...current,
+      email: current.email || email,
+      name: current.name || nextProfile.name,
+    }));
+    setForm((current) => ({
+      ...current,
+      name: current.name || nextProfile.name,
+      email: current.email || email,
+      phone: current.phone || nextProfile.phone,
+      allergies: current.allergies || nextProfile.allergies,
+      paymentMethod: current.paymentMethod || nextProfile.defaultPaymentMethod || "Venmo",
+    }));
+    if (email) {
+      setAccountLookup((current) => ({ ...current, contact: current.contact || email }));
+    }
+  }, [cloudAccount.session?.user?.email, cloudAccount.session?.user?.id]);
 
   const rules = normalizedBakerySettings(storefront?.settings || bakerySettings);
   const productTypes = rules.productTypes.filter((type) => type.enabled !== false);
@@ -406,12 +511,45 @@ export default function CustomerOrderPortal({
   const successTrackingLink = success
     ? customerTrackingLink(success.request_code, form.email.trim() || form.phone.trim())
     : "";
+  const favoriteProduct = storefrontProducts.find((product) => (
+    String(product.id) === String(accountProfile.favoriteProductId)
+    || String(product.recipe_id) === String(accountProfile.favoriteProductId)
+  ));
+  const accountHistory = [
+    ...accountCloudHistory,
+    ...accountLocalHistory.filter((localOrder) => (
+      !accountCloudHistory.some((cloudOrder) => cloudOrder.request_code === localOrder.request_code)
+    )),
+  ].slice(0, 8);
+  const accountContact = accountProfile.email || accountLookup.contact || form.email || form.phone;
 
   useEffect(() => {
     if (!catalogTabs.some((tab) => tab.id === activeCatalogTab)) {
       setActiveCatalogTab("all");
     }
   }, [activeCatalogTab, catalogTabs]);
+
+  useEffect(() => {
+    if (!cloudAccount.configured || !cloudAccount.session?.user?.id) {
+      setAccountCloudHistory([]);
+      return undefined;
+    }
+    let active = true;
+    setAccountHistoryLoading(true);
+    listSignedInCustomerOrders(slug)
+      .then((orders) => {
+        if (active) setAccountCloudHistory(orders.map(normalizeCloudCustomerOrder));
+      })
+      .catch((nextError) => {
+        if (active) setAccountMessage(nextError.message);
+      })
+      .finally(() => {
+        if (active) setAccountHistoryLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [cloudAccount.configured, cloudAccount.session?.user?.id, slug]);
 
   function changeQuantity(item, change) {
     const quantityKey = item.quantityKey || `${item.itemType}-${item.id}`;
@@ -509,10 +647,13 @@ export default function CustomerOrderPortal({
 
   async function submitAccount(event) {
     event.preventDefault();
+    setAccountBusy("auth");
+    setAccountMessage("");
     setError("");
     try {
       if (accountMode === "signin") {
         await signInWithEmail(accountForm.email, accountForm.password);
+        setAccountMessage("Signed in. Your saved customer tools are ready.");
       } else {
         const result = await signUpCustomer({
           email: accountForm.email,
@@ -531,7 +672,153 @@ export default function CustomerOrderPortal({
       setAccountOpen(false);
     } catch (nextError) {
       setError(nextError.message);
+    } finally {
+      setAccountBusy("");
     }
+  }
+
+  function applyCustomerProfile(profile, contact = "") {
+    const nextProfile = { ...defaultCustomerProfile(), ...profile };
+    setAccountProfile(nextProfile);
+    setForm((current) => ({
+      ...current,
+      name: current.name || nextProfile.name,
+      email: nextProfile.email || current.email,
+      phone: nextProfile.phone || current.phone,
+      allergies: nextProfile.allergies || current.allergies,
+      paymentMethod: nextProfile.defaultPaymentMethod || current.paymentMethod,
+      notes: current.notes || nextProfile.preferences,
+    }));
+    if (contact) setAccountLookup({ contact, searched: true });
+  }
+
+  function lookupCustomerMemory(event) {
+    event?.preventDefault();
+    const contact = accountLookup.contact || form.email || form.phone;
+    if (!normalizeCustomerContact(contact)) {
+      setAccountMessage("Enter an email or phone number to look up saved customer details on this device.");
+      return;
+    }
+    const savedProfile = readCustomerMemory(slug, contact, "profile", null);
+    const savedHistory = readCustomerMemory(slug, contact, "orders", []);
+    if (savedProfile) {
+      applyCustomerProfile({ ...savedProfile, email: savedProfile.email || (String(contact).includes("@") ? contact : "") }, contact);
+      setAccountMessage("Saved customer details loaded on this device.");
+    } else {
+      setAccountProfile((current) => ({
+        ...current,
+        email: current.email || (String(contact).includes("@") ? contact : ""),
+        phone: current.phone || (!String(contact).includes("@") ? contact : ""),
+      }));
+      setAccountLookup({ contact, searched: true });
+      setAccountMessage("No saved profile on this device yet. You can save one now.");
+    }
+    setAccountLocalHistory(Array.isArray(savedHistory) ? savedHistory : []);
+  }
+
+  async function saveCustomerProfileMemory(event) {
+    event.preventDefault();
+    const favorite = storefrontProducts.find((product) => String(product.id) === String(accountProfile.favoriteProductId));
+    const nextProfile = {
+      ...accountProfile,
+      email: accountProfile.email || form.email,
+      phone: accountProfile.phone || form.phone,
+      favoriteProductName: favorite?.name || "",
+      updatedAt: new Date().toISOString(),
+    };
+    const contact = nextProfile.email || nextProfile.phone || accountLookup.contact;
+    if (!normalizeCustomerContact(contact)) {
+      setAccountMessage("Add an email or phone number before saving preferences.");
+      return;
+    }
+    setAccountBusy("profile");
+    setAccountMessage("");
+    try {
+      writeCustomerMemory(slug, contact, "profile", nextProfile);
+      if (cloudAccount.session?.user) {
+        await saveCustomerAccountDetails(nextProfile);
+      }
+      applyCustomerProfile(nextProfile, contact);
+      setAccountMessage(cloudAccount.session?.user
+        ? "Customer profile saved to this phone and your account."
+        : "Customer profile saved on this phone.");
+    } catch (nextError) {
+      setAccountMessage(nextError.message);
+    } finally {
+      setAccountBusy("");
+    }
+  }
+
+  function rememberSubmittedOrder(result, submittedItems) {
+    const contact = form.email.trim() || form.phone.trim();
+    if (!normalizeCustomerContact(contact)) return;
+    const profile = {
+      ...accountProfile,
+      name: form.name.trim() || accountProfile.name,
+      email: form.email.trim() || accountProfile.email,
+      phone: form.phone.trim() || accountProfile.phone,
+      allergies: form.allergies.trim() || accountProfile.allergies,
+      defaultPaymentMethod: form.paymentMethod,
+      updatedAt: new Date().toISOString(),
+    };
+    const history = readCustomerMemory(slug, contact, "orders", []);
+    const nextOrder = {
+      request_code: result.request_code,
+      status: "requested",
+      pickup_at: pickupDateTimeIso(form.pickupDate, form.pickupTime),
+      subtotal_cents: result.subtotal_cents,
+      created_at: new Date().toISOString(),
+      itemSummary: submittedItems
+        .map((item) => `${item.quantity} × ${item.saleOption?.label || item.name} ${item.name}`)
+        .join(" · "),
+      customer_order_items: submittedItems.map((item) => ({
+        product_name: item.name,
+        quantity: item.quantity,
+        sale_option_label: item.saleOption?.label || (item.itemType === "shelf" ? "Ready now" : "Package"),
+      })),
+    };
+    const nextHistory = [nextOrder, ...history.filter((order) => order.request_code !== nextOrder.request_code)].slice(0, 12);
+    writeCustomerMemory(slug, contact, "profile", profile);
+    writeCustomerMemory(slug, contact, "orders", nextHistory);
+    setAccountProfile(profile);
+    setAccountLocalHistory(nextHistory);
+  }
+
+  function reorderFavoriteItem(product = favoriteProduct) {
+    if (!product) {
+      setAccountMessage("Pick a favorite from the current menu first.");
+      return;
+    }
+    if (productUnavailable(product)) {
+      setAccountMessage(`${product.name} is not orderable right now.`);
+      return;
+    }
+    const option = productSalesOptions(product).find((item) => item.id === accountProfile.favoriteOptionId)
+      || productSalesOptions(product)[0];
+    const quantityKey = `product-${product.id}-${option.id}`;
+    setSelectedOptions((current) => ({ ...current, [product.id]: option.id }));
+    changeQuantity({
+      ...product,
+      itemType: "product",
+      saleOption: option,
+      quantityKey,
+    }, 1);
+    setSelectedProduct(product);
+    setCheckoutStep("cart");
+    setAccountOpen(false);
+    setAccountMessage("");
+  }
+
+  function reorderHistoryItem(order) {
+    const firstItem = order.customer_order_items?.[0];
+    const product = storefrontProducts.find((item) => (
+      item.name.toLowerCase() === String(firstItem?.product_name || "").toLowerCase()
+    ));
+    if (!product) {
+      setAccountMessage("That past item is not on the current menu. Pick it from the menu after the baker republishes it.");
+      return;
+    }
+    reorderFavoriteItem(product);
   }
 
   async function submitOrder(event) {
@@ -579,6 +866,7 @@ export default function CustomerOrderPortal({
           sms: Boolean(rules.smsNotifications && form.notifySms && form.phone.trim()),
         },
       });
+      rememberSubmittedOrder(result, selectedItems);
       setSuccess(result);
       setQuantities({});
       setProductOptionSelections({});
@@ -664,21 +952,99 @@ export default function CustomerOrderPortal({
 
       {!cloudAccount.configured ? <div className="portal-preview-banner"><LockKeyhole size={15} /> Preview only · cloud connection still needed</div> : null}
       {ownerPreview ? <div className="portal-preview-banner owner-preview-banner"><Info size={15} /> Owner preview · this is what customers see before you publish</div> : null}
+      <InstallAppPrompt context="customer" />
       {customerAnnouncement ? <CustomerAnnouncement announcement={customerAnnouncement} /> : null}
 
       {accountOpen ? (
         <section className="customer-account-card">
-          <div className="cloud-mode-switch">
-            <button type="button" className={accountMode === "signin" ? "selected" : ""} onClick={() => setAccountMode("signin")}>Sign in</button>
-            <button type="button" className={accountMode === "signup" ? "selected" : ""} onClick={() => setAccountMode("signup")}>Create account</button>
+          <div className="customer-account-heading">
+            <span><ShieldCheck size={18} /></span>
+            <div>
+              <strong>Customer account</strong>
+              <small>Save preferences, allergies, favorite items, and signed-in order history.</small>
+            </div>
           </div>
-          <form className="form-stack" onSubmit={submitAccount}>
-            {accountMode === "signup" ? <label>Name<input required value={accountForm.name} onChange={(event) => setAccountForm({ ...accountForm, name: event.target.value })} /></label> : null}
-            <label>Email<input required type="email" value={accountForm.email} onChange={(event) => setAccountForm({ ...accountForm, email: event.target.value })} /></label>
-            <label>Password<input required minLength="8" type="password" value={accountForm.password} onChange={(event) => setAccountForm({ ...accountForm, password: event.target.value })} /></label>
-            <button className="primary-button" type="submit">{accountMode === "signin" ? "Sign in" : "Create account"}</button>
+          {cloudAccount.session ? (
+            <div className="customer-account-signed-in">
+              <UserRound size={17} />
+              <span><strong>{cloudAccount.session.user.email}</strong><small>Signed in · cloud order history is private to this account.</small></span>
+            </div>
+          ) : (
+            <>
+              <div className="cloud-mode-switch">
+                <button type="button" className={accountMode === "signin" ? "selected" : ""} onClick={() => setAccountMode("signin")}>Sign in</button>
+                <button type="button" className={accountMode === "signup" ? "selected" : ""} onClick={() => setAccountMode("signup")}>Create account</button>
+              </div>
+              <form className="form-stack" onSubmit={submitAccount}>
+                {accountMode === "signup" ? <label>Name<input required value={accountForm.name} onChange={(event) => setAccountForm({ ...accountForm, name: event.target.value })} /></label> : null}
+                <label>Email<input required type="email" value={accountForm.email} onChange={(event) => setAccountForm({ ...accountForm, email: event.target.value })} /></label>
+                <label>Password<input required minLength="8" type="password" value={accountForm.password} onChange={(event) => setAccountForm({ ...accountForm, password: event.target.value })} /></label>
+                <button className="primary-button" type="submit" disabled={accountBusy === "auth"}>{accountBusy === "auth" ? "Please wait…" : accountMode === "signin" ? "Sign in" : "Create account"}</button>
+              </form>
+            </>
+          )}
+
+          <form className="customer-lookup-form" onSubmit={lookupCustomerMemory}>
+            <label>
+              Lookup saved guest details
+              <span>
+                <input value={accountLookup.contact} onChange={(event) => setAccountLookup({ contact: event.target.value, searched: false })} placeholder="Email or phone" />
+                <button type="submit"><Search size={15} /> Lookup</button>
+              </span>
+            </label>
           </form>
-          <small>Accounts make it easier to see order history later. Guest requests are welcome too.</small>
+
+          <form className="customer-profile-form" onSubmit={saveCustomerProfileMemory}>
+            <div className="form-grid">
+              <label>Name<input value={accountProfile.name} onChange={(event) => setAccountProfile({ ...accountProfile, name: event.target.value })} placeholder="Name for orders" /></label>
+              <label>Phone<input value={accountProfile.phone} onChange={(event) => setAccountProfile({ ...accountProfile, phone: event.target.value })} placeholder="Optional" /></label>
+            </div>
+            <label>Email<input type="email" value={accountProfile.email} onChange={(event) => setAccountProfile({ ...accountProfile, email: event.target.value })} placeholder="you@example.com" /></label>
+            <label>Saved allergies<textarea value={accountProfile.allergies} onChange={(event) => setAccountProfile({ ...accountProfile, allergies: event.target.value })} placeholder="Allergies, sensitivities, cross-contact concerns…" /></label>
+            <label>Preferences<textarea value={accountProfile.preferences} onChange={(event) => setAccountProfile({ ...accountProfile, preferences: event.target.value })} placeholder="Favorite slice, crust, spice, pickup notes…" /></label>
+            <label>Address / delivery note<textarea value={accountProfile.address} onChange={(event) => setAccountProfile({ ...accountProfile, address: event.target.value })} placeholder="Optional address or special pickup notes" /></label>
+            <div className="form-grid">
+              <label>
+                Default payment
+                <select value={accountProfile.defaultPaymentMethod} onChange={(event) => setAccountProfile({ ...accountProfile, defaultPaymentMethod: event.target.value })}>
+                  {(storefront.bakery.payment_methods || DEFAULT_PAYMENT_METHODS).map((method) => <option key={method} value={method}>{method}</option>)}
+                </select>
+              </label>
+              <label>
+                Favorite item
+                <select value={accountProfile.favoriteProductId} onChange={(event) => setAccountProfile({ ...accountProfile, favoriteProductId: event.target.value })}>
+                  <option value="">Choose favorite</option>
+                  {storefrontProducts.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}
+                </select>
+              </label>
+            </div>
+            <div className="customer-account-actions">
+              <button className="storage-file-button" type="submit" disabled={accountBusy === "profile"}><Save size={15} /> {accountBusy === "profile" ? "Saving…" : "Save profile"}</button>
+              <button className="storage-file-button" type="button" onClick={() => reorderFavoriteItem()} disabled={!favoriteProduct}><Heart size={15} /> Reorder favorite</button>
+            </div>
+          </form>
+
+          <div className="customer-history-panel">
+            <div className="customer-history-title"><ClipboardList size={16} /><span><strong>Order history</strong><small>{accountHistoryLoading ? "Loading…" : accountHistory.length ? `${accountHistory.length} recent request${accountHistory.length === 1 ? "" : "s"}` : "No saved order history yet"}</small></span></div>
+            {accountHistory.length ? (
+              <div className="customer-history-list">
+                {accountHistory.map((order) => (
+                  <article key={order.id || order.request_code}>
+                    <span><strong>{order.request_code}</strong><small>{orderHistoryDate(order.pickup_at || order.created_at)} · {order.status || "requested"}</small></span>
+                    <p>{order.itemSummary || "Customer bakery request"}</p>
+                    <div>
+                      <a href={customerTrackingLink(order.request_code, accountContact)}>Track bake</a>
+                      <button type="button" onClick={() => reorderHistoryItem(order)}><Repeat2 size={14} /> Reorder</button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <small>Guest history is saved only on this phone. Sign in before ordering to attach future orders to your account.</small>
+            )}
+          </div>
+
+          {accountMessage ? <div className="customer-account-message">{accountMessage}</div> : null}
         </section>
       ) : null}
 
