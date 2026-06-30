@@ -58,7 +58,7 @@ export default function ProductionPage(props) {
         </aside>
       </section>
 
-      {view === "bake" ? <BakePage {...props} /> : <LiquidPage />}
+      {view === "bake" ? <BakePage {...props} /> : <LiquidPage {...props} />}
     </>
   );
 }
