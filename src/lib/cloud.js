@@ -4,6 +4,7 @@ import { normalizedSalesOptions } from "./salesOptions";
 
 // customer-options-v1
 // checkout-flow-v1
+// yeast-breads-v1
 
 const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL || "").trim();
 const supabaseKey = (import.meta.env.VITE_SUPABASE_ANON_KEY || "").trim();
@@ -40,6 +41,7 @@ function throwIfError(error) {
 
 const PRODUCT_UNIT_NAMES = {
   bread: "loaf",
+  yeast: "loaf",
   bagel: "bagel",
   bun: "bun",
   cake: "cake",
