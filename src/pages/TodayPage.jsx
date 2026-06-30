@@ -12,7 +12,7 @@ import {
   TrendingUp,
   Wheat,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { BrandHeader } from "../components/AppChrome";
 import { ReadyShelf } from "../components/ReadyShelf";
 import { listReadyShelfItems } from "../lib/cloud";
@@ -198,6 +198,7 @@ function ProductionDashboard({
   onOpenOrder,
   orders,
   productionAutomation,
+  readyShelfRefreshKey,
   recipes,
   setActive,
   starterLogs,
@@ -262,7 +263,7 @@ function ProductionDashboard({
     return () => {
       active = false;
     };
-  }, [bakeryId, readyShelfEnabled]);
+  }, [bakeryId, readyShelfEnabled, readyShelfRefreshKey]);
 
   const shelfQuantity = shelfItems.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
 
@@ -370,6 +371,7 @@ export default function TodayPage({
   onOpenStorage,
   onSelectKitchenBake,
 }) {
+  const [readyShelfRefreshKey, setReadyShelfRefreshKey] = useState(0);
   const dailyCapacity = Math.max(1, Number(bakerySettings?.dailyCapacity || 6));
   const today = new Date();
   const todayKey = pickupDateKey(today);
@@ -421,6 +423,9 @@ export default function TodayPage({
     : plannedBakeModel
       ? "Watching next planned bake"
       : "No active bake selected";
+  const markReadyShelfChanged = useCallback(() => {
+    setReadyShelfRefreshKey((current) => current + 1);
+  }, []);
 
   return (
     <main className="page today-page">
@@ -460,13 +465,18 @@ export default function TodayPage({
         onOpenOrder={onOpenOrder}
         orders={orders}
         productionAutomation={productionAutomation}
+        readyShelfRefreshKey={readyShelfRefreshKey}
         recipes={recipes}
         setActive={setActive}
         starterLogs={starterLogs}
         starters={starters}
       />
 
-      <ReadyShelf cloudAccount={cloudAccount} enabled={bakerySettings?.readyShelfEnabled !== false} />
+      <ReadyShelf
+        cloudAccount={cloudAccount}
+        enabled={bakerySettings?.readyShelfEnabled !== false}
+        onShelfChange={markReadyShelfChanged}
+      />
 
       <button className="starter-panel" onClick={onLogStarter}>
         <span className="starter-illustration"><Wheat size={39} strokeWidth={1.4} /></span>
