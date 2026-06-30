@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { BottomNav, GlobalQuickAction } from "./components/AppChrome";
+import { InstallAppPrompt } from "./components/InstallAppPrompt";
 import { Modal, Toast } from "./components/Primitives";
 import { StorageCenter } from "./components/StorageCenter";
 import {
@@ -79,6 +80,7 @@ export default function App() {
   const [expenses, setExpenses] = usePersistentState("loafers-expenses-v1", seedExpenses);
   const [bakePlans, setBakePlans] = usePersistentState("loafers-bake-plans-v1", []);
   const [kitchenBakes, setKitchenBakes] = usePersistentState("loafers-kitchen-bakes-v1", []);
+  const [liquidSafetyLogs, setLiquidSafetyLogs] = usePersistentState("loafers-liquid-safety-logs-v1", []);
   const [selectedKitchenBakeId, setSelectedKitchenBakeId] = usePersistentState("loafers-selected-kitchen-bake-v1", "");
   const [storedProductionAutomation, setProductionAutomation] = usePersistentState(
     "loafers-production-automation-v1",
@@ -486,6 +488,28 @@ export default function App() {
     setToast("Customer profile saved");
   }
 
+  function saveLiquidSafetyLog(log) {
+    const savedLog = {
+      ...log,
+      id: log.id || `liquid-batch-${Date.now()}`,
+      batchName: log.batchName?.trim() || "Liquid batch",
+      batchDate: log.batchDate || new Date().toISOString().slice(0, 10),
+      updatedAt: new Date().toISOString(),
+    };
+    setLiquidSafetyLogs((current) => {
+      const exists = current.some((entry) => entry.id === savedLog.id);
+      return exists
+        ? current.map((entry) => entry.id === savedLog.id ? savedLog : entry)
+        : [savedLog, ...current];
+    });
+    setToast("Safety batch log saved");
+  }
+
+  function deleteLiquidSafetyLog(id) {
+    setLiquidSafetyLogs((current) => current.filter((entry) => entry.id !== id));
+    setToast("Safety batch log removed");
+  }
+
   function saveBakePlan(plan) {
     const { isNew, ...savedPlan } = plan;
     setBakePlans((current) => {
@@ -549,6 +573,7 @@ export default function App() {
     setExpenses(data.expenses);
     setBakePlans(data.bakePlans);
     setKitchenBakes(data.kitchenBakes || []);
+    setLiquidSafetyLogs(data.liquidSafetyLogs || []);
     setStarters(data.starters);
     setStarterLogs(data.starterLogs);
     setSelectedOrderId(null);
@@ -575,6 +600,7 @@ export default function App() {
     recipes,
     bakePlans,
     kitchenBakes,
+    liquidSafetyLogs,
     selectedKitchenBakeId,
     starters,
     customerProfiles,
@@ -589,6 +615,7 @@ export default function App() {
     onDeleteExpense: deleteExpense,
     onDeleteInventoryItem: deleteInventoryItem,
     onDeleteKitchenBake: deleteKitchenBake,
+    onDeleteLiquidSafetyLog: deleteLiquidSafetyLog,
     onDeleteRecipe: deleteRecipe,
     onDeleteStarter: deleteStarter,
     onChangeProductionAutomation: setProductionAutomation,
@@ -607,6 +634,7 @@ export default function App() {
     onSaveBakePlan: saveBakePlan,
     onSaveInventoryItem: saveInventoryItem,
     onSaveKitchenBake: saveKitchenBake,
+    onSaveLiquidSafetyLog: saveLiquidSafetyLog,
     onSaveRecipe: saveRecipe,
     onSaveStarter: saveStarter,
     onSelectKitchenBake: selectKitchenBake,
@@ -672,6 +700,7 @@ export default function App() {
       <div className="app-shell">
         <div className="scroll-view">
           <Page {...sharedProps} />
+          <InstallAppPrompt context="owner" />
         </div>
         <BottomNav active={active === "settings" ? "business" : canonicalPage(active)} onChange={navigate} />
         <GlobalQuickAction
@@ -718,6 +747,7 @@ export default function App() {
             expenses,
             bakePlans,
             kitchenBakes,
+            liquidSafetyLogs,
             starters,
             starterLogs,
           }}
