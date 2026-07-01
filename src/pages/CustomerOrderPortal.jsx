@@ -208,8 +208,26 @@ function defaultCustomerProfile(metadata = {}) {
     address: metadata.address || "",
     defaultPaymentMethod: metadata.default_payment_method || "Venmo",
     favoriteProductId: metadata.favorite_product_id || "",
+    favoriteProductName: metadata.favorite_product_name || "",
     favoriteOptionId: metadata.favorite_option_id || "",
   };
+}
+
+function appendNoteBlock(existing, note) {
+  const current = String(existing || "").trim();
+  const next = String(note || "").trim();
+  if (!next) return current;
+  if (!current) return next;
+  return current.includes(next) ? current : `${current}\n\n${next}`;
+}
+
+function savedCustomerProfileNote(profile = {}) {
+  const lines = [
+    profile.preferences ? `Saved preferences: ${profile.preferences}` : "",
+    profile.address ? `Saved pickup note: ${profile.address}` : "",
+    profile.favoriteProductName ? `Favorite item: ${profile.favoriteProductName}` : "",
+  ].filter(Boolean);
+  return lines.length ? lines.join("\n") : "";
 }
 
 function normalizeCloudCustomerOrder(order) {
@@ -357,14 +375,7 @@ export default function CustomerOrderPortal({
       email: current.email || email,
       name: current.name || nextProfile.name,
     }));
-    setForm((current) => ({
-      ...current,
-      name: current.name || nextProfile.name,
-      email: current.email || email,
-      phone: current.phone || nextProfile.phone,
-      allergies: current.allergies || nextProfile.allergies,
-      paymentMethod: current.paymentMethod || nextProfile.defaultPaymentMethod || "Venmo",
-    }));
+    applyAccountProfileToCheckout(nextProfile, { force: false });
   }, [cloudAccount.session?.user?.email, cloudAccount.session?.user?.id]);
 
   const rules = normalizedBakerySettings(storefront?.settings || bakerySettings);
@@ -601,6 +612,25 @@ export default function CustomerOrderPortal({
     }
   }
 
+  function applyAccountProfileToCheckout(profile = accountProfile, { force = true } = {}) {
+    const savedNotes = savedCustomerProfileNote(profile);
+    setForm((current) => {
+      const shouldReplacePayment = force || !current.paymentMethod || current.paymentMethod === "Venmo";
+      return {
+        ...current,
+        name: force ? (profile.name || current.name) : (current.name || profile.name),
+        email: force ? (profile.email || current.email) : (current.email || profile.email),
+        phone: force ? (profile.phone || current.phone) : (current.phone || profile.phone),
+        allergies: force ? (profile.allergies || current.allergies) : (current.allergies || profile.allergies),
+        paymentMethod: shouldReplacePayment
+          ? (profile.defaultPaymentMethod || current.paymentMethod || "Venmo")
+          : current.paymentMethod,
+        notes: appendNoteBlock(current.notes, savedNotes),
+      };
+    });
+    if (force) setAccountMessage("Saved profile details copied into checkout.");
+  }
+
   async function submitAccount(event) {
     event.preventDefault();
     setAccountBusy("auth");
@@ -633,7 +663,7 @@ export default function CustomerOrderPortal({
     }
   }
 
-  async function saveCustomerProfileMemory(event) {
+  async function saveCustomerProfile(event) {
     event.preventDefault();
     if (!cloudAccount.session?.user) {
       setAccountMessage("Sign in before saving customer preferences.");
@@ -652,15 +682,7 @@ export default function CustomerOrderPortal({
     try {
       await saveCustomerAccountDetails(nextProfile);
       setAccountProfile(nextProfile);
-      setForm((current) => ({
-        ...current,
-        name: current.name || nextProfile.name,
-        email: nextProfile.email || current.email,
-        phone: nextProfile.phone || current.phone,
-        allergies: nextProfile.allergies || current.allergies,
-        paymentMethod: nextProfile.defaultPaymentMethod || current.paymentMethod,
-        notes: current.notes || nextProfile.preferences,
-      }));
+      applyAccountProfileToCheckout(nextProfile, { force: true });
       setAccountMessage("Customer profile saved to your account.");
     } catch (nextError) {
       setAccountMessage(nextError.message);
@@ -729,6 +751,8 @@ export default function CustomerOrderPortal({
       return;
     }
     try {
+      let requestNotes = appendNoteBlock(form.notes.trim(), cloudAccount.session?.user ? savedCustomerProfileNote(accountProfile) : "");
+      requestNotes = appendNoteBlock(requestNotes, customerChoiceNote(selectedItems));
       const result = await submitPublicOrder({
         slug,
         customer: {
@@ -745,7 +769,7 @@ export default function CustomerOrderPortal({
         pickupAt: pickupDateTimeIso(form.pickupDate, form.pickupTime),
         paymentMethod: form.paymentMethod,
         allergies: form.allergies.trim(),
-        notes: [form.notes.trim(), customerChoiceNote(selectedItems)].filter(Boolean).join("\n\n"),
+        notes: requestNotes,
         notifications: {
           email: Boolean(rules.emailNotifications && form.notifyEmail && form.email.trim()),
           sms: Boolean(rules.smsNotifications && form.notifySms && form.phone.trim()),
@@ -755,6 +779,13 @@ export default function CustomerOrderPortal({
       setQuantities({});
       setProductOptionSelections({});
       setCheckoutStep("browse");
+      if (cloudAccount.session?.user?.id) {
+        setAccountHistoryLoading(true);
+        listSignedInCustomerOrders(slug)
+          .then((orders) => setAccountCloudHistory(orders.map(normalizeCloudCustomerOrder)))
+          .catch((nextError) => setAccountMessage(nextError.message))
+          .finally(() => setAccountHistoryLoading(false));
+      }
     } catch (nextError) {
       setError(nextError.message);
     }
@@ -828,7 +859,7 @@ export default function CustomerOrderPortal({
       <header className="customer-header">
         <div className="brand-lockup"><span className="brand-mark"><Wheat size={23} /></span><span className="brand-name">{storefront.bakery.name}</span></div>
         {cloudAccount.session ? (
-          <button type="button" onClick={() => setAccountOpen((value) => !value)}><UserRound size={17} /><span>{cloudAccount.session.user.email}</span></button>
+          <button type="button" onClick={() => setAccountOpen((value) => !value)}><UserRound size={17} /><span>My account</span></button>
         ) : (
           <button type="button" onClick={() => setAccountOpen((value) => !value)}><UserRound size={17} /> Customer account</button>
         )}
@@ -844,7 +875,7 @@ export default function CustomerOrderPortal({
           <div className="customer-account-heading">
             <span><ShieldCheck size={18} /></span>
             <div>
-              <strong>Customer account</strong>
+              <strong>My account</strong>
               <small>Save preferences, allergies, favorite items, and signed-in order history.</small>
             </div>
           </div>
@@ -872,7 +903,33 @@ export default function CustomerOrderPortal({
 
           {cloudAccount.session ? (
             <>
-              <form className="customer-profile-form" onSubmit={saveCustomerProfileMemory}>
+              <div className="customer-account-sections" aria-label="Saved customer tools">
+                <article>
+                  <strong>Profile</strong>
+                  <small>{accountProfile.name || form.name || "Name not saved"} · {accountProfile.phone || form.phone || "phone optional"}</small>
+                </article>
+                <article>
+                  <strong>Allergies</strong>
+                  <small>{accountProfile.allergies || "No saved allergy note"}</small>
+                </article>
+                <article>
+                  <strong>Preferences</strong>
+                  <small>{accountProfile.preferences || "No saved preferences yet"}</small>
+                </article>
+                <article>
+                  <strong>Favorite items</strong>
+                  <small>{favoriteProduct?.name || "Pick a favorite from the menu"}</small>
+                </article>
+                <article>
+                  <strong>My orders</strong>
+                  <small>{accountHistoryLoading ? "Loading order history…" : `${accountHistory.length} recent signed-in request${accountHistory.length === 1 ? "" : "s"}`}</small>
+                </article>
+                <button className="storage-file-button" type="button" onClick={() => applyAccountProfileToCheckout(accountProfile, { force: true })}>
+                  <Repeat2 size={15} /> Use saved details in checkout
+                </button>
+              </div>
+
+              <form className="customer-profile-form" onSubmit={saveCustomerProfile}>
                 <div className="form-grid">
                   <label>Name<input value={accountProfile.name} onChange={(event) => setAccountProfile({ ...accountProfile, name: event.target.value })} placeholder="Name for orders" /></label>
                   <label>Phone<input value={accountProfile.phone} onChange={(event) => setAccountProfile({ ...accountProfile, phone: event.target.value })} placeholder="Optional" /></label>
