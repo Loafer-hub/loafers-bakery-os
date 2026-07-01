@@ -363,6 +363,8 @@ export async function listSignedInCustomerOrders(slug, limit = 20) {
     .from("customer_orders")
     .select(`
       id,
+      customer_id,
+      customer_user_id,
       request_code,
       status,
       pickup_at,
@@ -515,6 +517,8 @@ export async function listCustomerOrderRequests(bakeryId, status = "requested") 
     .from("customer_orders")
     .select(`
       id,
+      customer_id,
+      customer_user_id,
       request_code,
       status,
       pickup_at,
