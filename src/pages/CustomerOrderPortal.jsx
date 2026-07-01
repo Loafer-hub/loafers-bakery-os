@@ -67,6 +67,7 @@ const CHECKOUT_STEPS = [
   { id: "contact", label: "Contact + payment" },
   { id: "submit", label: "Send request" },
 ];
+const CUSTOMER_ACCOUNTS_ENABLED = false;
 const PRODUCT_BADGE_LABELS = {
   preorder: "Preorder",
   ready_now: "Ready now",
@@ -286,7 +287,7 @@ export default function CustomerOrderPortal({
   const [productOptionSelections, setProductOptionSelections] = useState({});
   const [activeCatalogTab, setActiveCatalogTab] = useState("all");
   const [checkoutStep, setCheckoutStep] = useState("browse");
-  const [accountOpen, setAccountOpen] = useState(shouldOpenCustomerAccount);
+  const [accountOpen, setAccountOpen] = useState(false);
   const [accountMode, setAccountMode] = useState("signin");
   const [accountForm, setAccountForm] = useState({ name: "", email: "" });
   const [accountBusy, setAccountBusy] = useState("");
@@ -309,11 +310,10 @@ export default function CustomerOrderPortal({
     notes: "",
   });
   const rules = normalizedBakerySettings(storefront?.settings || bakerySettings);
-  const customerProfileSavingEnabled = rules.customerProfileSavingEnabled !== false;
-  const customerReorderEnabled = rules.customerReorderEnabled !== false;
-  const customerCanCheckout = Boolean(cloudAccount.session?.user)
-    || (rules.allowGuestCheckout !== false && rules.requireSignInForOrders !== true);
-  const guestCheckoutBlocked = !cloudAccount.session?.user && !customerCanCheckout;
+  const customerProfileSavingEnabled = CUSTOMER_ACCOUNTS_ENABLED && rules.customerProfileSavingEnabled !== false;
+  const customerReorderEnabled = CUSTOMER_ACCOUNTS_ENABLED && rules.customerReorderEnabled !== false;
+  const customerCanCheckout = true;
+  const guestCheckoutBlocked = false;
   const urlParams = new URLSearchParams(window.location.search);
   const trackedCode = urlParams.get("track") || "";
   const trackedContact = urlParams.get("contact") || "";
@@ -393,11 +393,13 @@ export default function CustomerOrderPortal({
   }, [bakerySettings, cloudAccount.configured, fallbackRecipes, slug]);
 
   useEffect(() => {
+    if (!CUSTOMER_ACCOUNTS_ENABLED) return;
     const email = cloudAccount.session?.user?.email;
     if (email) setForm((current) => ({ ...current, email: current.email || email }));
   }, [cloudAccount.session?.user?.email]);
 
   useEffect(() => {
+    if (!CUSTOMER_ACCOUNTS_ENABLED) return;
     const email = cloudAccount.session?.user?.email || "";
     const metadata = cloudAccount.session?.user?.user_metadata || {};
     if (!email && !Object.keys(metadata).length) return;
@@ -421,7 +423,7 @@ export default function CustomerOrderPortal({
 
   useEffect(() => {
     const bakeryId = storefront?.bakery?.id;
-    if (!cloudAccount.configured || !cloudAccount.session?.user?.id || !bakeryId || !customerProfileSavingEnabled) {
+    if (!CUSTOMER_ACCOUNTS_ENABLED || !cloudAccount.configured || !cloudAccount.session?.user?.id || !bakeryId || !customerProfileSavingEnabled) {
       return undefined;
     }
     let active = true;
@@ -563,7 +565,7 @@ export default function CustomerOrderPortal({
   }, [activeCatalogTab, catalogTabs]);
 
   useEffect(() => {
-    if (!cloudAccount.configured || !cloudAccount.session?.user?.id) {
+    if (!CUSTOMER_ACCOUNTS_ENABLED || !cloudAccount.configured || !cloudAccount.session?.user?.id) {
       setAccountCloudHistory([]);
       return undefined;
     }
@@ -892,7 +894,7 @@ export default function CustomerOrderPortal({
       setQuantities({});
       setProductOptionSelections({});
       setCheckoutStep("browse");
-      if (cloudAccount.session?.user?.id) {
+      if (CUSTOMER_ACCOUNTS_ENABLED && cloudAccount.session?.user?.id) {
         setAccountHistoryLoading(true);
         listSignedInCustomerOrders(slug)
           .then((orders) => setAccountCloudHistory(orders.map(normalizeCloudCustomerOrder)))
@@ -974,11 +976,6 @@ export default function CustomerOrderPortal({
     <main className="customer-portal">
       <header className="customer-header">
         <div className="brand-lockup"><span className="brand-mark"><Wheat size={23} /></span><span className="brand-name">{storefront.bakery.name}</span></div>
-        {cloudAccount.session ? (
-          <button type="button" onClick={() => setAccountOpen((value) => !value)}><UserRound size={17} /><span>My account</span></button>
-        ) : (
-          <button type="button" onClick={() => setAccountOpen((value) => !value)}><UserRound size={17} /> Customer account</button>
-        )}
       </header>
 
       {!cloudAccount.configured ? <div className="portal-preview-banner"><LockKeyhole size={15} /> Preview only · cloud connection still needed</div> : null}
@@ -993,7 +990,7 @@ export default function CustomerOrderPortal({
         </div>
       ) : null}
 
-      {accountOpen ? (
+      {CUSTOMER_ACCOUNTS_ENABLED && accountOpen ? (
         <section className="customer-account-card" id="customer-account">
           <div className="customer-account-heading">
             <span><ShieldCheck size={18} /></span>

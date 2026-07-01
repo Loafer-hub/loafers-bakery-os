@@ -900,7 +900,15 @@ export default function SettingsPage({
     setMessage("");
     setError("");
     try {
-      await onSaveBakerySettings(normalizedBakerySettings(draft));
+      const guestOnlyDraft = normalizedBakerySettings({
+        ...draft,
+        allowGuestCheckout: true,
+        requireSignInForOrders: false,
+        customerReorderEnabled: false,
+        customerProfileSavingEnabled: false,
+      });
+      await onSaveBakerySettings(guestOnlyDraft);
+      setDraft(guestOnlyDraft);
       setMessage(cloudAccount.workspace?.bakeryId
         ? "Settings saved to this device and your bakery cloud."
         : "Settings saved on this device.");
@@ -1063,41 +1071,19 @@ export default function SettingsPage({
         <CollapsibleSettingsCard
           eyebrow="Customer privacy"
           icon={<EyeOff size={20} />}
-          summary={`${draft.requireSignInForOrders || !draft.allowGuestCheckout ? "Sign-in required" : "Guest checkout allowed"} · Track My Bake ${draft.trackMyBakePublic ? "public" : "private"}`}
-          title="Privacy and customer account controls"
+          summary={`Guest checkout only · Track My Bake ${draft.trackMyBakePublic ? "public" : "private"}`}
+          title="Customer visibility controls"
         >
           <div className="settings-toggle-list">
-            <ToggleRow
-              checked={draft.allowGuestCheckout && !draft.requireSignInForOrders}
-              label="Allow guest checkout"
-              note="Customers can send a request without creating an account."
-              onChange={updateAllowGuestCheckout}
-            />
-            <ToggleRow
-              checked={draft.requireSignInForOrders}
-              label="Require sign-in for orders"
-              note="Customers may browse, but must sign in before sending a request. This overrides guest checkout."
-              onChange={updateRequireSignInForOrders}
-            />
             <ToggleRow checked={draft.trackMyBakePublic} label="Show Track My Bake publicly" note="Show the public lookup box and Track an order link on the customer page. Direct email tracking links still work." onChange={(value) => update("trackMyBakePublic", value)} />
             <ToggleRow checked={draft.reviewsVisible} label="Show reviews publicly" note="Display verified customer reviews on the storefront." onChange={(value) => update("reviewsVisible", value)} />
             <ToggleRow checked={draft.readyShelfEnabled} label="Show ready shelf publicly" note="Show prebaked ready-now inventory on the customer order page." onChange={(value) => update("readyShelfEnabled", value)} />
-            <ToggleRow checked={draft.customerReorderEnabled} label="Allow customer reorder" note="Let signed-in customers reorder favorite or previous items from their account." onChange={(value) => update("customerReorderEnabled", value)} />
-            <ToggleRow checked={draft.customerProfileSavingEnabled} label="Allow customer profile saving" note="Let signed-in customers save allergies, preferences, payment preference, and pickup notes." onChange={(value) => update("customerProfileSavingEnabled", value)} />
             <ToggleRow checked={draft.feedbackEnabled} label="Allow lookup feedback" note="Let verified customers submit reviews or suggestions after finding an order." onChange={(value) => update("feedbackEnabled", value)} />
           </div>
           <aside className="settings-provider-note">
             <EyeOff size={18} />
-            <span><strong>Privacy-first storefront controls</strong><small>These only change the public customer page and account features. Owner order records and private baker notes stay in your owner tools.</small></span>
+            <span><strong>Guest checkout only</strong><small>Customer accounts and sign-in links are turned off. Customers can still send requests, track orders, and leave feedback when enabled.</small></span>
           </aside>
-          <OwnerCustomerAccessDashboard
-            accessError={accessEventsError}
-            accessEvents={accessEvents}
-            accessLoading={accessEventsLoading}
-            draft={draft}
-            hasCloudWorkspace={hasCloudWorkspace}
-            onRefresh={refreshCustomerAccessEvents}
-          />
         </CollapsibleSettingsCard>
 
         <CollapsibleSettingsCard
