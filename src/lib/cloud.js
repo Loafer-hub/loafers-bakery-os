@@ -45,7 +45,11 @@ function requireClient() {
 }
 
 function throwIfError(error) {
-  if (error) throw new Error(error.message || "The cloud request failed.");
+  if (!error) return;
+  if (error.code === "over_email_send_rate_limit" || error.status === 429) {
+    throw new Error("Supabase is rate-limiting sign-in emails right now. Wait about a minute before trying this email again, or connect custom SMTP in Supabase for reliable customer login emails.");
+  }
+  throw new Error(error.message || "The cloud request failed.");
 }
 
 const PRODUCT_UNIT_NAMES = {
