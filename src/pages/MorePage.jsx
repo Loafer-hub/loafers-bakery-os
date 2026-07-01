@@ -238,6 +238,42 @@ function customerIdFromName(name) {
     .replace(/^-|-$/g, "");
 }
 
+function customerEmailKey(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function customerPhoneKey(value) {
+  return String(value || "").replace(/\D/g, "");
+}
+
+function customerAliasKeys({ customerId, customerUserId, email, phone, name }) {
+  return [
+    customerUserId ? `account:${customerUserId}` : "",
+    customerId ? `cloud:${customerId}` : "",
+    customerEmailKey(email) ? `email:${customerEmailKey(email)}` : "",
+    customerPhoneKey(phone) ? `phone:${customerPhoneKey(phone)}` : "",
+    customerIdFromName(name) ? `name:${customerIdFromName(name)}` : "",
+  ].filter(Boolean);
+}
+
+function customerIdFromAliases(aliases, fallback = "") {
+  const preferred = aliases.find((alias) => !alias.startsWith("name:")) || aliases[0];
+  return preferred
+    ? preferred.replace(":", "-").replace(/[^a-z0-9-]+/gi, "-").toLowerCase()
+    : fallback;
+}
+
+function rememberCustomerAliases(aliasMap, aliases, id) {
+  aliases.forEach((alias) => aliasMap.set(alias, id));
+}
+
+function orderProductNames(order) {
+  const itemNames = (order.items || [])
+    .map((item) => item.product_name)
+    .filter(Boolean);
+  return itemNames.length ? itemNames : [order.product].filter(Boolean);
+}
+
 function orderTimestamp(order) {
   const candidates = [order.pickupAt, order.createdAt, order.date, order.due];
   for (const value of candidates) {
@@ -288,6 +324,8 @@ function blankCustomerProfile(name = "") {
     name,
     email: "",
     phone: "",
+    customerId: "",
+    customerUserId: "",
     allergies: "",
     preferences: "",
     address: "",
@@ -300,8 +338,16 @@ function blankCustomerProfile(name = "") {
 
 function buildCustomerRecords(orders, profiles) {
   const byId = new Map();
+  const aliasesById = new Map();
   profiles.forEach((profile) => {
-    const id = profile.id || customerIdFromName(profile.name);
+    const aliases = customerAliasKeys({
+      customerId: profile.customerId,
+      customerUserId: profile.customerUserId,
+      email: profile.email,
+      phone: profile.phone,
+      name: profile.name,
+    });
+    const id = profile.id || customerIdFromAliases(aliases, customerIdFromName(profile.name));
     if (!id) return;
     byId.set(id, {
       ...blankCustomerProfile(profile.name),
@@ -309,9 +355,18 @@ function buildCustomerRecords(orders, profiles) {
       id,
       orders: [],
     });
+    rememberCustomerAliases(aliasesById, aliases, id);
   });
   orders.forEach((order) => {
-    const id = customerIdFromName(order.customer) || `order-customer-${order.id}`;
+    const aliases = customerAliasKeys({
+      customerId: order.customerId,
+      customerUserId: order.customerUserId,
+      email: order.customerEmail,
+      phone: order.customerPhone,
+      name: order.customer,
+    });
+    const matchedId = aliases.map((alias) => aliasesById.get(alias)).find(Boolean);
+    const id = matchedId || customerIdFromAliases(aliases, `order-customer-${order.id}`);
     const existing = byId.get(id) || {
       ...blankCustomerProfile(order.customer),
       id,
@@ -322,21 +377,25 @@ function buildCustomerRecords(orders, profiles) {
       name: existing.name || order.customer || "Customer",
       email: existing.email || order.customerEmail || "",
       phone: existing.phone || order.customerPhone || "",
+      customerId: existing.customerId || order.customerId || "",
+      customerUserId: existing.customerUserId || order.customerUserId || "",
       allergies: existing.allergies || order.allergies || "",
       orders: [...existing.orders, order],
     });
+    rememberCustomerAliases(aliasesById, aliases, id);
   });
   return Array.from(byId.values()).map((customer) => {
     const sortedOrders = [...customer.orders].sort((a, b) => orderTimestamp(b) - orderTimestamp(a));
     const activeOrders = sortedOrders.filter(isActiveOrder);
     const totalSpent = sortedOrders.reduce((sum, order) => sum + Number(order.total || 0), 0);
-    const products = [...new Set(sortedOrders.map((order) => order.product).filter(Boolean))].slice(0, 4);
+    const products = [...new Set(sortedOrders.flatMap(orderProductNames))].slice(0, 4);
     return {
       ...customer,
       orders: sortedOrders,
       activeOrders,
       isActive: activeOrders.length > 0,
       lastOrderAt: sortedOrders[0] ? orderTimestamp(sortedOrders[0]) : 0,
+      firstOrderAt: sortedOrders.length ? orderTimestamp(sortedOrders[sortedOrders.length - 1]) : 0,
       totalSpent,
       favoriteItems: customer.favoriteItems || products.join(", "),
     };
@@ -566,6 +625,9 @@ export default function MorePage({
     : customerView === "past"
       ? pastCustomerRecords
       : customerRecords;
+  const linkedCustomer = customerDraft
+    ? customerRecords.find((customer) => customer.id === customerDraft.id)
+    : null;
   const revenue = orders.reduce((sum, order) => sum + Number(order.total || 0), 0);
   const totalExpenses = expenses.reduce((sum, expense) => sum + Number(expense.totalCost || 0), 0);
   const inventoryValue = inventory.reduce((sum, item) => (
@@ -912,9 +974,17 @@ export default function MorePage({
                     <UserRound size={19} />
                     <span>
                       <strong>{customerDraft.name || "New customer"}</strong>
-                      <small>{customerDraft.orders?.length || customerRecords.find((customer) => customer.id === customerDraft.id)?.orders.length || 0} linked order records</small>
+                      <small>{linkedCustomer?.orders.length || 0} linked order record{(linkedCustomer?.orders.length || 0) === 1 ? "" : "s"}</small>
                     </span>
                   </div>
+                  <div className="customer-profile-stats">
+                    <span><strong>{linkedCustomer?.orders.length || 0}</strong><small>Lifetime orders</small></span>
+                    <span><strong>${Number(linkedCustomer?.totalSpent || 0).toFixed(2)}</strong><small>Total spent</small></span>
+                    <span><strong>{linkedCustomer?.lastOrderAt ? dateTimeLabel(linkedCustomer.lastOrderAt) : "—"}</strong><small>Last order</small></span>
+                  </div>
+                  {customerDraft.customerUserId || linkedCustomer?.customerUserId ? (
+                    <p className="customer-account-link-note"><UserRound size={13} /> Signed-in customer account linked</p>
+                  ) : null}
                   <label>Name<input required value={customerDraft.name || ""} onChange={(event) => setCustomerDraft({ ...customerDraft, name: event.target.value })} placeholder="Customer name" /></label>
                   <div className="form-grid">
                     <label>Email<input type="email" value={customerDraft.email || ""} onChange={(event) => setCustomerDraft({ ...customerDraft, email: event.target.value })} placeholder="name@example.com" /></label>
