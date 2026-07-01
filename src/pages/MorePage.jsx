@@ -620,11 +620,14 @@ export default function MorePage({
   const customerRecords = useMemo(() => buildCustomerRecords(orders, customerProfiles), [orders, customerProfiles]);
   const activeCustomerRecords = useMemo(() => customerRecords.filter((customer) => customer.isActive), [customerRecords]);
   const pastCustomerRecords = useMemo(() => customerRecords.filter((customer) => customer.orders.length && !customer.isActive), [customerRecords]);
+  const accountCustomerRecords = useMemo(() => customerRecords.filter((customer) => customer.customerUserId), [customerRecords]);
   const visibleCustomers = customerView === "active"
     ? activeCustomerRecords
     : customerView === "past"
       ? pastCustomerRecords
-      : customerRecords;
+      : customerView === "accounts"
+        ? accountCustomerRecords
+        : customerRecords;
   const linkedCustomer = customerDraft
     ? customerRecords.find((customer) => customer.id === customerDraft.id)
     : null;
@@ -653,6 +656,8 @@ export default function MorePage({
       ? activeCustomerRecords[0]
       : view === "past"
         ? pastCustomerRecords[0]
+        : view === "accounts"
+          ? accountCustomerRecords[0]
         : customerRecords[0];
     setCustomerDraft(firstCustomer ? { ...firstCustomer, orders: undefined, activeOrders: undefined } : null);
   }
@@ -951,6 +956,7 @@ export default function MorePage({
               <div className="segmented-control customer-filter">
                 <button type="button" className={customerView === "active" ? "selected" : ""} onClick={() => setCustomerView("active")}>Active <span>{activeCustomerRecords.length}</span></button>
                 <button type="button" className={customerView === "past" ? "selected" : ""} onClick={() => setCustomerView("past")}>Past <span>{pastCustomerRecords.length}</span></button>
+                <button type="button" className={customerView === "accounts" ? "selected" : ""} onClick={() => setCustomerView("accounts")}>Accounts <span>{accountCustomerRecords.length}</span></button>
                 <button type="button" className={customerView === "all" ? "selected" : ""} onClick={() => setCustomerView("all")}>All <span>{customerRecords.length}</span></button>
               </div>
               <button type="button" className="small-action-button" onClick={addCustomerProfile}><Plus size={14} /> Add customer</button>
@@ -963,6 +969,7 @@ export default function MorePage({
                     <span>
                       <strong>{customer.name || "Customer"}</strong>
                       <small>{customer.orders.length} order{customer.orders.length === 1 ? "" : "s"} · ${customer.totalSpent.toFixed(2)} lifetime</small>
+                      {customer.customerUserId ? <em>Customer account</em> : null}
                     </span>
                     <ChevronRight size={14} />
                   </button>
@@ -981,6 +988,9 @@ export default function MorePage({
                     <span><strong>{linkedCustomer?.orders.length || 0}</strong><small>Lifetime orders</small></span>
                     <span><strong>${Number(linkedCustomer?.totalSpent || 0).toFixed(2)}</strong><small>Total spent</small></span>
                     <span><strong>{linkedCustomer?.lastOrderAt ? dateTimeLabel(linkedCustomer.lastOrderAt) : "—"}</strong><small>Last order</small></span>
+                    {customerDraft.customerUserId || linkedCustomer?.customerUserId ? (
+                      <span><strong>{dateTimeLabel(customerDraft.lastAccountProfileAt || linkedCustomer?.lastAccountProfileAt) || "Linked"}</strong><small>Account saved</small></span>
+                    ) : null}
                   </div>
                   {customerDraft.customerUserId || linkedCustomer?.customerUserId ? (
                     <p className="customer-account-link-note"><UserRound size={13} /> Customer account linked</p>

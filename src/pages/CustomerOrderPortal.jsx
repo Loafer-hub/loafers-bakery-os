@@ -4,6 +4,7 @@ import {
   ChevronLeft,
   Clock3,
   ClipboardList,
+  Download,
   Heart,
   Info,
   KeyRound,
@@ -18,6 +19,7 @@ import {
   ShoppingBag,
   Star,
   Store,
+  Trash2,
   UserRound,
   Wheat,
 } from "lucide-react";
@@ -27,6 +29,7 @@ import { CustomerOrderLookup } from "../components/CustomerOrderLookup";
 import { InstallAppPrompt } from "../components/InstallAppPrompt";
 import { Modal } from "../components/Primitives";
 import {
+  clearCustomerAccountProfile,
   listSignedInCustomerOrders,
   loadCustomerAccountProfile,
   loadPublicStorefront,
@@ -901,6 +904,55 @@ export default function CustomerOrderPortal({
     }
   }
 
+  function downloadCustomerAccountData() {
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      bakery: {
+        id: storefront?.bakery?.id || "",
+        name: storefront?.bakery?.name || "Loafers",
+        slug,
+      },
+      account: {
+        email: cloudAccount.session?.user?.email || accountProfile.email || accountForm.email || form.email || "",
+        userId: cloudAccount.session?.user?.id || "",
+      },
+      savedProfile: accountProfile,
+      recentOrders: accountCloudHistory,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `loafers-customer-account-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    setAccountMessage("Customer account data downloaded on this device.");
+  }
+
+  async function deleteSavedCustomerProfile() {
+    if (!cloudAccount.session?.user) {
+      setAccountMessage("Sign in before deleting saved customer profile details.");
+      return;
+    }
+    const confirmed = window.confirm("Delete saved profile details for this bakery? This keeps your sign-in account and past order records, but removes saved allergies, preferences, favorite item, phone, address, and default payment details.");
+    if (!confirmed) return;
+    setAccountBusy("delete-profile");
+    setAccountMessage("");
+    try {
+      await clearCustomerAccountProfile(storefront?.bakery?.id || "");
+      const clearedProfile = normalizeCustomerProfile(defaultCustomerProfile(), cloudAccount.session.user.email || "");
+      setAccountProfile(clearedProfile);
+      setAccountForm((current) => ({ ...current, name: "", email: current.email || cloudAccount.session.user.email || "" }));
+      setAccountMessage("Saved profile details deleted for this bakery. Your sign-in account remains active.");
+    } catch (nextError) {
+      setAccountMessage(nextError.message);
+    } finally {
+      setAccountBusy("");
+    }
+  }
+
   async function saveCustomerProfile(event) {
     event.preventDefault();
     if (!cloudAccount.session?.user) {
@@ -1260,6 +1312,17 @@ export default function CustomerOrderPortal({
                 ) : null}
                 <button className="storage-file-button" type="submit" disabled={accountBusy === "password"}><KeyRound size={15} /> {accountBusy === "password" ? "Updating…" : "Change password"}</button>
               </form>
+
+              <div className="customer-account-privacy-panel">
+                <div>
+                  <strong>Privacy + data</strong>
+                  <small>Download saved profile/order history data, or remove saved profile details for this bakery.</small>
+                </div>
+                <div className="customer-account-actions">
+                  <button className="storage-file-button" type="button" onClick={downloadCustomerAccountData}><Download size={15} /> Download my data</button>
+                  <button className="storage-file-button danger-action" type="button" onClick={deleteSavedCustomerProfile} disabled={accountBusy === "delete-profile"}><Trash2 size={15} /> {accountBusy === "delete-profile" ? "Deleting…" : "Delete saved profile"}</button>
+                </div>
+              </div>
 
               <div className="customer-history-panel">
                 <div className="customer-history-title"><ClipboardList size={16} /><span><strong>Order history</strong><small>{accountHistoryLoading ? "Loading…" : accountHistory.length ? `${accountHistory.length} recent request${accountHistory.length === 1 ? "" : "s"}` : "No saved order history yet"}</small></span></div>

@@ -258,6 +258,36 @@ export async function saveCustomerAccountDetails(details = {}, { bakeryId = "" }
   return data;
 }
 
+export async function clearCustomerAccountProfile(bakeryId) {
+  const session = await getCloudSession();
+  const userId = session?.user?.id;
+  if (!userId) throw new Error("Sign in before deleting saved customer profile details.");
+  if (bakeryId) {
+    const { error } = await requireClient()
+      .from("customer_profiles")
+      .delete()
+      .eq("bakery_id", bakeryId)
+      .eq("user_id", userId);
+    throwIfError(error);
+  }
+  const { data, error: authError } = await requireClient().auth.updateUser({
+    data: {
+      full_name: "",
+      phone: "",
+      allergies: "",
+      preferences: "",
+      address: "",
+      default_payment_method: "",
+      favorite_product_id: "",
+      favorite_product_name: "",
+      favorite_option_id: "",
+      updated_at: new Date().toISOString(),
+    },
+  });
+  throwIfError(authError);
+  return data;
+}
+
 export async function signOutCloud() {
   const { error } = await requireClient().auth.signOut();
   throwIfError(error);
