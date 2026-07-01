@@ -1,4 +1,5 @@
 import {
+  AlertTriangle,
   Barcode,
   BellRing,
   Box,
@@ -6,8 +7,11 @@ import {
   Camera,
   ChevronRight,
   CircleDollarSign,
+  CheckCircle2,
   Clipboard,
+  ClipboardCheck,
   FileUp,
+  Gauge,
   Heart,
   LineChart,
   Mail,
@@ -19,6 +23,8 @@ import {
   Receipt,
   Search,
   Settings2,
+  ShieldCheck,
+  TrendingUp,
   Trash2,
   Upload,
   UserRound,
@@ -27,6 +33,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { PageHeading } from "../components/AppChrome";
 import { EmptyState, Modal } from "../components/Primitives";
+import { usePersistentState } from "../hooks/usePersistentState";
 
 const emptyInventoryItem = {
   id: "",
@@ -229,6 +236,9 @@ function importedPurchaseRows(records, inventory) {
 }
 
 const CLOSED_ORDER_STATUSES = new Set(["completed", "rejected", "cancelled", "canceled"]);
+const READY_ORDER_STATUSES = new Set(["accepted", "paid", "deposit", "deposit paid", "new", "requested", "pending"]);
+const PAID_ORDER_MARKERS = ["paid in full", "paid", "complete"];
+const LIQUID_SAFETY_TYPES = new Set(["hot_sauce", "vinegar", "infused_oil"]);
 
 function customerIdFromName(name) {
   return String(name || "")
@@ -298,6 +308,75 @@ function dateTimeLabel(value) {
 
 function isActiveOrder(order) {
   return !CLOSED_ORDER_STATUSES.has(String(order.status || "").toLowerCase());
+}
+
+function statusKey(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function dateKey(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toISOString().slice(0, 10);
+}
+
+function isReadyOrder(order) {
+  const status = statusKey(order.status);
+  return isActiveOrder(order) && (!status || READY_ORDER_STATUSES.has(status));
+}
+
+function hasPickupTarget(order) {
+  return Boolean(order.pickupAt || order.due);
+}
+
+function isPaidOrder(order) {
+  const paymentText = [order.paymentStatus, order.status, order.paymentNotes]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  return PAID_ORDER_MARKERS.some((marker) => paymentText.includes(marker));
+}
+
+function isDepositOrder(order) {
+  return [order.paymentStatus, order.status].filter(Boolean).join(" ").toLowerCase().includes("deposit");
+}
+
+function activeProductName(order) {
+  if (order.items?.length) {
+    return order.items.map((item) => item.product_name).filter(Boolean).join(", ");
+  }
+  return order.product || order.itemSummary || "Order";
+}
+
+function productStatsFromOrders(orders) {
+  const stats = new Map();
+  orders.forEach((order) => {
+    const names = order.items?.length
+      ? order.items.map((item) => ({
+        name: item.product_name || order.product || "Order",
+        quantity: Number(item.quantity || 1) * Number(item.units_per_pack || 1),
+      }))
+      : [{ name: order.product || "Order", quantity: Number(order.totalUnits || order.quantity || 1) }];
+    const revenueShare = Number(order.total || 0) / Math.max(1, names.length);
+    names.forEach(({ name, quantity }) => {
+      const key = String(name || "Order").trim() || "Order";
+      const current = stats.get(key) || {
+        name: key,
+        orders: 0,
+        quantity: 0,
+        revenue: 0,
+      };
+      current.orders += 1;
+      current.quantity += Number(quantity || 0);
+      current.revenue += revenueShare;
+      stats.set(key, current);
+    });
+  });
+  return [...stats.values()].sort((a, b) => b.quantity - a.quantity || b.revenue - a.revenue);
+}
+
+function topBy(list, key) {
+  return [...list].sort((a, b) => Number(b[key] || 0) - Number(a[key] || 0))[0] || null;
 }
 
 function orderItemsLabel(order) {
@@ -598,6 +677,8 @@ export default function MorePage({
   customerProfiles = [],
   expenses,
   inventory,
+  kitchenBakes = [],
+  liquidSafetyLogs = [],
   orders,
   onDeleteExpense,
   onDeleteInventoryItem,
@@ -605,6 +686,8 @@ export default function MorePage({
   onOpenOrder,
   onSaveCustomerProfile,
   onSaveInventoryItem,
+  recipes = [],
+  starterLogs = [],
   setActive,
 }) {
   const [orderHistoryOpen, setOrderHistoryOpen] = useState(false);
@@ -617,6 +700,12 @@ export default function MorePage({
   const [csvRows, setCsvRows] = useState([]);
   const [csvImportMessage, setCsvImportMessage] = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const [qualityLog, setQualityLog] = usePersistentState("loafers-owner-quality-checks-v1", {
+    checked: {},
+    date: todayKey,
+  });
+  const manualQualityChecks = qualityLog?.date === todayKey ? qualityLog.checked || {} : {};
   const customerRecords = useMemo(() => buildCustomerRecords(orders, customerProfiles), [orders, customerProfiles]);
   const activeCustomerRecords = useMemo(() => customerRecords.filter((customer) => customer.isActive), [customerRecords]);
   const pastCustomerRecords = useMemo(() => customerRecords.filter((customer) => customer.orders.length && !customer.isActive), [customerRecords]);
@@ -639,6 +728,211 @@ export default function MorePage({
   const weeks = useMemo(() => spendingSeries(expenses), [expenses]);
   const maximumSpend = Math.max(1, ...weeks.map((week) => week.total));
   const recentSpend = weeks.reduce((sum, week) => sum + week.total, 0);
+  const activeOrders = useMemo(() => orders.filter(isActiveOrder), [orders]);
+  const readyOrders = useMemo(() => orders.filter(isReadyOrder), [orders]);
+  const lowStockItems = useMemo(() => inventory.filter((item) => (
+    Number(item.amount || 0) < Number(item.target || 0)
+  )), [inventory]);
+  const unpaidOrders = useMemo(() => activeOrders.filter((order) => (
+    !isPaidOrder(order) || isDepositOrder(order)
+  )), [activeOrders]);
+  const missingPickupOrders = useMemo(() => activeOrders.filter((order) => !hasPickupTarget(order)), [activeOrders]);
+  const todayPickupOrders = useMemo(() => activeOrders.filter((order) => (
+    dateKey(order.pickupAt) === todayKey || (!order.pickupAt && String(order.due || "").toLowerCase() === "today")
+  )), [activeOrders, todayKey]);
+  const productStats = useMemo(() => productStatsFromOrders(orders), [orders]);
+  const bestSeller = productStats[0] || null;
+  const revenueLeader = topBy(productStats, "revenue");
+  const repeatCustomers = customerRecords.filter((customer) => customer.orders.length > 1);
+  const averageOrderValue = orders.length ? revenue / orders.length : 0;
+  const restockCost = lowStockItems.reduce((sum, item) => (
+    sum + Math.max(0, Number(item.target || 0) - Number(item.amount || 0)) * Number(item.unitCost || 0)
+  ), 0);
+  const hiddenProductOrders = useMemo(() => {
+    const restrictedRecipes = recipes.filter((recipe) => (
+      recipe.hiddenThisWeek || recipe.soldOut || recipe.unavailableThisWeek
+    ));
+    if (!restrictedRecipes.length) return [];
+    return activeOrders.filter((order) => restrictedRecipes.some((recipe) => (
+      String(activeProductName(order)).toLowerCase().includes(String(recipe.name || "").toLowerCase())
+    )));
+  }, [activeOrders, recipes]);
+  const starterLoggedToday = starterLogs.some((log) => dateKey(log.dateTime || log.createdAt) === todayKey);
+  const hasLiquidSafetyProducts = recipes.some((recipe) => LIQUID_SAFETY_TYPES.has(recipe.productType));
+  const recentLiquidSafetyLog = liquidSafetyLogs.some((log) => {
+    const date = new Date(log.updatedAt || log.batchDate || log.createdAt);
+    if (Number.isNaN(date.getTime())) return false;
+    return Date.now() - date.getTime() < 30 * 24 * 60 * 60 * 1000;
+  });
+  const ownerAlerts = useMemo(() => {
+    const alerts = [];
+    if (lowStockItems.length) {
+      alerts.push({
+        id: "low-stock",
+        tone: "warning",
+        title: `${lowStockItems.length} inventory item${lowStockItems.length === 1 ? "" : "s"} below target`,
+        body: lowStockItems.slice(0, 3).map((item) => item.name).join(", "),
+        action: () => editInventory(lowStockItems[0]),
+        actionLabel: "Open stock",
+      });
+    }
+    if (unpaidOrders.length) {
+      alerts.push({
+        id: "unpaid-orders",
+        tone: "danger",
+        title: `${unpaidOrders.length} active order${unpaidOrders.length === 1 ? "" : "s"} need payment review`,
+        body: unpaidOrders.slice(0, 3).map((order) => order.customer).join(", "),
+        action: () => setOrderHistoryOpen(true),
+        actionLabel: "Review orders",
+      });
+    }
+    if (missingPickupOrders.length) {
+      alerts.push({
+        id: "missing-pickups",
+        tone: "warning",
+        title: `${missingPickupOrders.length} active order${missingPickupOrders.length === 1 ? "" : "s"} missing pickup timing`,
+        body: "Add pickup dates so capacity, feed timing, and production flow stay accurate.",
+        action: () => setOrderHistoryOpen(true),
+        actionLabel: "Open history",
+      });
+    }
+    if (hiddenProductOrders.length) {
+      alerts.push({
+        id: "hidden-product-orders",
+        tone: "danger",
+        title: "Weekly product status conflicts with open orders",
+        body: `${hiddenProductOrders.length} open order${hiddenProductOrders.length === 1 ? "" : "s"} match sold-out, hidden, or unavailable products.`,
+        action: () => setActive("settings"),
+        actionLabel: "Product settings",
+      });
+    }
+    if (hasLiquidSafetyProducts && !recentLiquidSafetyLog) {
+      alerts.push({
+        id: "liquid-safety",
+        tone: "warning",
+        title: "Liquid safety logs need a recent entry",
+        body: "Hot sauce, vinegar, and infused-oil products should have pH/salt/batch notes before sale.",
+        action: () => setActive("production"),
+        actionLabel: "Open production",
+      });
+    }
+    return alerts;
+  }, [hasLiquidSafetyProducts, hiddenProductOrders, lowStockItems, missingPickupOrders, recentLiquidSafetyLog, setActive, unpaidOrders]);
+  const workflowCards = [
+    {
+      id: "today",
+      label: "Today",
+      title: "Command center",
+      note: `${todayPickupOrders.length} pickup${todayPickupOrders.length === 1 ? "" : "s"} today · ${kitchenBakes.length} kitchen bake${kitchenBakes.length === 1 ? "" : "s"}`,
+    },
+    {
+      id: "orders",
+      label: "Orders",
+      title: "Requests + customers",
+      note: `${activeOrders.length} active · ${customerRecords.length} customer record${customerRecords.length === 1 ? "" : "s"}`,
+    },
+    {
+      id: "production",
+      label: "Production",
+      title: "Bread + liquid work",
+      note: `${readyOrders.length} schedulable order${readyOrders.length === 1 ? "" : "s"} · ${liquidSafetyLogs.length} safety log${liquidSafetyLogs.length === 1 ? "" : "s"}`,
+    },
+    {
+      id: "menu",
+      label: "Menu",
+      title: "Products + shelf",
+      note: `${recipes.length} product${recipes.length === 1 ? "" : "s"} · weekly availability lives in settings`,
+    },
+    {
+      id: "business",
+      label: "Business",
+      title: "Money + records",
+      note: "Reports, stock, purchases, customer records, and bakery settings.",
+    },
+  ];
+  const qualityTasks = [
+    {
+      id: "orders",
+      title: "Review today’s order book",
+      note: todayPickupOrders.length
+        ? `${todayPickupOrders.length} pickup${todayPickupOrders.length === 1 ? "" : "s"} staged for today.`
+        : "No pickups due today.",
+      autoDone: todayPickupOrders.length === 0,
+    },
+    {
+      id: "inventory",
+      title: "Check shortages before mixing",
+      note: lowStockItems.length
+        ? `${lowStockItems.slice(0, 3).map((item) => item.name).join(", ")} below target.`
+        : "Inventory targets are clear.",
+      autoDone: lowStockItems.length === 0,
+    },
+    {
+      id: "starter",
+      title: "Starter / preferment health checked",
+      note: starterLoggedToday ? "Starter log recorded today." : "Log a feed or rise check if sourdough is on deck.",
+      autoDone: starterLoggedToday,
+    },
+    {
+      id: "labels",
+      title: "Labels and pickup notes ready",
+      note: todayPickupOrders.length ? "Print labels or stage pickup notes before handoff." : "Nothing to label for today yet.",
+      autoDone: todayPickupOrders.length === 0,
+    },
+    {
+      id: "customers",
+      title: "Customer messages reviewed",
+      note: unpaidOrders.length ? `${unpaidOrders.length} payment/status follow-up${unpaidOrders.length === 1 ? "" : "s"} to review.` : "No payment follow-ups flagged.",
+      autoDone: unpaidOrders.length === 0,
+    },
+    {
+      id: "safety",
+      title: "Food safety notes current",
+      note: hasLiquidSafetyProducts
+        ? (recentLiquidSafetyLog ? "Recent liquid safety batch log found." : "Add pH/salt/storage notes for liquid goods.")
+        : "No liquid safety products active.",
+      autoDone: !hasLiquidSafetyProducts || recentLiquidSafetyLog,
+    },
+  ];
+  const completedQualityCount = qualityTasks.filter((task) => task.autoDone || manualQualityChecks[task.id]).length;
+  const reportCards = [
+    {
+      label: "Best seller",
+      value: bestSeller?.name || "No sales yet",
+      note: bestSeller ? `${bestSeller.quantity} unit${bestSeller.quantity === 1 ? "" : "s"} across ${bestSeller.orders} order${bestSeller.orders === 1 ? "" : "s"}` : "Orders will rank here.",
+    },
+    {
+      label: "Revenue leader",
+      value: revenueLeader?.name || "No revenue yet",
+      note: revenueLeader ? `$${revenueLeader.revenue.toFixed(2)} booked` : "Booked revenue by product.",
+    },
+    {
+      label: "Average order",
+      value: `$${averageOrderValue.toFixed(2)}`,
+      note: `${orders.length} order${orders.length === 1 ? "" : "s"} tracked`,
+    },
+    {
+      label: "Repeat customers",
+      value: `${repeatCustomers.length}`,
+      note: customerRecords.length ? `${Math.round(repeatCustomers.length / customerRecords.length * 100)}% of customer records` : "Customer history will build this.",
+    },
+    {
+      label: "Restock exposure",
+      value: `$${restockCost.toFixed(2)}`,
+      note: lowStockItems.length ? "Estimated spend to reach targets" : "No restock gap right now.",
+    },
+    {
+      label: "Unpaid exposure",
+      value: `$${unpaidOrders.reduce((sum, order) => sum + Number(order.total || 0), 0).toFixed(2)}`,
+      note: `${unpaidOrders.length} active order${unpaidOrders.length === 1 ? "" : "s"} need payment attention`,
+    },
+  ];
+  const traceabilityStats = [
+    { label: "Order codes", value: orders.filter((order) => order.requestCode || order.cloudOrderId).length },
+    { label: "Inventory-deducted", value: orders.filter((order) => order.inventoryDeductedAt).length },
+    { label: "Kitchen batches", value: kitchenBakes.length },
+    { label: "Safety logs", value: liquidSafetyLogs.length },
+  ];
 
   function editInventory(item) {
     setInventoryForm(item ? { ...item, isNew: false } : {
@@ -647,6 +941,19 @@ export default function MorePage({
       isNew: true,
     });
     setConfirmDeleteId(null);
+  }
+
+  function toggleQualityTask(id) {
+    setQualityLog((current) => {
+      const checked = current?.date === todayKey ? current.checked || {} : {};
+      return {
+        checked: {
+          ...checked,
+          [id]: !checked[id],
+        },
+        date: todayKey,
+      };
+    });
   }
 
   function openCustomerDirectory(view = "active") {
@@ -843,6 +1150,111 @@ export default function MorePage({
         subtitle="Money, stock, purchases, customers, and the pulse of your one-person bakery."
         action={<button className="round-action" type="button" onClick={() => setActive("settings")} aria-label="Open bakery settings"><Settings2 size={20} /></button>}
       />
+
+      <section className="owner-flow-card">
+        <div className="section-title-line">
+          <div><span className="eyebrow-label dark">Professional flow</span><h2>Where work belongs</h2></div>
+          <Gauge size={22} />
+        </div>
+        <div className="owner-flow-grid">
+          {workflowCards.map((card) => (
+            <button
+              type="button"
+              className={`owner-flow-step ${card.id === "business" ? "current" : ""}`}
+              key={card.id}
+              onClick={() => setActive(card.id)}
+            >
+              <span>{card.label}</span>
+              <strong>{card.title}</strong>
+              <small>{card.note}</small>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="owner-command-grid" aria-label="Owner command center">
+        <div className="owner-alerts-card">
+          <div className="section-title-line">
+            <div><span className="eyebrow-label dark">Smart alerts</span><h2>What changed?</h2></div>
+            <AlertTriangle size={21} />
+          </div>
+          <div className="owner-alert-list">
+            {ownerAlerts.length ? ownerAlerts.map((alert) => (
+              <button type="button" className={`owner-alert-row ${alert.tone}`} key={alert.id} onClick={alert.action}>
+                {alert.tone === "danger" ? <AlertTriangle size={18} /> : <BellRing size={18} />}
+                <span><strong>{alert.title}</strong><small>{alert.body}</small></span>
+                <em>{alert.actionLabel}</em>
+              </button>
+            )) : (
+              <article className="owner-alert-row clear">
+                <CheckCircle2 size={18} />
+                <span><strong>No major conflicts</strong><small>Orders, availability, payment, stock, and safety logs look calm.</small></span>
+                <em>Clear</em>
+              </article>
+            )}
+          </div>
+        </div>
+
+        <div className="owner-quality-card">
+          <div className="section-title-line">
+            <div><span className="eyebrow-label dark">Owner quality</span><h2>Daily checklist</h2></div>
+            <ClipboardCheck size={21} />
+          </div>
+          <div className="quality-progress">
+            <strong>{completedQualityCount}/{qualityTasks.length}</strong>
+            <span>checks complete for {new Date(`${todayKey}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+          </div>
+          <div className="quality-check-list">
+            {qualityTasks.map((task) => {
+              const checked = task.autoDone || Boolean(manualQualityChecks[task.id]);
+              return (
+                <label className={`quality-check-row ${checked ? "complete" : ""} ${task.autoDone ? "auto" : ""}`} key={task.id}>
+                  <input type="checkbox" checked={checked} disabled={task.autoDone} onChange={() => toggleQualityTask(task.id)} />
+                  <span><strong>{task.title}</strong><small>{task.note}</small></span>
+                  <em>{task.autoDone ? "Auto" : checked ? "Checked" : "Review"}</em>
+                </label>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      <section className="owner-reports-card">
+        <div className="section-title-line">
+          <div><span className="eyebrow-label dark">Better reporting</span><h2>Owner answers</h2></div>
+          <TrendingUp size={22} />
+        </div>
+        <div className="owner-report-grid">
+          {reportCards.map((card) => (
+            <article key={card.label}>
+              <small>{card.label}</small>
+              <strong>{card.value}</strong>
+              <span>{card.note}</span>
+            </article>
+          ))}
+        </div>
+        <div className="owner-traceability-strip">
+          <ShieldCheck size={18} />
+          <span><strong>Batch trail foundation</strong><small>These counts show which records already connect orders, batches, safety, and inventory.</small></span>
+          <div>
+            {traceabilityStats.map((stat) => (
+              <em key={stat.label}>{stat.value} {stat.label}</em>
+            ))}
+          </div>
+        </div>
+        {productStats.length ? (
+          <div className="owner-product-rank">
+            <strong>Product ranking</strong>
+            {productStats.slice(0, 4).map((product, index) => (
+              <span key={product.name}>
+                <small>{index + 1}</small>
+                <b>{product.name}</b>
+                <em>{product.quantity} units · ${product.revenue.toFixed(2)}</em>
+              </span>
+            ))}
+          </div>
+        ) : null}
+      </section>
 
       <section className="trend-card">
         <div className="section-title-line">
