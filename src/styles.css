@@ -5322,6 +5322,53 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   font-size: 8px;
 }
 
+.customer-profile-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.customer-profile-stats span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: white;
+}
+
+.customer-profile-stats strong {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.customer-profile-stats small {
+  color: var(--muted);
+  font-size: 7px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.customer-account-link-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  width: fit-content;
+  margin: 0;
+  padding: 6px 8px;
+  color: #485a40;
+  border: 1px solid #c4d0be;
+  border-radius: 999px;
+  background: var(--sage-soft);
+  font-size: 8px;
+  font-weight: 800;
+}
+
 .customer-profile-chips {
   display: flex;
   flex-wrap: wrap;
@@ -9873,6 +9920,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   .order-history-detail-grid,
   .customer-directory-toolbar,
   .customer-directory-layout,
+  .customer-account-sections,
+  .customer-profile-stats,
   .product-availability-toggle-grid {
     grid-template-columns: 1fr;
   }
@@ -10277,6 +10326,46 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .customer-history-title > svg {
   color: var(--sage);
   background: rgba(255,255,255,.7);
+}
+
+.customer-account-sections {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.customer-account-sections article,
+.customer-account-sections button {
+  min-width: 0;
+}
+
+.customer-account-sections article {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(255,255,255,.72);
+}
+
+.customer-account-sections article strong {
+  color: var(--ink);
+  font-size: 10px;
+}
+
+.customer-account-sections article small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 8px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.customer-account-sections .storage-file-button {
+  grid-column: 1 / -1;
+  justify-content: center;
 }
 
 .customer-profile-form label,
