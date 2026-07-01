@@ -346,6 +346,42 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   font-weight: 700;
 }
 
+.today-accept-orders-card {
+  display: grid;
+  gap: 12px;
+  margin: 6px 0 18px;
+  padding: 16px;
+  border: 1px solid #d8cbbb;
+  border-radius: 18px;
+  background: linear-gradient(145deg, #fffdf9, #fbf2e9);
+  box-shadow: 0 14px 32px rgba(73, 50, 30, .07);
+}
+
+.today-accept-orders-card .section-title-line h2 {
+  margin: 2px 0;
+  font-family: "Newsreader", Georgia, serif;
+  font-size: 27px;
+  font-weight: 500;
+}
+
+.today-accept-orders-card .section-title-line small {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.today-accept-orders-card .cloud-inbox-banner {
+  width: 100%;
+  border-color: rgba(210,84,54,.28);
+  background: #fff8f2;
+}
+
+.today-accept-orders-card .cloud-inbox-banner.has-orders {
+  border-color: rgba(210,84,54,.5);
+  background: #ffece2;
+  box-shadow: 0 12px 28px rgba(210,84,54,.12);
+}
+
 .fermentation-blocks {
   color: var(--accent);
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;

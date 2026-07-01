@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { BrandHeader } from "../components/AppChrome";
+import { CloudOrderInbox } from "../components/CloudOrderInbox";
 import { ReadyShelf } from "../components/ReadyShelf";
 import { listReadyShelfItems } from "../lib/cloud";
 import { buildBakeSchedule } from "../lib/fermentationModel";
@@ -409,6 +410,7 @@ export default function TodayPage({
   recipes,
   onOpenStorage,
   onOpenSettings,
+  onImportCloudOrder,
   onSelectKitchenBake,
 }) {
   const [readyShelfRefreshKey, setReadyShelfRefreshKey] = useState(0);
@@ -473,6 +475,22 @@ export default function TodayPage({
       <section className="greeting">
         <h1>Good morning, Joshua</h1>
         <p>{today.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}</p>
+      </section>
+
+      <section className="today-accept-orders-card" aria-label="Accept customer requests">
+        <div className="section-title-line">
+          <div>
+            <span className="eyebrow-label dark">Customer requests</span>
+            <h2>Accept orders</h2>
+            <small>Open pending online requests, then accept, comment, or reject them from here.</small>
+          </div>
+          <ShoppingBag size={22} />
+        </div>
+        <CloudOrderInbox
+          cloudAccount={cloudAccount}
+          orders={orders}
+          onImportOrder={onImportCloudOrder}
+        />
       </section>
 
       <section>
