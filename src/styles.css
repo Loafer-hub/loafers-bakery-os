@@ -7006,6 +7006,13 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   background: #fbede7;
 }
 
+.cloud-inbox-banner-warning {
+  color: #8f3b27;
+  border-color: rgba(159,63,41,.32);
+  background: #fff4ef;
+  cursor: default;
+}
+
 .cloud-inbox-banner > span,
 .cloud-inbox-banner > span > span {
   display: flex;

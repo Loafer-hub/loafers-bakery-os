@@ -702,7 +702,7 @@ export async function recordCustomerAccessEvent({
 }
 
 export async function listCustomerOrderRequests(bakeryId, status = "requested") {
-  const { data, error } = await requireClient()
+  let query = requireClient()
     .from("customer_orders")
     .select(`
       id,
@@ -727,9 +727,16 @@ export async function listCustomerOrderRequests(bakeryId, status = "requested") 
       created_at,
       customer_order_items(id, product_name, unit_price_cents, quantity, sale_option_id, sale_option_label, units_per_pack, capacity_units)
     `)
-    .eq("bakery_id", bakeryId)
-    .eq("status", status)
-    .order("created_at", { ascending: false });
+    .eq("bakery_id", bakeryId);
+  const statuses = Array.isArray(status)
+    ? status.map((item) => String(item || "").trim()).filter(Boolean)
+    : [];
+  if (statuses.length) {
+    query = query.in("status", statuses);
+  } else {
+    query = query.eq("status", status);
+  }
+  const { data, error } = await query.order("created_at", { ascending: false });
   throwIfError(error);
   return data || [];
 }

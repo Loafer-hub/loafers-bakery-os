@@ -10,6 +10,9 @@ import {
 } from "../lib/cloud";
 import { Modal } from "./Primitives";
 
+const PENDING_REQUEST_STATUSES = ["requested", "pending", "submitted", "new", "Request", "Requested", "Pending"];
+const REJECTED_REQUEST_STATUSES = ["declined", "rejected", "Rejected", "Declined"];
+
 function pickupLabel(value) {
   if (!value) return "Pickup time to arrange";
   return new Date(value).toLocaleString("en-US", {
@@ -34,6 +37,15 @@ export function CloudOrderInbox({ cloudAccount, orders, onImportOrder }) {
   const [rejectingId, setRejectingId] = useState(null);
   const [deletingFeedbackId, setDeletingFeedbackId] = useState(null);
   const bakeryId = cloudAccount.workspace?.bakeryId;
+  const cloudAccessMessage = !cloudAccount.configured
+    ? "Cloud storage is not connected on this build."
+    : cloudAccount.loading
+      ? "Checking owner cloud access…"
+      : !cloudAccount.session?.user
+        ? "Sign in as the bakery owner on this device to load pending requests."
+        : !bakeryId
+          ? "This signed-in account is not linked to the bakery owner workspace."
+          : "";
 
   const refresh = useCallback(async () => {
     if (!bakeryId) return;
@@ -41,8 +53,8 @@ export function CloudOrderInbox({ cloudAccount, orders, onImportOrder }) {
     setError("");
     try {
       const [nextRequests, nextRejected, nextFeedback] = await Promise.all([
-        listCustomerOrderRequests(bakeryId, "requested"),
-        listCustomerOrderRequests(bakeryId, "declined"),
+        listCustomerOrderRequests(bakeryId, PENDING_REQUEST_STATUSES),
+        listCustomerOrderRequests(bakeryId, REJECTED_REQUEST_STATUSES),
         listCustomerFeedback(bakeryId),
       ]);
       const imported = new Set(orders.map((order) => order.cloudOrderId).filter(Boolean));
@@ -63,9 +75,18 @@ export function CloudOrderInbox({ cloudAccount, orders, onImportOrder }) {
 
   useEffect(() => {
     refresh();
+    const timer = window.setInterval(refresh, 30000);
+    return () => window.clearInterval(timer);
   }, [refresh]);
 
-  if (!bakeryId) return null;
+  if (!bakeryId) {
+    return (
+      <button className="cloud-inbox-banner cloud-inbox-banner-warning" type="button">
+        <span><Cloud size={18} /><span><strong>Accept orders unavailable</strong><small>{cloudAccessMessage}</small></span></span>
+        <span>{cloudAccount.loading ? <RefreshCw className="spin" size={16} /> : <XCircle size={16} />}</span>
+      </button>
+    );
+  }
 
   async function importRequest(request) {
     setLoading(true);
@@ -159,7 +180,10 @@ export function CloudOrderInbox({ cloudAccount, orders, onImportOrder }) {
 
   return (
     <>
-      <button className={requests.length ? "cloud-inbox-banner has-orders" : "cloud-inbox-banner"} type="button" onClick={() => setOpen(true)}>
+      <button className={requests.length ? "cloud-inbox-banner has-orders" : "cloud-inbox-banner"} type="button" onClick={() => {
+        setOpen(true);
+        refresh();
+      }}>
         <span><Cloud size={18} /><span><strong>{requests.length ? `${requests.length} customer request${requests.length === 1 ? "" : "s"}` : "Customer request inbox"}</strong><small>{requests.length ? "Review and bring them into the bake queue." : "No new online requests."}</small></span></span>
         <span>{loading ? <RefreshCw className="spin" size={16} /> : <ShoppingBag size={16} />}</span>
       </button>
@@ -181,7 +205,7 @@ export function CloudOrderInbox({ cloudAccount, orders, onImportOrder }) {
             <button className="storage-file-button" type="button" onClick={refresh} disabled={loading}><RefreshCw size={15} /> Refresh requests</button>
             {error ? <p className="form-error" role="alert">{error}</p> : null}
             {emailMessage ? <div className="settings-success">{emailMessage}</div> : null}
-            {view === "pending" && !requests.length && !loading ? <p className="cloud-empty-copy">No new requests. Shared customer orders will appear here.</p> : null}
+            {view === "pending" && !requests.length && !loading ? <p className="cloud-empty-copy">No pending requests found for this owner account. If a customer just ordered, tap Refresh; if it still stays empty, make sure this device is signed into the Loafers owner account.</p> : null}
             {view === "rejected" && !rejected.length && !loading ? <p className="cloud-empty-copy">No rejected requests yet.</p> : null}
             {view === "feedback" && !feedback.length && !loading ? <p className="cloud-empty-copy">No customer suggestions or reviews yet.</p> : null}
             {view === "feedback" ? feedback.map((entry) => (
