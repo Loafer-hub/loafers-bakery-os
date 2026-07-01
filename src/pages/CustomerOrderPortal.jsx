@@ -282,6 +282,16 @@ export default function CustomerOrderPortal({
     allergies: "",
     notes: "",
   });
+  const rules = normalizedBakerySettings(storefront?.settings || bakerySettings);
+  const customerProfileSavingEnabled = rules.customerProfileSavingEnabled !== false;
+  const customerReorderEnabled = rules.customerReorderEnabled !== false;
+  const customerCanCheckout = Boolean(cloudAccount.session?.user)
+    || (rules.allowGuestCheckout !== false && rules.requireSignInForOrders !== true);
+  const guestCheckoutBlocked = !cloudAccount.session?.user && !customerCanCheckout;
+  const urlParams = new URLSearchParams(window.location.search);
+  const trackedCode = urlParams.get("track") || "";
+  const trackedContact = urlParams.get("contact") || "";
+  const showTrackMyBake = rules.trackMyBakePublic !== false || Boolean(trackedCode);
 
   useEffect(() => {
     if (!cloudAccount.configured) {
@@ -375,10 +385,17 @@ export default function CustomerOrderPortal({
       email: current.email || email,
       name: current.name || nextProfile.name,
     }));
-    applyAccountProfileToCheckout(nextProfile, { force: false });
-  }, [cloudAccount.session?.user?.email, cloudAccount.session?.user?.id]);
+    if (customerProfileSavingEnabled) {
+      applyAccountProfileToCheckout(nextProfile, { force: false });
+    } else if (email) {
+      setForm((current) => ({
+        ...current,
+        email: current.email || email,
+        name: current.name || nextProfile.name,
+      }));
+    }
+  }, [cloudAccount.session?.user?.email, cloudAccount.session?.user?.id, customerProfileSavingEnabled]);
 
-  const rules = normalizedBakerySettings(storefront?.settings || bakerySettings);
   const productTypes = rules.productTypes.filter((type) => type.enabled !== false);
   const productSettingsByValue = productTypeMap(rules);
   const visibleProductTypeValues = new Set(productTypes.map((type) => type.value));
@@ -386,6 +403,7 @@ export default function CustomerOrderPortal({
     visibleProductTypeValues.has(productTypeValue(product))
     && product?.recipe_details?.hiddenThisWeek !== true
   ));
+  const readyShelfItems = rules.readyShelfEnabled ? (storefront?.shelf || []) : [];
   const selectedItems = useMemo(() => [
     ...storefrontProducts.flatMap((product) => productSalesOptions(product)
       .filter((option) => Number(quantities[`product-${product.id}-${option.id}`] || 0) > 0)
@@ -406,7 +424,7 @@ export default function CustomerOrderPortal({
             .map((choice) => choice.label),
         };
       })),
-    ...(storefront?.shelf || [])
+    ...readyShelfItems
       .filter((item) => Number(quantities[`shelf-${item.id}`] || 0) > 0)
       .map((item) => ({
         ...item,
@@ -415,9 +433,8 @@ export default function CustomerOrderPortal({
         availableQuantity: Number(item.quantity || 0),
         quantity: Number(quantities[`shelf-${item.id}`]),
       })),
-  ], [productOptionSelections, productSettingsByValue, quantities, rules, storefront, storefrontProducts]);
+  ], [productOptionSelections, productSettingsByValue, quantities, readyShelfItems, rules, storefrontProducts]);
   const total = selectedItems.reduce((sum, item) => sum + item.price_cents * item.quantity, 0);
-  const readyShelfItems = rules.readyShelfEnabled ? (storefront?.shelf || []) : [];
   const catalogTabs = useMemo(() => {
     const availableTypes = new Set(storefrontProducts.map(productTypeValue));
     const orderedTypes = productTypes.filter((type) => availableTypes.has(type.value));
@@ -475,9 +492,6 @@ export default function CustomerOrderPortal({
     .filter((item) => item.itemType === "shelf")
     .reduce((sum, item) => sum + item.quantity, 0);
   const pickupOptions = pickupTimeOptions(form.pickupDate, rules);
-  const urlParams = new URLSearchParams(window.location.search);
-  const trackedCode = urlParams.get("track") || "";
-  const trackedContact = urlParams.get("contact") || "";
   const ownerPreview = urlParams.get("preview") === "owner" || urlParams.get("ownerPreview") === "1";
   const checkoutStepIndex = CHECKOUT_STEPS.findIndex((step) => step.id === checkoutStep);
   const successTrackingLink = success
@@ -571,6 +585,13 @@ export default function CustomerOrderPortal({
   }
 
   function validateContact() {
+    if (!customerCanCheckout) {
+      setAccountOpen(true);
+      setError(rules.requireSignInForOrders
+        ? "Sign in before sending an order request."
+        : "Guest checkout is currently turned off. Sign in before sending an order request.");
+      return false;
+    }
     if (!form.name.trim()) {
       setError("Add your name so the baker can confirm the request.");
       return false;
@@ -613,6 +634,10 @@ export default function CustomerOrderPortal({
   }
 
   function applyAccountProfileToCheckout(profile = accountProfile, { force = true } = {}) {
+    if (!customerProfileSavingEnabled) {
+      if (force) setAccountMessage("Saved profile details are currently turned off by the baker.");
+      return;
+    }
     const savedNotes = savedCustomerProfileNote(profile);
     setForm((current) => {
       const shouldReplacePayment = force || !current.paymentMethod || current.paymentMethod === "Venmo";
@@ -692,6 +717,10 @@ export default function CustomerOrderPortal({
   }
 
   function reorderFavoriteItem(product = favoriteProduct) {
+    if (!customerReorderEnabled) {
+      setAccountMessage("Customer reorders are currently turned off by the baker.");
+      return;
+    }
     if (!product) {
       setAccountMessage("Pick a favorite from the current menu first.");
       return;
@@ -717,6 +746,10 @@ export default function CustomerOrderPortal({
   }
 
   function reorderHistoryItem(order) {
+    if (!customerReorderEnabled) {
+      setAccountMessage("Customer reorders are currently turned off by the baker.");
+      return;
+    }
     const firstItem = order.customer_order_items?.[0];
     const product = storefrontProducts.find((item) => (
       item.name.toLowerCase() === String(firstItem?.product_name || "").toLowerCase()
@@ -739,6 +772,13 @@ export default function CustomerOrderPortal({
       setError("This is the preview. Connect cloud storage before sharing the page with customers.");
       return;
     }
+    if (!customerCanCheckout) {
+      setAccountOpen(true);
+      setError(rules.requireSignInForOrders
+        ? "Sign in before sending an order request."
+        : "Guest checkout is currently turned off. Sign in before sending an order request.");
+      return;
+    }
     if (!selectedItems.length) {
       setError("Choose at least one item.");
       return;
@@ -751,7 +791,7 @@ export default function CustomerOrderPortal({
       return;
     }
     try {
-      let requestNotes = appendNoteBlock(form.notes.trim(), cloudAccount.session?.user ? savedCustomerProfileNote(accountProfile) : "");
+      let requestNotes = appendNoteBlock(form.notes.trim(), cloudAccount.session?.user && customerProfileSavingEnabled ? savedCustomerProfileNote(accountProfile) : "");
       requestNotes = appendNoteBlock(requestNotes, customerChoiceNote(selectedItems));
       const result = await submitPublicOrder({
         slug,
@@ -838,18 +878,18 @@ export default function CustomerOrderPortal({
         <section className="customer-hero">
           <span className="eyebrow-label dark">Small-batch sourdough</span>
           <h1>Online ordering is paused.</h1>
-          <p>The baker is not accepting new requests right now. Existing customers can still track an order below.</p>
+          <p>{showTrackMyBake ? "The baker is not accepting new requests right now. Existing customers can still track an order below." : "The baker is not accepting new requests right now."}</p>
           <div className="customer-fulfillment-strip">
             <span><Store size={17} /><span><small>Pickup</small><strong>{rules.pickupLocation}</strong></span></span>
           </div>
         </section>
-        <CustomerOrderLookup
+        {showTrackMyBake ? <CustomerOrderLookup
           configured={cloudAccount.configured}
           feedbackEnabled={rules.feedbackEnabled}
           initialCode={trackedCode}
           initialContact={trackedContact || form.email}
           slug={slug}
-        />
+        /> : null}
       </main>
     );
   }
@@ -869,6 +909,13 @@ export default function CustomerOrderPortal({
       {ownerPreview ? <div className="portal-preview-banner owner-preview-banner"><Info size={15} /> Owner preview · this is what customers see before you publish</div> : null}
       <InstallAppPrompt context="customer" />
       {customerAnnouncement ? <CustomerAnnouncement announcement={customerAnnouncement} /> : null}
+      {guestCheckoutBlocked ? (
+        <div className="customer-privacy-banner">
+          <LockKeyhole size={15} />
+          <span>{rules.requireSignInForOrders ? "Sign-in required before sending an order request." : "Guest checkout is currently turned off."}</span>
+          <button type="button" onClick={() => setAccountOpen(true)}>Sign in</button>
+        </div>
+      ) : null}
 
       {accountOpen ? (
         <section className="customer-account-card">
@@ -876,7 +923,7 @@ export default function CustomerOrderPortal({
             <span><ShieldCheck size={18} /></span>
             <div>
               <strong>My account</strong>
-              <small>Save preferences, allergies, favorite items, and signed-in order history.</small>
+              <small>{customerProfileSavingEnabled ? "Save preferences, allergies, favorite items, and signed-in order history." : "Sign in for private order history. Profile saving is currently off."}</small>
             </div>
           </div>
           {cloudAccount.session ? (
@@ -897,67 +944,79 @@ export default function CustomerOrderPortal({
                 <label>Password<input required minLength="8" type="password" value={accountForm.password} onChange={(event) => setAccountForm({ ...accountForm, password: event.target.value })} /></label>
                 <button className="primary-button" type="submit" disabled={accountBusy === "auth"}>{accountBusy === "auth" ? "Please wait…" : accountMode === "signin" ? "Sign in" : "Create account"}</button>
               </form>
-              <small className="customer-account-private-note">Saved preferences, allergies, favorite items, and order history are available after sign-in. Guests can still order without an account.</small>
+              <small className="customer-account-private-note">
+                {guestCheckoutBlocked
+                  ? "The baker currently requires sign-in before orders can be sent. You can still browse the menu first."
+                  : customerProfileSavingEnabled
+                    ? "Saved preferences, allergies, favorite items, and order history are available after sign-in. Guests can still order without an account."
+                    : "Guests can still order without an account. Customer profile saving is currently turned off."}
+              </small>
             </>
           )}
 
           {cloudAccount.session ? (
             <>
-              <div className="customer-account-sections" aria-label="Saved customer tools">
-                <article>
-                  <strong>Profile</strong>
-                  <small>{accountProfile.name || form.name || "Name not saved"} · {accountProfile.phone || form.phone || "phone optional"}</small>
-                </article>
-                <article>
-                  <strong>Allergies</strong>
-                  <small>{accountProfile.allergies || "No saved allergy note"}</small>
-                </article>
-                <article>
-                  <strong>Preferences</strong>
-                  <small>{accountProfile.preferences || "No saved preferences yet"}</small>
-                </article>
-                <article>
-                  <strong>Favorite items</strong>
-                  <small>{favoriteProduct?.name || "Pick a favorite from the menu"}</small>
-                </article>
-                <article>
-                  <strong>My orders</strong>
-                  <small>{accountHistoryLoading ? "Loading order history…" : `${accountHistory.length} recent signed-in request${accountHistory.length === 1 ? "" : "s"}`}</small>
-                </article>
-                <button className="storage-file-button" type="button" onClick={() => applyAccountProfileToCheckout(accountProfile, { force: true })}>
-                  <Repeat2 size={15} /> Use saved details in checkout
-                </button>
-              </div>
+              {customerProfileSavingEnabled ? (
+                <>
+                  <div className="customer-account-sections" aria-label="Saved customer tools">
+                    <article>
+                      <strong>Profile</strong>
+                      <small>{accountProfile.name || form.name || "Name not saved"} · {accountProfile.phone || form.phone || "phone optional"}</small>
+                    </article>
+                    <article>
+                      <strong>Allergies</strong>
+                      <small>{accountProfile.allergies || "No saved allergy note"}</small>
+                    </article>
+                    <article>
+                      <strong>Preferences</strong>
+                      <small>{accountProfile.preferences || "No saved preferences yet"}</small>
+                    </article>
+                    <article>
+                      <strong>Favorite items</strong>
+                      <small>{favoriteProduct?.name || "Pick a favorite from the menu"}</small>
+                    </article>
+                    <article>
+                      <strong>My orders</strong>
+                      <small>{accountHistoryLoading ? "Loading order history…" : `${accountHistory.length} recent signed-in request${accountHistory.length === 1 ? "" : "s"}`}</small>
+                    </article>
+                    <button className="storage-file-button" type="button" onClick={() => applyAccountProfileToCheckout(accountProfile, { force: true })}>
+                      <Repeat2 size={15} /> Use saved details in checkout
+                    </button>
+                  </div>
 
-              <form className="customer-profile-form" onSubmit={saveCustomerProfile}>
-                <div className="form-grid">
-                  <label>Name<input value={accountProfile.name} onChange={(event) => setAccountProfile({ ...accountProfile, name: event.target.value })} placeholder="Name for orders" /></label>
-                  <label>Phone<input value={accountProfile.phone} onChange={(event) => setAccountProfile({ ...accountProfile, phone: event.target.value })} placeholder="Optional" /></label>
-                </div>
-                <label>Email<input type="email" value={accountProfile.email} onChange={(event) => setAccountProfile({ ...accountProfile, email: event.target.value })} placeholder="you@example.com" /></label>
-                <label>Saved allergies<textarea value={accountProfile.allergies} onChange={(event) => setAccountProfile({ ...accountProfile, allergies: event.target.value })} placeholder="Allergies, sensitivities, cross-contact concerns…" /></label>
-                <label>Preferences<textarea value={accountProfile.preferences} onChange={(event) => setAccountProfile({ ...accountProfile, preferences: event.target.value })} placeholder="Favorite slice, crust, spice, pickup notes…" /></label>
-                <label>Address / delivery note<textarea value={accountProfile.address} onChange={(event) => setAccountProfile({ ...accountProfile, address: event.target.value })} placeholder="Optional address or special pickup notes" /></label>
-                <div className="form-grid">
-                  <label>
-                    Default payment
-                    <select value={accountProfile.defaultPaymentMethod} onChange={(event) => setAccountProfile({ ...accountProfile, defaultPaymentMethod: event.target.value })}>
-                      {(storefront.bakery.payment_methods || DEFAULT_PAYMENT_METHODS).map((method) => <option key={method} value={method}>{method}</option>)}
-                    </select>
-                  </label>
-                  <label>
-                    Favorite item
-                    <select value={accountProfile.favoriteProductId} onChange={(event) => setAccountProfile({ ...accountProfile, favoriteProductId: event.target.value })}>
-                      <option value="">Choose favorite</option>
-                      {storefrontProducts.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}
-                    </select>
-                  </label>
-                </div>
-                <div className="customer-account-actions">
-                  <button className="storage-file-button" type="submit" disabled={accountBusy === "profile"}><Save size={15} /> {accountBusy === "profile" ? "Saving…" : "Save profile"}</button>
-                  <button className="storage-file-button" type="button" onClick={() => reorderFavoriteItem()} disabled={!favoriteProduct}><Heart size={15} /> Reorder favorite</button>
-                </div>
-              </form>
+                  <form className="customer-profile-form" onSubmit={saveCustomerProfile}>
+                    <div className="form-grid">
+                      <label>Name<input value={accountProfile.name} onChange={(event) => setAccountProfile({ ...accountProfile, name: event.target.value })} placeholder="Name for orders" /></label>
+                      <label>Phone<input value={accountProfile.phone} onChange={(event) => setAccountProfile({ ...accountProfile, phone: event.target.value })} placeholder="Optional" /></label>
+                    </div>
+                    <label>Email<input type="email" value={accountProfile.email} onChange={(event) => setAccountProfile({ ...accountProfile, email: event.target.value })} placeholder="you@example.com" /></label>
+                    <label>Saved allergies<textarea value={accountProfile.allergies} onChange={(event) => setAccountProfile({ ...accountProfile, allergies: event.target.value })} placeholder="Allergies, sensitivities, cross-contact concerns…" /></label>
+                    <label>Preferences<textarea value={accountProfile.preferences} onChange={(event) => setAccountProfile({ ...accountProfile, preferences: event.target.value })} placeholder="Favorite slice, crust, spice, pickup notes…" /></label>
+                    <label>Address / delivery note<textarea value={accountProfile.address} onChange={(event) => setAccountProfile({ ...accountProfile, address: event.target.value })} placeholder="Optional address or special pickup notes" /></label>
+                    <div className="form-grid">
+                      <label>
+                        Default payment
+                        <select value={accountProfile.defaultPaymentMethod} onChange={(event) => setAccountProfile({ ...accountProfile, defaultPaymentMethod: event.target.value })}>
+                          {(storefront.bakery.payment_methods || DEFAULT_PAYMENT_METHODS).map((method) => <option key={method} value={method}>{method}</option>)}
+                        </select>
+                      </label>
+                      <label>
+                        Favorite item
+                        <select value={accountProfile.favoriteProductId} onChange={(event) => setAccountProfile({ ...accountProfile, favoriteProductId: event.target.value })}>
+                          <option value="">Choose favorite</option>
+                          {storefrontProducts.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}
+                        </select>
+                      </label>
+                    </div>
+                    <div className="customer-account-actions">
+                      <button className="storage-file-button" type="submit" disabled={accountBusy === "profile"}><Save size={15} /> {accountBusy === "profile" ? "Saving…" : "Save profile"}</button>
+                      {customerReorderEnabled ? <button className="storage-file-button" type="button" onClick={() => reorderFavoriteItem()} disabled={!favoriteProduct}><Heart size={15} /> Reorder favorite</button> : null}
+                    </div>
+                  </form>
+                </>
+              ) : (
+                <small className="customer-account-private-note">Customer profile saving is turned off. This account can still keep private signed-in order history for requests placed while signed in.</small>
+              )}
 
               <div className="customer-history-panel">
                 <div className="customer-history-title"><ClipboardList size={16} /><span><strong>Order history</strong><small>{accountHistoryLoading ? "Loading…" : accountHistory.length ? `${accountHistory.length} recent request${accountHistory.length === 1 ? "" : "s"}` : "No saved order history yet"}</small></span></div>
@@ -969,7 +1028,7 @@ export default function CustomerOrderPortal({
                         <p>{order.itemSummary || "Customer bakery request"}</p>
                         <div>
                           <a href={customerTrackingLink(order.request_code, accountContact)}>Track bake</a>
-                          <button type="button" onClick={() => reorderHistoryItem(order)}><Repeat2 size={14} /> Reorder</button>
+                          {customerReorderEnabled ? <button type="button" onClick={() => reorderHistoryItem(order)}><Repeat2 size={14} /> Reorder</button> : null}
                         </div>
                       </article>
                     ))}
@@ -1001,7 +1060,7 @@ export default function CustomerOrderPortal({
         <article><strong>{readyShelfItems.length}</strong><span>ready now</span></article>
         <article><strong>{unavailableThisWeekCount}</strong><span>sold out / paused</span></article>
         <article><strong>{enabledCustomerChoiceCount}</strong><span>optional choices</span></article>
-        <a href="#track-my-bake">Track an order</a>
+        {showTrackMyBake ? <a href="#track-my-bake">Track an order</a> : null}
       </section>
 
       {rules.reviewsVisible && (storefront.reviews || []).length ? (
@@ -1164,6 +1223,12 @@ export default function CustomerOrderPortal({
         {checkoutStep === "contact" ? (
           <section className="customer-details customer-flow-panel">
             <div className="customer-section-heading"><div><h2>Contact + payment</h2><p>Leave enough information for the baker to confirm your request.</p></div></div>
+            {guestCheckoutBlocked ? (
+              <aside className="customer-checkout-lock">
+                <LockKeyhole size={16} />
+                <span><strong>Sign in required</strong><small>Fill this out if you want, but the request cannot be sent until you sign in.</small></span>
+              </aside>
+            ) : null}
             <div className="form-stack">
               <label>Name<input required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="Your name" /></label>
               <div className="form-grid">
@@ -1227,22 +1292,22 @@ export default function CustomerOrderPortal({
             onClick={checkoutStep === "submit" ? undefined : advanceCheckout}
           >
             {checkoutStep === "submit"
-              ? "Send request"
+              ? guestCheckoutBlocked ? "Sign in to order" : "Send request"
               : checkoutStep === "contact"
-                ? "Review request"
+                ? guestCheckoutBlocked ? "Sign in to order" : "Review request"
                 : CHECKOUT_STEPS[Math.min(CHECKOUT_STEPS.length - 1, checkoutStepIndex + 1)]?.label || "Continue"}
           </button>
         </footer>
         {error ? <p className="form-error customer-form-error" role="alert">{error}</p> : null}
       </form>
 
-      <CustomerOrderLookup
+      {showTrackMyBake ? <CustomerOrderLookup
         configured={cloudAccount.configured}
         feedbackEnabled={rules.feedbackEnabled}
         initialCode={trackedCode}
         initialContact={trackedContact || form.email}
         slug={slug}
-      />
+      /> : null}
 
       {selectedProduct ? (
         <CustomerProductOrderModal
