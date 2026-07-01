@@ -5,6 +5,7 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  ClipboardCheck,
   ClipboardList,
   Copy,
   Clock3,
@@ -15,6 +16,7 @@ import {
   Printer,
   QrCode,
   Settings2,
+  ShieldCheck,
   ShoppingCart,
   Tags,
   Wheat,
@@ -30,6 +32,17 @@ import {
 
 const CLOSED_ORDER_STATUSES = new Set(["completed", "rejected", "cancelled", "canceled"]);
 const PRODUCTION_READY_STATUSES = new Set(["accepted", "paid", "deposit", "confirmed", "in progress", "ready", "picked up"]);
+const MAJOR_ALLERGEN_PATTERNS = [
+  { id: "milk", label: "Milk", pattern: /\b(milk|cream|butter|buttermilk|whey|cheese|yogurt|dairy)\b/i },
+  { id: "egg", label: "Egg", pattern: /\b(egg|eggs|albumin)\b/i },
+  { id: "fish", label: "Fish", pattern: /\b(fish|salmon|tuna|cod|halibut)\b/i },
+  { id: "shellfish", label: "Crustacean shellfish", pattern: /\b(shellfish|shrimp|crab|lobster|crayfish)\b/i },
+  { id: "tree_nut", label: "Tree nuts", pattern: /\b(almond|walnut|pecan|cashew|pistachio|hazelnut|macadamia|pine nut|tree nut)\b/i },
+  { id: "peanut", label: "Peanut", pattern: /\b(peanut|peanuts)\b/i },
+  { id: "wheat", label: "Wheat", pattern: /\b(wheat|bread flour|all[-\s]?purpose|ap flour|whole wheat|spelt|einkorn|durum|semolina|farro)\b/i },
+  { id: "soy", label: "Soy", pattern: /\b(soy|soya|soybean|soybeans|lecithin)\b/i },
+  { id: "sesame", label: "Sesame", pattern: /\b(sesame|tahini)\b/i },
+];
 
 function dateTimeLabel(value) {
   if (!value) return "Not scheduled";
@@ -176,6 +189,19 @@ function storageNoteForProduct(lines) {
   return "Keep wrapped at room temperature. For longer storage, slice and freeze.";
 }
 
+function productTypeForLines(lines) {
+  return lines.find((line) => line.recipe?.productType)?.recipe?.productType || "bread";
+}
+
+function labelNeedsSafetyLog(productType) {
+  return ["hot_sauce", "vinegar", "infused_oil"].includes(productType);
+}
+
+function detectMajorAllergens(...values) {
+  const text = values.map((value) => String(value || "")).join(" · ");
+  return MAJOR_ALLERGEN_PATTERNS.filter((allergen) => allergen.pattern.test(text));
+}
+
 function uniqueWords(values) {
   return [...new Set(values.map((value) => String(value || "").trim()).filter(Boolean))];
 }
@@ -189,6 +215,13 @@ function buildLabelRows(orders, recipes) {
       const ingredients = uniqueWords(lines.flatMap((line) => (
         line.recipe?.ingredients?.map((ingredient) => ingredient.name) || []
       )));
+      const productType = productTypeForLines(lines);
+      const allergens = detectMajorAllergens(
+        ingredients.join(", "),
+        order.allergies,
+        order.itemSummary,
+        order.product,
+      );
       return {
         id: order.id,
         customer: order.customer || "Customer",
@@ -200,6 +233,10 @@ function buildLabelRows(orders, recipes) {
         ingredients: ingredients.length ? ingredients.join(", ") : "Recipe ingredients not matched",
         storage: storageNoteForProduct(lines),
         notes: order.notes || order.internalNotes || "",
+        productType,
+        productTypes: uniqueWords(lines.map((line) => line.recipe?.productType || "").filter(Boolean)),
+        allergens,
+        requiresSafetyLog: labelNeedsSafetyLog(productType),
       };
     });
 }
@@ -242,6 +279,111 @@ function storefrontSlipText(storefrontUrl) {
     storefrontUrl,
     "Thank you!",
   ].join("\n");
+}
+
+function complianceLabelText(label, storefrontUrl) {
+  return [
+    "LOAFERS BAKERY",
+    "------------------------------",
+    `ITEM: ${truncateLine(label.item, 27)}`,
+    `CUSTOMER: ${truncateLine(label.customer, 22)}`,
+    `PICKUP: ${truncateLine(label.pickup, 24)}`,
+    `INGREDIENTS: ${truncateLine(label.ingredients, 90)}`,
+    `ALLERGEN REVIEW: ${label.allergens.length ? label.allergens.map((allergen) => allergen.label).join(", ") : "Review before pickup"}`,
+    `STORAGE: ${truncateLine(label.storage, 75)}`,
+    label.requestCode ? `BATCH/ORDER: ${truncateLine(label.requestCode, 22)}` : "BATCH/ORDER: add code",
+    "Made in a home kitchen; review local label rules.",
+    "Scan to order:",
+    storefrontUrl,
+  ].join("\n");
+}
+
+function buildSmartPrepLists({ planner, forecastRows, labelRows }) {
+  const scaleRows = planner.requirements.slice(0, 12).map((requirement) => ({
+    name: requirement.name,
+    amount: `${Math.round(requirement.grams || 0).toLocaleString()} g`,
+    note: "Scale for accepted production batches.",
+  }));
+  const stageRows = planner.batches.slice(0, 8).map((batch) => ({
+    id: batch.key,
+    name: batch.recipeName,
+    amount: `${batch.loaves} ${batch.recipe?.unitName || "items"}`,
+    note: `${batch.customers.join(" · ")} · mix ${dateTimeLabel(batch.schedule?.mix)}`,
+  }));
+  const packagingRows = [
+    {
+      name: "Customer labels",
+      amount: `${labelRows.length}`,
+      note: "Print or copy labels before pickup sorting.",
+    },
+    {
+      name: "Packages / bags",
+      amount: `${planner.totalPackages}`,
+      note: "Based on customer package counts, not just loaves/items.",
+    },
+    {
+      name: "Allergy callouts",
+      amount: `${labelRows.filter((label) => label.allergens.length || label.allergies !== "No allergies listed").length}`,
+      note: "Review before labeling and handoff.",
+    },
+  ];
+  const shoppingRows = forecastRows.filter((row) => row.status !== "ok").slice(0, 10).map((row) => ({
+    name: row.name,
+    amount: row.status === "missing" ? "Match item" : `${smartAmount(row.restock)} ${row.unit}`,
+    note: row.status === "missing" ? "Rename/add inventory so forecasting can track it." : `Need ${smartAmount(row.needed)} ${row.unit}; target ${smartAmount(row.target)}.`,
+    tone: row.status,
+  }));
+  const warningRows = [
+    planner.unmatched.length ? {
+      name: "Recipe matches",
+      amount: `${planner.unmatched.length}`,
+      note: "Order lines need recipe matches before formula scaling is reliable.",
+      tone: "warning",
+    } : null,
+    planner.shortages.length ? {
+      name: "Inventory flags",
+      amount: `${planner.shortages.length}`,
+      note: "Check shopping list before mixing.",
+      tone: "warning",
+    } : null,
+    labelRows.some((label) => label.ingredients === "Recipe ingredients not matched") ? {
+      name: "Ingredient labels",
+      amount: "Review",
+      note: "Some labels cannot list ingredients until the order matches a recipe.",
+      tone: "warning",
+    } : null,
+  ].filter(Boolean);
+  return {
+    scaleRows,
+    stageRows,
+    packagingRows,
+    shoppingRows,
+    warningRows,
+  };
+}
+
+function buildComplianceRows({ labelRows, liquidSafetyLogs, batchTraceRecords }) {
+  const recentSafetyLogDate = liquidSafetyLogs
+    .map((log) => new Date(log.date || log.createdAt || 0))
+    .filter((date) => !Number.isNaN(date.getTime()))
+    .sort((a, b) => b - a)[0];
+  return labelRows.map((label) => {
+    const missing = [];
+    if (!label.ingredients || label.ingredients === "Recipe ingredients not matched") missing.push("ingredients");
+    if (!label.requestCode) missing.push("batch/order code");
+    if (!label.storage) missing.push("storage");
+    if (label.requiresSafetyLog && !recentSafetyLogDate) missing.push("liquid safety log");
+    const traceLinked = batchTraceRecords.some((record) => (
+      (record.orderIds || []).some((id) => String(id) === String(label.id))
+      || (record.customerNames || []).some((name) => String(label.customer || "").toLowerCase().includes(String(name || "").toLowerCase()))
+    ));
+    return {
+      ...label,
+      missing,
+      traceLinked,
+      status: missing.length ? "needs-review" : "ready",
+    };
+  });
 }
 
 function buildForecastRows({ days, inventory, planner, settings }) {
@@ -328,8 +470,10 @@ function ToggleRow({ checked, disabled = false, label, note, onChange, warning =
 
 export function ProductionPlanner({
   automation,
+  batchTraceRecords = [],
   cloudAccount,
   inventory,
+  liquidSafetyLogs = [],
   orders,
   recipes,
   starters,
@@ -396,6 +540,18 @@ export function ProductionPlanner({
     planner,
     settings,
   }), [forecastDays, inventory, planner, settings]);
+  const smartPrep = useMemo(() => buildSmartPrepLists({
+    planner,
+    forecastRows,
+    labelRows,
+  }), [forecastRows, labelRows, planner]);
+  const complianceRows = useMemo(() => buildComplianceRows({
+    labelRows,
+    liquidSafetyLogs,
+    batchTraceRecords,
+  }), [batchTraceRecords, labelRows, liquidSafetyLogs]);
+  const complianceReadyCount = complianceRows.filter((row) => row.status === "ready").length;
+  const complianceReviewCount = complianceRows.length - complianceReadyCount;
   const shoppingRows = forecastRows.filter((row) => row.status !== "ok");
   const shoppingTotal = shoppingRows.reduce((sum, row) => sum + Number(row.cost || 0), 0);
   const readyOrders = orders.filter(isProductionReadyOrder);
@@ -707,6 +863,50 @@ export function ProductionPlanner({
           ) : null}
           </div>
 
+          <section className="smart-prep-panel" id="production-prep-sheet" aria-label="Smart prep lists">
+            <div className="section-title-line">
+              <div>
+                <span className="eyebrow-label dark">Smart prep lists</span>
+                <h2>Scale, stage, pack, shop</h2>
+                <small>Auto-built from accepted orders, recipes, inventory, package counts, and label needs.</small>
+              </div>
+              <ClipboardCheck size={21} />
+            </div>
+            {smartPrep.warningRows.length ? (
+              <div className="prep-warning-strip">
+                {smartPrep.warningRows.map((row) => (
+                  <span key={row.name}><strong>{row.amount}</strong><small>{row.name}: {row.note}</small></span>
+                ))}
+              </div>
+            ) : null}
+            <div className="smart-prep-grid">
+              <article>
+                <strong>Scale ingredients</strong>
+                {smartPrep.scaleRows.length ? smartPrep.scaleRows.map((row) => (
+                  <span key={row.name}><b>{row.name}</b><em>{row.amount}</em><small>{row.note}</small></span>
+                )) : <small>No accepted production ingredients yet.</small>}
+              </article>
+              <article>
+                <strong>Bench staging</strong>
+                {smartPrep.stageRows.length ? smartPrep.stageRows.map((row) => (
+                  <span key={row.id}><b>{row.name}</b><em>{row.amount}</em><small>{row.note}</small></span>
+                )) : <small>No batches ready to stage.</small>}
+              </article>
+              <article>
+                <strong>Packaging & labels</strong>
+                {smartPrep.packagingRows.map((row) => (
+                  <span key={row.name}><b>{row.name}</b><em>{row.amount}</em><small>{row.note}</small></span>
+                ))}
+              </article>
+              <article>
+                <strong>Shortage-first shopping</strong>
+                {smartPrep.shoppingRows.length ? smartPrep.shoppingRows.map((row) => (
+                  <span className={row.tone} key={row.name}><b>{row.name}</b><em>{row.amount}</em><small>{row.note}</small></span>
+                )) : <small>No shopping pressure in this forecast window.</small>}
+              </article>
+            </div>
+          </section>
+
           <section className="production-print-center" aria-label="Labels and printables">
             <div className="section-title-line">
               <div>
@@ -718,7 +918,9 @@ export function ProductionPlanner({
             </div>
             <div className="production-print-actions">
               <button type="button" className="secondary-button" onClick={() => printSection("batch")} disabled={!planner.batches.length}><ListChecks size={15} /> Batch sheet</button>
+              <button type="button" className="secondary-button" onClick={() => printSection("prep")} disabled={!planner.batches.length && !forecastRows.length}><ClipboardCheck size={15} /> Prep list</button>
               <button type="button" className="secondary-button" onClick={() => printSection("labels")} disabled={!labelRows.length}><Tags size={15} /> Order labels</button>
+              <button type="button" className="secondary-button" onClick={() => printSection("compliance")} disabled={!complianceRows.length}><ShieldCheck size={15} /> Compliance</button>
               <button type="button" className="secondary-button" onClick={() => printSection("shopping")} disabled={!forecastRows.length}><ShoppingCart size={15} /> Shopping list</button>
             </div>
             <section className="coreprint-copy-panel" aria-label="Coreprint CTP500BR copy and paste labels">
@@ -769,6 +971,58 @@ export function ProductionPlanner({
                   </article>
                 )) : <p className="cloud-empty-copy">No active production orders to label.</p>}
               </div>
+            </div>
+          </section>
+
+          <section className="label-compliance-center" id="production-compliance-sheet" aria-label="Label and compliance center">
+            <div className="section-title-line">
+              <div>
+                <span className="eyebrow-label dark">Label & compliance center</span>
+                <h2>Review before handoff</h2>
+                <small>Practical checks for labels, allergens, storage notes, liquid logs, and batch trace links.</small>
+              </div>
+              <ShieldCheck size={21} />
+            </div>
+            <div className="compliance-summary-grid">
+              <span><strong>{complianceRows.length}</strong><small>active labels</small></span>
+              <span><strong>{complianceReadyCount}</strong><small>ready</small></span>
+              <span className={complianceReviewCount ? "warning" : ""}><strong>{complianceReviewCount}</strong><small>need review</small></span>
+              <span><strong>{labelRows.filter((label) => label.allergens.length).length}</strong><small>allergen flags</small></span>
+            </div>
+            <div className="compliance-reference-cards">
+              <article>
+                <strong>Home-bakery label reminder</strong>
+                <small>Keep producer contact, product name, ingredients/allergens, date or lot code, storage notes, and any required homemade-food statement together before pickup.</small>
+              </article>
+              <article>
+                <strong>Major allergen review</strong>
+                <small>Check milk, egg, fish, crustacean shellfish, tree nuts, peanuts, wheat, soybeans, and sesame. This app flags likely matches; you still verify the final label.</small>
+              </article>
+            </div>
+            <div className="compliance-label-list">
+              {complianceRows.length ? complianceRows.map((row) => (
+                <article className={`compliance-label-row ${row.status}`} key={row.id}>
+                  <span>
+                    <strong>{row.customer}</strong>
+                    <small>{row.item}</small>
+                  </span>
+                  <span>
+                    <strong>{row.allergens.length ? row.allergens.map((allergen) => allergen.label).join(", ") : "Review"}</strong>
+                    <small>major allergens</small>
+                  </span>
+                  <span>
+                    <strong>{row.traceLinked ? "Trace linked" : row.requestCode ? row.requestCode : "Add code"}</strong>
+                    <small>batch / order record</small>
+                  </span>
+                  <span>
+                    <strong>{row.missing.length ? row.missing.join(", ") : "Ready"}</strong>
+                    <small>{row.requiresSafetyLog ? "liquid product" : "label checks"}</small>
+                  </span>
+                  <button type="button" className="text-button" onClick={(event) => copyMiniLabel(complianceLabelText(row, storefrontUrl), event.currentTarget)}>
+                    <Copy size={14} /> Copy label text
+                  </button>
+                </article>
+              )) : <p className="cloud-empty-copy">No active order labels to review yet.</p>}
             </div>
           </section>
 

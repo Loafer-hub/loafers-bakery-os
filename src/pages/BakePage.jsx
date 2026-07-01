@@ -105,9 +105,12 @@ const bakeViews = [
 const bakeViewCopy = Object.fromEntries(bakeViews.map((item) => [item.id, item]));
 
 export default function BakePage({
+  bakerySettings,
+  batchTraceRecords,
   cloudAccount,
   productionAutomation,
   inventory,
+  liquidSafetyLogs,
   recipes,
   bakePlans,
   kitchenBakes,
@@ -360,8 +363,11 @@ export default function BakePage({
       {view === "production" ? (
         <ProductionPlanner
           automation={productionAutomation}
+          bakerySettings={bakerySettings}
+          batchTraceRecords={batchTraceRecords}
           cloudAccount={cloudAccount}
           inventory={inventory}
+          liquidSafetyLogs={liquidSafetyLogs}
           orders={orders}
           recipes={recipes}
           starters={starters}

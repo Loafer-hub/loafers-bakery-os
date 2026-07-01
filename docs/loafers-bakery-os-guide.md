@@ -360,6 +360,8 @@ It can:
 - Warn about shortages
 - Include packaging such as paper bags
 - Sync generated plans to the bake calendar
+- Show a weekly production planner for pickups, feeds, mixes, bakes, and shortage pressure
+- Build smart prep lists for scaling ingredients, bench staging, packaging, labels, and shortage-first shopping
 - Print day sheets, batch sheets, labels, and shopping lists
 - Optionally deduct stock when a bake is completed
 
@@ -505,6 +507,7 @@ Important: these are planning and traceability helpers, not a food-safety certif
 The customer storefront is designed to feel simple:
 
 - Bakery announcement at the top
+- “What’s baking this week” board
 - Product type tabs
 - Compact product cards
 - Ready shelf items when enabled
@@ -580,6 +583,21 @@ The owner can control:
 
 These controls let the baker decide how public or account-based the storefront should be.
 
+### What’s baking this week
+
+The customer page can now summarize current availability before the customer starts browsing the full menu.
+
+It shows:
+
+- Ready-now shelf items
+- Products marked ready now
+- Limited-batch, preorder, and spicy items
+- Planned menu items available for the week
+- Counts by product type
+- Starting prices
+
+The weekly board is generated from the same product availability, badges, and ready shelf records already used by the customer menu. The baker does not need to maintain a second weekly menu.
+
 ### Track My Bake
 
 Track My Bake lets a customer see order status and bake progress when enabled.
@@ -622,7 +640,9 @@ Production includes print and copy tools:
 
 - Production day sheet
 - Batch sheet
+- Smart prep list
 - Order labels
+- Label and compliance review sheet
 - Shopping list
 - CorePrint CTP500BR mini-printer copy/paste labels
 - Storefront QR code
@@ -639,6 +659,24 @@ The CorePrint label text includes:
 - Storefront URL / QR prompt
 
 If there are no active production orders, it can still create a storefront QR slip so customers can scan and order.
+
+### Label and compliance center
+
+The Label and Compliance Center is a practical review area for active production labels.
+
+It helps the baker review:
+
+- Customer/order label count
+- Missing recipe ingredient matches
+- Missing batch/order codes
+- Storage notes
+- Major allergen flags
+- Liquid-product safety-log reminders
+- Batch trace links where available
+
+It also creates copy/paste label text for the CorePrint CTP500BR workflow.
+
+Allergen reminders include milk, egg, fish, crustacean shellfish, tree nuts, peanuts, wheat, soybeans, and sesame. This is a review helper only; the baker still verifies the final product label and local rule requirements.
 
 ## Inventory, purchases, and business tracking
 
@@ -1036,6 +1074,8 @@ This changelog is written as a product history, not a line-by-line commit log.
 - Added estimated nutrition
 - Added non-bread items such as cakes, hot sauces, vinegars, and infused oils
 - Added yeast breads as a separate product type
+- Added recipe versioning so formula changes create traceable version records
+- Added recipe-level labor, overhead, packaging, cost, margin, and profit-per-bake-slot planning
 
 ### Flour science
 
@@ -1051,6 +1091,7 @@ This changelog is written as a product history, not a line-by-line commit log.
 - Added public customer order page
 - Added menu categories/tabs
 - Added bakery announcements
+- Added customer-facing “What’s baking this week” board
 - Added compact product cards and product detail modals
 - Added cart-based checkout flow
 - Added cart editing
@@ -1131,6 +1172,9 @@ This changelog is written as a product history, not a line-by-line commit log.
 - Added checklist steps including stretch and folds where recipe settings require them
 - Added batch/stagger suggestions
 - Added home page visual fermentation tied to selected named bake
+- Added weekly production planner
+- Added smart prep lists for ingredient scaling, bench staging, packaging, label counts, and shortage-first shopping
+- Added batch trace record creation for completed orders and completed Kitchen bakes
 
 ### Labels and printables
 
@@ -1140,6 +1184,10 @@ This changelog is written as a product history, not a line-by-line commit log.
 - Added shopping list forecast
 - Added CorePrint CTP500BR mini-printer copy/paste label format
 - Added storefront QR code on labels and slips
+- Added Label and Compliance Center
+- Added copy/paste compliance label text
+- Added major-allergen review reminders
+- Added liquid product safety-log reminders
 
 ### PWA and hosting
 
@@ -1160,6 +1208,8 @@ This changelog is written as a product history, not a line-by-line commit log.
 - Improved responsive mobile/desktop behavior
 - Fixed order calendar readability/layout on wide screens
 - Added owner cockpit/business pro workflow sections
+- Added true product costing and pricing intelligence panels
+- Added batch trace records to backup/restore
 
 ## Known limitations and cautions
 
@@ -1173,10 +1223,8 @@ This changelog is written as a product history, not a line-by-line commit log.
 ## Recommended next improvements
 
 - Add a stronger owner login gate for local owner screens when used on shared devices.
-- Add recipe versioning so batch records can point to the exact formula used that day.
-- Add printable allergen labels per product.
 - Add tax/fee settings if the bakery needs more formal checkout totals.
 - Add real SMS provider integration if text automation becomes important.
-- Add richer batch traceability for ingredient lots and finished product lots.
+- Add richer batch recall workflows for ingredient lots, finished product lots, and customer contact lists.
 - Add customer-facing pickup reminders.
 - Add end-to-end tests for customer checkout, capacity lockout, order acceptance, and email event generation.

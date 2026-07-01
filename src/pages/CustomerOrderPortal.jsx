@@ -1,5 +1,6 @@
 import {
   Banknote,
+  CalendarDays,
   CheckCircle2,
   ChevronLeft,
   Clock3,
@@ -177,6 +178,70 @@ function productSelectedPackageCount(product, quantities) {
   return productSalesOptions(product).reduce((sum, option) => (
     sum + Number(quantities[`product-${product.id}-${option.id}`] || 0)
   ), 0);
+}
+
+function buildWeeklyBakingBoard(products, shelfItems, settings) {
+  const availableProducts = products.filter((product) => !productUnavailable(product));
+  const readyNow = [
+    ...shelfItems.map((item) => ({
+      id: `shelf-${item.id}`,
+      kind: "ready",
+      title: item.name,
+      detail: `${Number(item.quantity || 0)} ready · ${shelfAgeLabel(item.baked_on)}`,
+      price: dollars(item.price_cents),
+      product: null,
+    })),
+    ...availableProducts
+      .filter((product) => productBadges(product).some((badge) => badge.id === "ready_now"))
+      .map((product) => ({
+        id: `ready-${product.id}`,
+        kind: "ready",
+        title: product.name,
+        detail: productTypeLabel(product, settings),
+        price: dollars(productStartingPrice(product)),
+        product,
+      })),
+  ].slice(0, 4);
+  const limited = availableProducts
+    .filter((product) => productBadges(product).some((badge) => ["limited_batch", "preorder", "spicy"].includes(badge.id)))
+    .slice(0, 4)
+    .map((product) => ({
+      id: `limited-${product.id}`,
+      kind: "limited",
+      title: product.name,
+      detail: productBadges(product).map((badge) => badge.label).join(" · ") || productTypeLabel(product, settings),
+      price: dollars(productStartingPrice(product)),
+      product,
+    }));
+  const planned = availableProducts
+    .filter((product) => !readyNow.some((item) => item.product?.id === product.id))
+    .slice(0, 5)
+    .map((product) => ({
+      id: `planned-${product.id}`,
+      kind: "planned",
+      title: product.name,
+      detail: productTypeLabel(product, settings),
+      price: dollars(productStartingPrice(product)),
+      product,
+    }));
+  const typeCounts = new Map();
+  availableProducts.forEach((product) => {
+    const type = productTypeValue(product);
+    const label = productTypeLabel(product, settings);
+    typeCounts.set(type, {
+      type,
+      label,
+      icon: productTypeIcon(product, settings),
+      count: (typeCounts.get(type)?.count || 0) + 1,
+    });
+  });
+  return {
+    readyNow,
+    limited,
+    planned,
+    typeCounts: [...typeCounts.values()].slice(0, 5),
+    availableCount: availableProducts.length,
+  };
 }
 
 function enabledCustomerOptions(typeSettings) {
@@ -594,6 +659,11 @@ export default function CustomerOrderPortal({
       ? []
       : storefrontProducts.filter((product) => productTypeValue(product) === activeCatalogTab);
   const activeCatalogInfo = catalogTabs.find((tab) => tab.id === activeCatalogTab);
+  const weeklyBakingBoard = useMemo(() => buildWeeklyBakingBoard(
+    storefrontProducts,
+    readyShelfItems,
+    rules,
+  ), [readyShelfItems, rules, storefrontProducts]);
   const availableThisWeekCount = storefrontProducts.filter((product) => !productUnavailable(product)).length;
   const unavailableThisWeekCount = storefrontProducts.length - availableThisWeekCount;
   const enabledCustomerChoiceCount = productTypes.reduce((sum, type) => (
@@ -1400,6 +1470,17 @@ export default function CustomerOrderPortal({
         </div>
       </section>
 
+      <CustomerWeeklyBakingBoard
+        board={weeklyBakingBoard}
+        onOpenProduct={(product) => {
+          if (product) setSelectedProduct(product);
+        }}
+        onOpenReadyShelf={() => {
+          setActiveCatalogTab("ready");
+          setCheckoutStep("browse");
+        }}
+      />
+
       <section className="customer-menu-summary" aria-label="Menu snapshot">
         <article><strong>{availableThisWeekCount}</strong><span>available this week</span></article>
         <article><strong>{readyShelfItems.length}</strong><span>ready now</span></article>
@@ -1817,6 +1898,66 @@ function CustomerCheckoutReview({ form, items, pickupLocation, rules, total }) {
           rules.smsNotifications && form.notifySms && form.phone.trim() ? "Text" : "",
         ].filter(Boolean).join(" + ") || "No automatic updates selected"}</strong></span>
         <span><small>Estimated total</small><strong>{dollars(total)}</strong></span>
+      </div>
+    </section>
+  );
+}
+
+function CustomerWeeklyBakingBoard({ board, onOpenProduct, onOpenReadyShelf }) {
+  if (!board || (!board.availableCount && !board.readyNow.length)) return null;
+  const rows = [
+    {
+      id: "ready",
+      label: "Ready now",
+      note: "Already baked or marked ready for quick pickup.",
+      items: board.readyNow,
+      action: onOpenReadyShelf,
+    },
+    {
+      id: "limited",
+      label: "Limited / special",
+      note: "Small batches, preorder items, spice-forward items, or weekly features.",
+      items: board.limited,
+    },
+    {
+      id: "planned",
+      label: "Planned bakes",
+      note: "Available menu items the baker is accepting requests for this week.",
+      items: board.planned,
+    },
+  ].filter((section) => section.items.length);
+  return (
+    <section className="customer-weekly-bakes" aria-label="What's baking this week">
+      <div className="customer-section-heading">
+        <div>
+          <h2>What’s baking this week</h2>
+          <p>Fresh availability at a glance. Tap an item to see details, photos, ingredients, and package choices.</p>
+        </div>
+        <CalendarDays size={18} />
+      </div>
+      <div className="customer-weekly-bake-types">
+        {board.typeCounts.map((type) => (
+          <span key={type.type}><b>{type.icon}</b>{type.label}<small>{type.count}</small></span>
+        ))}
+      </div>
+      <div className="customer-weekly-bake-grid">
+        {rows.map((section) => (
+          <article className={`customer-weekly-bake-column ${section.id}`} key={section.id}>
+            <span>
+              <strong>{section.label}</strong>
+              <small>{section.note}</small>
+            </span>
+            <div>
+              {section.items.map((item) => (
+                <button type="button" key={item.id} onClick={() => (item.product ? onOpenProduct(item.product) : section.action?.())}>
+                  <strong>{item.title}</strong>
+                  <small>{item.detail}</small>
+                  <em>{item.price}</em>
+                </button>
+              ))}
+            </div>
+          </article>
+        ))}
       </div>
     </section>
   );
