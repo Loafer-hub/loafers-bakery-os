@@ -23,6 +23,7 @@ import { useCloudAccount } from "./hooks/useCloudAccount";
 import {
   cancelCustomerOrderCapacity,
   completeCustomerOrder,
+  listBakeryCustomerProfiles,
   loadBakerySettings,
   saveBakerySettings,
   syncBakerCapacityReservations,
@@ -165,6 +166,58 @@ function upsertCustomerProfileFromCloudOrder(currentProfiles, request, order) {
   return [merged, ...currentProfiles];
 }
 
+function profileIdFromSavedAccount(profile) {
+  const accountId = String(profile.user_id || "").trim();
+  const email = cleanEmail(profile.email);
+  const phone = cleanPhone(profile.phone);
+  if (accountId) return `account-${accountId}`;
+  if (email) return `email-${customerSlug(email)}`;
+  if (phone) return `phone-${phone}`;
+  return customerSlug(profile.full_name) || `account-profile-${Date.now()}`;
+}
+
+function upsertCustomerProfileFromSavedAccount(currentProfiles, savedProfile) {
+  const accountId = String(savedProfile.user_id || "").trim();
+  const email = cleanEmail(savedProfile.email);
+  const phone = cleanPhone(savedProfile.phone);
+  const nameKey = customerSlug(savedProfile.full_name);
+  const existingIndex = currentProfiles.findIndex((profile) => (
+    (accountId && profile.customerUserId === accountId)
+    || (email && cleanEmail(profile.email) === email)
+    || (phone && cleanPhone(profile.phone) === phone)
+    || (!email && !phone && nameKey && customerSlug(profile.name) === nameKey)
+  ));
+  const existing = existingIndex >= 0 ? currentProfiles[existingIndex] : {};
+  const linkedNote = "Customer account profile synced";
+  const merged = {
+    ...existing,
+    id: existing.id || profileIdFromSavedAccount(savedProfile),
+    customerUserId: existing.customerUserId || accountId,
+    name: savedProfile.full_name || existing.name || "Customer",
+    email: savedProfile.email || existing.email || "",
+    phone: savedProfile.phone || existing.phone || "",
+    allergies: savedProfile.allergies || existing.allergies || "",
+    preferences: savedProfile.preferences || existing.preferences || "",
+    address: savedProfile.address || existing.address || "",
+    paymentNotes: savedProfile.default_payment_method || existing.paymentNotes || "",
+    favoriteItems: mergeCommaList(existing.favoriteItems, [savedProfile.favorite_product_name]),
+    notes: appendUniqueNote(existing.notes, linkedNote),
+    lastAccountProfileAt: savedProfile.updated_at || savedProfile.created_at || new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+  if (existingIndex >= 0) {
+    return currentProfiles.map((profile, index) => (index === existingIndex ? merged : profile));
+  }
+  return [merged, ...currentProfiles];
+}
+
+function mergeSavedCustomerProfiles(currentProfiles, savedProfiles = []) {
+  return savedProfiles.reduce(
+    (profiles, savedProfile) => upsertCustomerProfileFromSavedAccount(profiles, savedProfile),
+    currentProfiles,
+  );
+}
+
 export default function App() {
   const [active, setActive] = useState("today");
   const [selectedOrderId, setSelectedOrderId] = useState(null);
@@ -236,6 +289,22 @@ export default function App() {
       })
       .catch(() => {});
   }, [cloudAccount.workspace?.bakeryId, setBakerySettings]);
+
+  useEffect(() => {
+    const bakeryId = cloudAccount.workspace?.bakeryId;
+    if (!bakeryId) return undefined;
+    let active = true;
+    listBakeryCustomerProfiles(bakeryId)
+      .then((profiles) => {
+        if (active && profiles.length) {
+          setCustomerProfiles((current) => mergeSavedCustomerProfiles(current, profiles));
+        }
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [cloudAccount.workspace?.bakeryId, setCustomerProfiles]);
 
   function addOrder(form) {
     const initials = form.customer

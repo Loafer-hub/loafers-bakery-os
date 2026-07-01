@@ -32,10 +32,12 @@ import {
   loadPublicStorefront,
   recordCustomerAccessEvent,
   saveCustomerAccountDetails,
+  sendCustomerPasswordReset,
   signInWithEmail,
   signOutCloud,
   signUpCustomer,
   submitPublicOrder,
+  updateCloudPassword,
 } from "../lib/cloud";
 import { normalizedBakerySettings } from "../lib/bakerySettings";
 import {
@@ -326,6 +328,10 @@ export default function CustomerOrderPortal({
     password: "",
     confirmPassword: "",
   });
+  const [passwordForm, setPasswordForm] = useState({
+    next: "",
+    confirm: "",
+  });
   const [accountBusy, setAccountBusy] = useState("");
   const [accountMessage, setAccountMessage] = useState("");
   const [accountProfile, setAccountProfile] = useState(defaultCustomerProfile());
@@ -353,6 +359,7 @@ export default function CustomerOrderPortal({
     || (rules.allowGuestCheckout !== false && rules.requireSignInForOrders !== true);
   const guestCheckoutBlocked = !cloudAccount.session?.user && !customerCanCheckout;
   const urlParams = new URLSearchParams(window.location.search);
+  const passwordResetMode = urlParams.get("reset") === "password";
   const trackedCode = urlParams.get("track") || "";
   const trackedContact = urlParams.get("contact") || "";
   const showTrackMyBake = rules.trackMyBakePublic !== false || Boolean(trackedCode);
@@ -604,12 +611,23 @@ export default function CustomerOrderPortal({
   const accountHistory = accountCloudHistory.slice(0, 8);
   const accountContact = accountProfile.email || form.email || form.phone;
   const passwordChecks = customerPasswordChecks(accountForm.password, accountForm.email, accountForm.name);
+  const changePasswordChecks = customerPasswordChecks(
+    passwordForm.next,
+    accountProfile.email || accountForm.email || form.email,
+    accountProfile.name || accountForm.name || form.name,
+  );
 
   useEffect(() => {
     if (!catalogTabs.some((tab) => tab.id === activeCatalogTab)) {
       setActiveCatalogTab("all");
     }
   }, [activeCatalogTab, catalogTabs]);
+
+  useEffect(() => {
+    if (!passwordResetMode || !customerAccountsEnabled) return;
+    setAccountOpen(true);
+    setAccountMessage("Set a new password for this account.");
+  }, [customerAccountsEnabled, passwordResetMode]);
 
   useEffect(() => {
     if (!customerAccountsEnabled || !cloudAccount.configured || !cloudAccount.session?.user?.id) {
@@ -823,6 +841,59 @@ export default function CustomerOrderPortal({
           : "Account created. If Supabase asks for email confirmation, confirm once, then return and sign in with your password."
         : "Signed in. Saved details and order history are ready.");
       setAccountOpen(true);
+    } catch (nextError) {
+      setAccountMessage(nextError.message);
+    } finally {
+      setAccountBusy("");
+    }
+  }
+
+  async function requestPasswordReset() {
+    const email = cleanCustomerEmail(accountForm.email || accountProfile.email || form.email);
+    setAccountMessage("");
+    setError("");
+    if (!EMAIL_PATTERN.test(email)) {
+      setAccountMessage("Enter the account email first, then tap Forgot password.");
+      return;
+    }
+    setAccountBusy("reset");
+    try {
+      await sendCustomerPasswordReset(email, { slug });
+      setAccountForm((current) => ({ ...current, email }));
+      setAccountMessage("If that account exists, a password reset email has been sent. Open it, then set a new password here.");
+    } catch (nextError) {
+      setAccountMessage(nextError.message);
+    } finally {
+      setAccountBusy("");
+    }
+  }
+
+  async function changeCustomerPassword(event) {
+    event.preventDefault();
+    if (!cloudAccount.session?.user) {
+      setAccountMessage("Sign in before changing the password.");
+      return;
+    }
+    const nextPassword = String(passwordForm.next || "");
+    const confirmPassword = String(passwordForm.confirm || "");
+    const email = accountProfile.email || cloudAccount.session.user.email || accountForm.email || form.email;
+    const name = accountProfile.name || accountForm.name || form.name;
+    const passwordIssue = firstPasswordIssue(nextPassword, email, name);
+    setAccountMessage("");
+    setError("");
+    if (passwordIssue) {
+      setAccountMessage(`Password needs: ${passwordIssue.toLowerCase()}.`);
+      return;
+    }
+    if (nextPassword !== confirmPassword) {
+      setAccountMessage("Passwords do not match.");
+      return;
+    }
+    setAccountBusy("password");
+    try {
+      await updateCloudPassword(nextPassword);
+      setPasswordForm({ next: "", confirm: "" });
+      setAccountMessage("Password updated for this customer account.");
     } catch (nextError) {
       setAccountMessage(nextError.message);
     } finally {
@@ -1099,9 +1170,14 @@ export default function CustomerOrderPortal({
                 <button className="primary-button" type="submit" disabled={accountBusy === "auth"}>
                   <KeyRound size={16} /> {accountBusy === "auth" ? "Working…" : accountMode === "signup" ? "Create account" : "Sign in"}
                 </button>
+                {accountMode === "signin" ? (
+                  <button className="storage-file-button" type="button" onClick={requestPasswordReset} disabled={accountBusy === "reset"}>
+                    {accountBusy === "reset" ? "Sending reset…" : "Forgot password?"}
+                  </button>
+                ) : null}
               </form>
               <small className="customer-account-private-note">
-                Use a unique password you do not use elsewhere. The app asks Supabase to store passwords securely; Loafers never sees the password.
+                Use a unique password you do not use elsewhere. Password reset uses email for security, but sign-in stays email + password. Loafers never sees the password.
               </small>
             </>
           )}
@@ -1169,6 +1245,21 @@ export default function CustomerOrderPortal({
               ) : (
                 <small className="customer-account-private-note">Profile saving is turned off. Signed-in order history can still appear for orders placed while signed in.</small>
               )}
+
+              <form className="customer-profile-form customer-password-form" onSubmit={changeCustomerPassword}>
+                <strong>Password</strong>
+                <small>Change the password for this customer account.</small>
+                <div className="form-grid">
+                  <label>New password<input type="password" value={passwordForm.next} onChange={(event) => setPasswordForm({ ...passwordForm, next: event.target.value })} autoComplete="new-password" placeholder="New strong password" /></label>
+                  <label>Confirm password<input type="password" value={passwordForm.confirm} onChange={(event) => setPasswordForm({ ...passwordForm, confirm: event.target.value })} autoComplete="new-password" placeholder="Repeat new password" /></label>
+                </div>
+                {passwordForm.next ? (
+                  <ul className="customer-password-rules" aria-label="New password requirements">
+                    {changePasswordChecks.map((check) => <li className={check.ok ? "met" : ""} key={check.id}>{check.ok ? "✓" : "○"} {check.label}</li>)}
+                  </ul>
+                ) : null}
+                <button className="storage-file-button" type="submit" disabled={accountBusy === "password"}><KeyRound size={15} /> {accountBusy === "password" ? "Updating…" : "Change password"}</button>
+              </form>
 
               <div className="customer-history-panel">
                 <div className="customer-history-title"><ClipboardList size={16} /><span><strong>Order history</strong><small>{accountHistoryLoading ? "Loading…" : accountHistory.length ? `${accountHistory.length} recent request${accountHistory.length === 1 ? "" : "s"}` : "No saved order history yet"}</small></span></div>

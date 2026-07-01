@@ -94,6 +94,34 @@ export async function signInWithEmail(email, password) {
   return data;
 }
 
+export async function sendCustomerPasswordReset(email, { slug = "" } = {}) {
+  const cleanEmail = String(email || "").trim().toLowerCase();
+  if (!cleanEmail) {
+    throw new Error("Enter the email address for the account.");
+  }
+  const redirectTo = (() => {
+    try {
+      const url = new URL(window.location.href);
+      if (slug) url.searchParams.set("order", slug);
+      url.searchParams.set("account", "customer");
+      url.searchParams.set("reset", "password");
+      url.hash = "";
+      return url.toString();
+    } catch {
+      return undefined;
+    }
+  })();
+  const { data, error } = await requireClient().auth.resetPasswordForEmail(cleanEmail, { redirectTo });
+  throwIfError(error);
+  return data;
+}
+
+export async function updateCloudPassword(password) {
+  const { data, error } = await requireClient().auth.updateUser({ password });
+  throwIfError(error);
+  return data;
+}
+
 export async function signUpBaker({ email, password, fullName, bakeryName, slug }) {
   const { data, error } = await requireClient().auth.signUp({
     email,
@@ -170,6 +198,34 @@ export async function loadCustomerAccountProfile(bakeryId) {
     favoriteOptionId: data.favorite_option_id || "",
     updatedAt: data.updated_at || "",
   };
+}
+
+export async function listBakeryCustomerProfiles(bakeryId) {
+  if (!bakeryId) return [];
+  const { data, error } = await requireClient()
+    .from("customer_profiles")
+    .select(`
+      id,
+      bakery_id,
+      user_id,
+      full_name,
+      email,
+      phone,
+      allergies,
+      preferences,
+      address,
+      default_payment_method,
+      favorite_product_id,
+      favorite_product_name,
+      favorite_option_id,
+      created_at,
+      updated_at
+    `)
+    .eq("bakery_id", bakeryId)
+    .order("updated_at", { ascending: false })
+    .limit(500);
+  throwIfError(error);
+  return data || [];
 }
 
 export async function saveCustomerAccountDetails(details = {}, { bakeryId = "" } = {}) {
