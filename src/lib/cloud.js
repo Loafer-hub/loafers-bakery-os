@@ -47,7 +47,13 @@ function requireClient() {
 function throwIfError(error) {
   if (!error) return;
   if (error.code === "over_email_send_rate_limit" || error.status === 429) {
-    throw new Error("Supabase is rate-limiting sign-in emails right now. Wait about a minute before trying this email again, or connect custom SMTP in Supabase for reliable customer login emails.");
+    throw new Error("Supabase is rate-limiting auth emails right now. Wait about a minute before trying this email again.");
+  }
+  if (/invalid login credentials/i.test(error.message || "")) {
+    throw new Error("Email or password did not match.");
+  }
+  if (/password/i.test(error.message || "") && /weak|short|characters/i.test(error.message || "")) {
+    throw new Error("Use a stronger password with at least 12 characters, mixed case, a number, and a symbol.");
   }
   throw new Error(error.message || "The cloud request failed.");
 }
@@ -88,36 +94,6 @@ export async function signInWithEmail(email, password) {
   return data;
 }
 
-export async function sendCustomerMagicLink({ email, fullName = "", slug = "" }) {
-  const cleanEmail = String(email || "").trim().toLowerCase();
-  if (!cleanEmail) throw new Error("Enter an email address for the sign-in link.");
-  const redirectTo = (() => {
-    try {
-      const url = new URL(window.location.href);
-      if (slug) url.searchParams.set("order", slug);
-      url.searchParams.set("account", "customer");
-      url.hash = "";
-      return url.toString();
-    } catch {
-      return undefined;
-    }
-  })();
-  const { data, error } = await requireClient().auth.signInWithOtp({
-    email: cleanEmail,
-    options: {
-      data: {
-        account_type: "customer",
-        full_name: String(fullName || "").trim(),
-        bakery_slug: String(slug || "").trim().toLowerCase(),
-      },
-      emailRedirectTo: redirectTo,
-      shouldCreateUser: true,
-    },
-  });
-  throwIfError(error);
-  return data;
-}
-
 export async function signUpBaker({ email, password, fullName, bakeryName, slug }) {
   const { data, error } = await requireClient().auth.signUp({
     email,
@@ -135,7 +111,7 @@ export async function signUpBaker({ email, password, fullName, bakeryName, slug 
   return data;
 }
 
-export async function signUpCustomer({ email, password, fullName }) {
+export async function signUpCustomer({ email, password, fullName, bakerySlug = "" }) {
   const { data, error } = await requireClient().auth.signUp({
     email,
     password,
@@ -143,6 +119,7 @@ export async function signUpCustomer({ email, password, fullName }) {
       data: {
         account_type: "customer",
         full_name: fullName,
+        bakery_slug: String(bakerySlug || "").trim().toLowerCase(),
       },
     },
   });

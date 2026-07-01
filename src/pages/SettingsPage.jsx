@@ -747,15 +747,13 @@ export default function SettingsPage({
     setMessage("");
     setError("");
     try {
-      const guestOnlyDraft = normalizedBakerySettings({
+      const nextDraft = normalizedBakerySettings({
         ...draft,
         allowGuestCheckout: true,
         requireSignInForOrders: false,
-        customerReorderEnabled: false,
-        customerProfileSavingEnabled: false,
       });
-      await onSaveBakerySettings(guestOnlyDraft);
-      setDraft(guestOnlyDraft);
+      await onSaveBakerySettings(nextDraft);
+      setDraft(nextDraft);
       setMessage(cloudAccount.workspace?.bakeryId
         ? "Settings saved to this device and your bakery cloud."
         : "Settings saved on this device.");
@@ -904,10 +902,13 @@ export default function SettingsPage({
         <CollapsibleSettingsCard
           eyebrow="Customer privacy"
           icon={<EyeOff size={20} />}
-          summary={`Guest checkout only · Track My Bake ${draft.trackMyBakePublic ? "public" : "private"}`}
-          title="Customer visibility controls"
+          summary={`${draft.customerPasswordAccountsEnabled ? "Accounts on" : "Accounts off"} · Track My Bake ${draft.trackMyBakePublic ? "public" : "private"}`}
+          title="Customer accounts and visibility"
         >
           <div className="settings-toggle-list">
+            <ToggleRow checked={draft.customerPasswordAccountsEnabled} label="Customer email + password accounts" note="Let customers create accounts using an email address and strong password. No magic-link sign-on." onChange={(value) => update("customerPasswordAccountsEnabled", value)} />
+            <ToggleRow checked={draft.customerProfileSavingEnabled} label="Allow saved customer profiles" note="Let signed-in customers save allergies, preferences, pickup notes, and default payment choice." onChange={(value) => update("customerProfileSavingEnabled", value)} />
+            <ToggleRow checked={draft.customerReorderEnabled} label="Allow customer reorder" note="Let signed-in customers reorder a saved favorite or previous item from their account panel." onChange={(value) => update("customerReorderEnabled", value)} />
             <ToggleRow checked={draft.trackMyBakePublic} label="Show Track My Bake publicly" note="Show the public lookup box and Track an order link on the customer page. Direct email tracking links still work." onChange={(value) => update("trackMyBakePublic", value)} />
             <ToggleRow checked={draft.reviewsVisible} label="Show reviews publicly" note="Display verified customer reviews on the storefront." onChange={(value) => update("reviewsVisible", value)} />
             <ToggleRow checked={draft.readyShelfEnabled} label="Show ready shelf publicly" note="Show prebaked ready-now inventory on the customer order page." onChange={(value) => update("readyShelfEnabled", value)} />
@@ -915,7 +916,7 @@ export default function SettingsPage({
           </div>
           <aside className="settings-provider-note">
             <EyeOff size={18} />
-            <span><strong>Guest checkout only</strong><small>Login links are turned off. Customers can still send requests, track orders, and leave feedback when enabled.</small></span>
+            <span><strong>Password accounts, no magic links</strong><small>Customers use email + password. The storefront checks for a strong password before sending account creation to Supabase.</small></span>
           </aside>
         </CollapsibleSettingsCard>
 

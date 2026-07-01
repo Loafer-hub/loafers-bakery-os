@@ -10645,6 +10645,31 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   line-height: 1.45;
 }
 
+.customer-password-rules {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  margin: -2px 0 2px;
+  padding: 0;
+  list-style: none;
+}
+
+.customer-password-rules li {
+  padding: 7px 8px;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #fffdf9;
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.customer-password-rules li.met {
+  color: #4f6f46;
+  border-color: rgba(79,111,70,.35);
+  background: rgba(126,154,114,.14);
+}
+
 .safety-log-hero {
   color: #485a40;
   border-color: #c4d0be;

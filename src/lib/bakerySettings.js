@@ -10,8 +10,9 @@ export const DEFAULT_BAKERY_SETTINGS = {
   reviewsVisible: true,
   feedbackEnabled: true,
   readyShelfEnabled: true,
-  customerReorderEnabled: false,
-  customerProfileSavingEnabled: false,
+  customerPasswordAccountsEnabled: true,
+  customerReorderEnabled: true,
+  customerProfileSavingEnabled: true,
   announcementEnabled: false,
   announcementTitle: "From the baker",
   announcementText: "",
@@ -64,6 +65,8 @@ export function normalizedBakerySettings(value = {}) {
       ...(value?.notificationEvents || {}),
     },
   };
+  const hasPasswordAccountSetting = Object.prototype.hasOwnProperty.call(value || {}, "customerPasswordAccountsEnabled");
+  const customerPasswordAccountsEnabled = settings.customerPasswordAccountsEnabled !== false;
   return {
     ...settings,
     onlineOrdering: Boolean(settings.onlineOrdering),
@@ -73,8 +76,9 @@ export function normalizedBakerySettings(value = {}) {
     reviewsVisible: Boolean(settings.reviewsVisible),
     feedbackEnabled: Boolean(settings.feedbackEnabled),
     readyShelfEnabled: Boolean(settings.readyShelfEnabled),
-    customerReorderEnabled: false,
-    customerProfileSavingEnabled: false,
+    customerPasswordAccountsEnabled,
+    customerReorderEnabled: customerPasswordAccountsEnabled && (hasPasswordAccountSetting ? settings.customerReorderEnabled !== false : true),
+    customerProfileSavingEnabled: customerPasswordAccountsEnabled && (hasPasswordAccountSetting ? settings.customerProfileSavingEnabled !== false : true),
     announcementEnabled: Boolean(settings.announcementEnabled),
     announcementTitle: String(settings.announcementTitle || DEFAULT_BAKERY_SETTINGS.announcementTitle).trim(),
     announcementText: String(settings.announcementText || "").trim(),
