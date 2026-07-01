@@ -1,23 +1,33 @@
 # Loafers Bakery OS
 
-Loafers is a mobile-first bakery operating system for a solo home baker.
+Loafers Bakery OS is a mobile-first operating system for a one-person home bakery. It helps a solo baker take customer orders, plan bakes, manage starters, run a live kitchen board, publish a customer storefront, track inventory and costs, send order updates, and keep safety records for bread and non-bread products.
 
-## Live web app
+The full owner guide, feature list, usage instructions, and changelog are in:
 
-After GitHub Pages is enabled, the installable version is available at:
+[docs/loafers-bakery-os-guide.md](docs/loafers-bakery-os-guide.md)
+
+## Live app
+
+Owner app:
 
 `https://loafer-hub.github.io/loafers-bakery-os/`
 
-## Included in this prototype
+Customer storefront:
 
-- Daily bake dashboard with schedule, starter readiness, orders, revenue, and oven capacity
-- Bread order entry, status filters, customer search, and local persistence
-- Editable bake timeline with starter-peak warning
-- Baker's-percentage formulas that scale automatically by loaf count
-- Starter health, feeding history, temperature, rise, and trend logging
-- Recipe library with production weights and method notes
-- Inventory warnings, sales trends, customer metrics, pricing, and bakery settings surfaces
-- Installable web-app manifest and responsive iPhone layout
+`https://loafer-hub.github.io/loafers-bakery-os/?order=loafers`
+
+When the Starlight VM deployment is enabled, the same frontend can also be hosted on the bakery domain while keeping Supabase and Resend in place.
+
+## What it does
+
+- Owner command center for pending requests, today’s work, accepted orders, ready shelf, active bakes, pickup windows, and shortages
+- Customer order flow with menu browsing, cart review, pickup choice, contact/payment, order request, accounts, profiles, reorder support, and Track My Bake
+- Product catalog for sourdough, yeast breads, bagels, buns, cakes, pastries, hot sauces, vinegars, infused oils, and other goods
+- Recipe builder with grams or baker’s percentages, package pricing, product photos, availability, badges, flour science, nutrition estimates, and product-type settings
+- Bake planning with dynamic sourdough and yeast timelines, starter feeds, rise/proof logic, stretch-and-fold controls, kitchen checklists, batch grouping, and calendar views
+- Liquid lab for hot sauce, vinegar, and infused oil planning, including salt, pH, temperature, acidity, storage, warning, shelf-life, and recall records
+- Inventory, purchases, barcode/CSV import, cost tracking, expenditure trends, customer records, and business reporting
+- Cloud order storage through Supabase, automatic emails through Resend, and installable PWA support for phone-style use without a Mac
 
 ## Run locally
 
@@ -36,41 +46,30 @@ npm run build
 
 The compiled app is written to `dist`.
 
+## Cloud setup
+
+Supabase setup notes live in [supabase/README.md](supabase/README.md). The browser app uses only the public Supabase URL and anon key. Never put a Supabase service-role key in the frontend, GitHub Pages, or public repo files.
+
+Resend is used by the Supabase Edge Function for automatic customer email updates.
+
 ## Starlight VM deploy
 
-Loafers can replace an existing app on a Starlight VM while keeping Supabase and Resend in place. The VM deploy workflow builds the app, backs up the current website folder, preserves `.well-known`, and swaps in the new `dist` files.
+The Starlight workflow builds the app, backs up the existing website folder, preserves `.well-known`, and swaps in the latest `dist` files.
 
-Setup details live in [`docs/starlight-vm-deploy.md`](docs/starlight-vm-deploy.md).
+Setup details live in [docs/starlight-vm-deploy.md](docs/starlight-vm-deploy.md).
 
-## Product status
+## iOS / app-like use
 
-This is a polished, interactive front-end MVP with an iOS-native Capacitor shell. Bakery records use Capacitor Preferences on iOS and migrate existing browser data automatically. The Storage & Backup center exports a versioned JSON backup, validates restores before applying them, and keeps an automatic recovery copy before every restore.
+The near-term “iPhone app” path is the installable mobile web app:
 
-## iOS project
+- Add to Home Screen support
+- App icon and splash behavior
+- Offline shell fallback
+- Mobile-first layout
 
-The generated Xcode project lives in `ios/App`.
+An iOS Capacitor shell also exists in `ios/App`, but building and signing a native iOS app requires macOS, Xcode, and an Apple Developer account.
 
 ```powershell
 npm run ios:sync
 npm run ios:open
 ```
-
-Opening and signing the iOS app requires macOS, Xcode 26 or newer, and an Apple Developer account. The project targets iOS 15 and newer.
-
-The iOS foundation includes:
-
-- Bundle identifier `com.loafers.bakery`
-- Native app icon and launch screen
-- Native Preferences storage
-- Versioned backup export and two-step restore
-- Automatic undo copy before restoring data
-- Status-bar and splash-screen integration
-- Apple privacy manifest for UserDefaults
-- Offline local fonts
-
-For an App Store release, the next production phases should add:
-
-- Secure sign-in and cloud sync
-- Customer order-request links and payment processing
-- Notifications and calendar reminders
-- Taxes and multi-device cloud sync
