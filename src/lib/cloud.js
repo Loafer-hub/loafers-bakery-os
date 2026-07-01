@@ -91,7 +91,8 @@ export async function sendCustomerMagicLink({ email, fullName = "", slug = "" })
     try {
       const url = new URL(window.location.href);
       if (slug) url.searchParams.set("order", slug);
-      url.hash = "customer-account";
+      url.searchParams.set("account", "customer");
+      url.hash = "";
       return url.toString();
     } catch {
       return undefined;

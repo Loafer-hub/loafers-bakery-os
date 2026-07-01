@@ -257,6 +257,14 @@ function normalizeCustomerProfile(profile = {}, fallbackEmail = "") {
   };
 }
 
+function shouldOpenCustomerAccount() {
+  try {
+    return new URLSearchParams(window.location.search).get("account") === "customer";
+  } catch {
+    return false;
+  }
+}
+
 function orderHistoryDate(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Pickup not set";
@@ -278,7 +286,7 @@ export default function CustomerOrderPortal({
   const [productOptionSelections, setProductOptionSelections] = useState({});
   const [activeCatalogTab, setActiveCatalogTab] = useState("all");
   const [checkoutStep, setCheckoutStep] = useState("browse");
-  const [accountOpen, setAccountOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(shouldOpenCustomerAccount);
   const [accountMode, setAccountMode] = useState("signin");
   const [accountForm, setAccountForm] = useState({ name: "", email: "" });
   const [accountBusy, setAccountBusy] = useState("");
