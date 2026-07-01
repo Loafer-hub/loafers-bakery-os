@@ -7,6 +7,8 @@ import {
   ChevronDown,
   Clock3,
   EyeOff,
+  KeyRound,
+  LockKeyhole,
   Mail,
   MessageSquareText,
   PackageCheck,
@@ -15,16 +17,19 @@ import {
   Save,
   Send,
   Settings2,
+  ShieldCheck,
   ShoppingBag,
   Store,
   Tag,
   Trash2,
+  UserRound,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { PageHeading } from "../components/AppChrome";
 import { Modal } from "../components/Primitives";
 import {
   getAutomaticEmailStatus,
+  listCustomerAccessEvents,
   listEmailNotificationDeliveries,
   publishRecipeCatalog,
   publicOrderUrl,
@@ -432,6 +437,123 @@ function SettingsCommandCenter({
   );
 }
 
+const ACCESS_EVENT_LABELS = {
+  guest_checkout_blocked: "Guest blocked",
+  magic_link_requested: "Sign-in link",
+  order_submitted: "Order request",
+  order_failed: "Order failed",
+  profile_saved: "Profile saved",
+};
+
+function accessEventTime(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Unknown time";
+  return date.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function customerAccessErrorMessage(message = "") {
+  const value = String(message || "");
+  if (value.includes("customer_access_events") || value.includes("record_customer_access_event")) {
+    return "Run the customer accounts SQL migration once in Supabase to enable this private access log.";
+  }
+  return value;
+}
+
+function OwnerCustomerAccessDashboard({
+  accessError,
+  accessEvents,
+  accessLoading,
+  draft,
+  hasCloudWorkspace,
+  onRefresh,
+}) {
+  const accessCards = [
+    {
+      icon: <ShieldCheck size={17} />,
+      label: "Guest checkout",
+      value: draft.allowGuestCheckout && !draft.requireSignInForOrders ? "Allowed" : "Blocked",
+      note: draft.requireSignInForOrders
+        ? "Sign-in required overrides guest checkout."
+        : draft.allowGuestCheckout
+          ? "Customers may order without an account."
+          : "Customers must sign in before ordering.",
+    },
+    {
+      icon: <LockKeyhole size={17} />,
+      label: "Order sign-in",
+      value: draft.requireSignInForOrders ? "Required" : "Optional",
+      note: draft.requireSignInForOrders ? "The server order function also enforces this." : "Customers can still create accounts for history.",
+    },
+    {
+      icon: <EyeOff size={17} />,
+      label: "Track My Bake",
+      value: draft.trackMyBakePublic ? "Public" : "Private links",
+      note: draft.trackMyBakePublic ? "Lookup is visible on the customer page." : "Email/text links can still open a specific order.",
+    },
+    {
+      icon: <UserRound size={17} />,
+      label: "Profiles",
+      value: draft.customerProfileSavingEnabled ? "Saving on" : "Saving off",
+      note: draft.customerProfileSavingEnabled ? "Allergies, preferences, and favorites can be saved." : "Signed-in history can remain without saved profile fields.",
+    },
+    {
+      icon: <PackageCheck size={17} />,
+      label: "Ready shelf",
+      value: draft.readyShelfEnabled ? "Visible" : "Hidden",
+      note: draft.readyShelfEnabled ? "Ready-now items can appear on the storefront." : "Ready-now shelf is hidden from customers.",
+    },
+    {
+      icon: <KeyRound size={17} />,
+      label: "Customer access",
+      value: hasCloudWorkspace ? "Cloud protected" : "Device preview",
+      note: hasCloudWorkspace ? "Recent sign-in and order signals are stored privately." : "Sign into cloud to record customer access signals.",
+    },
+  ];
+
+  return (
+    <section className="owner-access-dashboard">
+      <div className="owner-security-grid">
+        {accessCards.map((card) => (
+          <article key={card.label}>
+            {card.icon}
+            <span><strong>{card.label}</strong><small>{card.value} · {card.note}</small></span>
+          </article>
+        ))}
+      </div>
+      <div className="customer-access-events">
+        <div>
+          <span><strong>Recent customer access</strong><small>{accessLoading ? "Checking latest signals…" : accessEvents.length ? `${accessEvents.length} latest customer signal${accessEvents.length === 1 ? "" : "s"}` : "No customer account/order signals yet."}</small></span>
+          <button type="button" disabled={!hasCloudWorkspace || accessLoading} onClick={onRefresh}>Refresh</button>
+        </div>
+        {accessError ? <p className="customer-access-error">{customerAccessErrorMessage(accessError)}</p> : null}
+        {accessEvents.length ? (
+          <div className="customer-access-event-list">
+            {accessEvents.map((event) => (
+              <article className={`customer-access-event event-${event.event_type}`} key={event.id}>
+                <span>
+                  <strong>{ACCESS_EVENT_LABELS[event.event_type] || event.event_type}</strong>
+                  <small>{event.reason || "Customer portal activity"}</small>
+                </span>
+                <span>
+                  <strong>{event.request_code || event.contact_hint || "Customer"}</strong>
+                  <small>{accessEventTime(event.created_at)}</small>
+                </span>
+              </article>
+            ))}
+          </div>
+        ) : !accessError ? (
+          <small className="customer-access-empty">Signals will appear after customers request magic links, save profiles, send orders, or get blocked by sign-in rules.</small>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
 function OwnerSetupWizard({
   draft,
   onClose,
@@ -593,6 +715,9 @@ export default function SettingsPage({
   const [error, setError] = useState("");
   const [emailProvider, setEmailProvider] = useState(null);
   const [emailDeliveries, setEmailDeliveries] = useState([]);
+  const [accessEvents, setAccessEvents] = useState([]);
+  const [accessEventsLoading, setAccessEventsLoading] = useState(false);
+  const [accessEventsError, setAccessEventsError] = useState("");
   const [setupWizardOpen, setSetupWizardOpen] = useState(false);
 
   useEffect(() => {
@@ -604,18 +729,30 @@ export default function SettingsPage({
     if (!bakeryId) {
       setEmailProvider(null);
       setEmailDeliveries([]);
+      setAccessEvents([]);
+      setAccessEventsError("");
+      setAccessEventsLoading(false);
       return;
     }
     let active = true;
+    setAccessEventsLoading(true);
+    setAccessEventsError("");
     Promise.all([
       getAutomaticEmailStatus(bakeryId),
       listEmailNotificationDeliveries(bakeryId, 8),
-    ]).then(([status, deliveries]) => {
+      listCustomerAccessEvents(bakeryId, 12).catch((eventError) => {
+        if (active) setAccessEventsError(eventError.message);
+        return [];
+      }),
+    ]).then(([status, deliveries, events]) => {
       if (!active) return;
       setEmailProvider(status);
       setEmailDeliveries(deliveries);
+      setAccessEvents(events);
     }).catch((nextError) => {
       if (active) setEmailProvider({ configured: false, error: nextError.message });
+    }).finally(() => {
+      if (active) setAccessEventsLoading(false);
     });
     return () => {
       active = false;
@@ -812,6 +949,20 @@ export default function SettingsPage({
     }
   }
 
+  async function refreshCustomerAccessEvents() {
+    const bakeryId = cloudAccount.workspace?.bakeryId;
+    if (!bakeryId) return;
+    setAccessEventsLoading(true);
+    setAccessEventsError("");
+    try {
+      setAccessEvents(await listCustomerAccessEvents(bakeryId, 12));
+    } catch (nextError) {
+      setAccessEventsError(nextError.message);
+    } finally {
+      setAccessEventsLoading(false);
+    }
+  }
+
   async function sendEmailTest() {
     const bakeryId = cloudAccount.workspace?.bakeryId;
     if (!bakeryId || !testContact.email.trim()) return;
@@ -939,6 +1090,14 @@ export default function SettingsPage({
             <EyeOff size={18} />
             <span><strong>Privacy-first storefront controls</strong><small>These only change the public customer page and account features. Owner order records and private baker notes stay in your owner tools.</small></span>
           </aside>
+          <OwnerCustomerAccessDashboard
+            accessError={accessEventsError}
+            accessEvents={accessEvents}
+            accessLoading={accessEventsLoading}
+            draft={draft}
+            hasCloudWorkspace={hasCloudWorkspace}
+            onRefresh={refreshCustomerAccessEvents}
+          />
         </CollapsibleSettingsCard>
 
         <CollapsibleSettingsCard

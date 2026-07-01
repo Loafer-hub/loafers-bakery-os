@@ -7,6 +7,7 @@ import {
   Heart,
   Info,
   LockKeyhole,
+  Mail,
   Megaphone,
   Minus,
   PackageCheck,
@@ -26,12 +27,13 @@ import { CustomerOrderLookup } from "../components/CustomerOrderLookup";
 import { InstallAppPrompt } from "../components/InstallAppPrompt";
 import { Modal } from "../components/Primitives";
 import {
+  loadCustomerAccountProfile,
   listSignedInCustomerOrders,
   loadPublicStorefront,
+  recordCustomerAccessEvent,
   saveCustomerAccountDetails,
-  signInWithEmail,
+  sendCustomerMagicLink,
   signOutCloud,
-  signUpCustomer,
   submitPublicOrder,
 } from "../lib/cloud";
 import { normalizedBakerySettings } from "../lib/bakerySettings";
@@ -239,6 +241,22 @@ function normalizeCloudCustomerOrder(order) {
   };
 }
 
+function normalizeCustomerProfile(profile = {}, fallbackEmail = "") {
+  return {
+    name: profile.name || profile.full_name || "",
+    email: profile.email || fallbackEmail || "",
+    phone: profile.phone || "",
+    allergies: profile.allergies || "",
+    preferences: profile.preferences || "",
+    address: profile.address || "",
+    defaultPaymentMethod: profile.defaultPaymentMethod || profile.default_payment_method || "Venmo",
+    favoriteProductId: profile.favoriteProductId || profile.favorite_product_id || "",
+    favoriteProductName: profile.favoriteProductName || profile.favorite_product_name || "",
+    favoriteOptionId: profile.favoriteOptionId || profile.favorite_option_id || "",
+    updatedAt: profile.updatedAt || profile.updated_at || "",
+  };
+}
+
 function orderHistoryDate(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Pickup not set";
@@ -262,7 +280,7 @@ export default function CustomerOrderPortal({
   const [checkoutStep, setCheckoutStep] = useState("browse");
   const [accountOpen, setAccountOpen] = useState(false);
   const [accountMode, setAccountMode] = useState("signin");
-  const [accountForm, setAccountForm] = useState({ name: "", email: "", password: "" });
+  const [accountForm, setAccountForm] = useState({ name: "", email: "" });
   const [accountBusy, setAccountBusy] = useState("");
   const [accountMessage, setAccountMessage] = useState("");
   const [accountProfile, setAccountProfile] = useState(defaultCustomerProfile());
@@ -375,10 +393,7 @@ export default function CustomerOrderPortal({
     const email = cloudAccount.session?.user?.email || "";
     const metadata = cloudAccount.session?.user?.user_metadata || {};
     if (!email && !Object.keys(metadata).length) return;
-    const nextProfile = {
-      ...defaultCustomerProfile(metadata),
-      email,
-    };
+    const nextProfile = normalizeCustomerProfile(defaultCustomerProfile(metadata), email);
     setAccountProfile((current) => ({ ...current, ...nextProfile }));
     setAccountForm((current) => ({
       ...current,
@@ -395,6 +410,35 @@ export default function CustomerOrderPortal({
       }));
     }
   }, [cloudAccount.session?.user?.email, cloudAccount.session?.user?.id, customerProfileSavingEnabled]);
+
+  useEffect(() => {
+    const bakeryId = storefront?.bakery?.id;
+    if (!cloudAccount.configured || !cloudAccount.session?.user?.id || !bakeryId || !customerProfileSavingEnabled) {
+      return undefined;
+    }
+    let active = true;
+    loadCustomerAccountProfile(bakeryId)
+      .then((profile) => {
+        if (!active || !profile) return;
+        const nextProfile = normalizeCustomerProfile(profile, cloudAccount.session?.user?.email || "");
+        setAccountProfile((current) => ({ ...current, ...nextProfile }));
+        applyAccountProfileToCheckout(nextProfile, { force: false });
+      })
+      .catch((nextError) => {
+        if (active && !String(nextError.message || "").includes("customer_profiles")) {
+          setAccountMessage(nextError.message);
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [
+    cloudAccount.configured,
+    cloudAccount.session?.user?.email,
+    cloudAccount.session?.user?.id,
+    customerProfileSavingEnabled,
+    storefront?.bakery?.id,
+  ]);
 
   const productTypes = rules.productTypes.filter((type) => type.enabled !== false);
   const productSettingsByValue = productTypeMap(rules);
@@ -532,6 +576,16 @@ export default function CustomerOrderPortal({
     };
   }, [cloudAccount.configured, cloudAccount.session?.user?.id, slug]);
 
+  function logCustomerAccess(eventType, reason = "", overrides = {}) {
+    recordCustomerAccessEvent({
+      slug,
+      eventType,
+      reason,
+      contact: overrides.contact ?? (form.email.trim() || form.phone.trim()),
+      requestCode: overrides.requestCode || "",
+    });
+  }
+
   function changeQuantity(item, change) {
     const quantityKey = item.quantityKey || `${item.itemType}-${item.id}`;
     const currentQuantity = Number(quantities[quantityKey] || 0);
@@ -587,6 +641,12 @@ export default function CustomerOrderPortal({
   function validateContact() {
     if (!customerCanCheckout) {
       setAccountOpen(true);
+      logCustomerAccess(
+        "guest_checkout_blocked",
+        rules.requireSignInForOrders
+          ? "Sign-in required for orders."
+          : "Guest checkout is turned off.",
+      );
       setError(rules.requireSignInForOrders
         ? "Sign in before sending an order request."
         : "Guest checkout is currently turned off. Sign in before sending an order request.");
@@ -662,19 +722,17 @@ export default function CustomerOrderPortal({
     setAccountMessage("");
     setError("");
     try {
-      if (accountMode === "signin") {
-        await signInWithEmail(accountForm.email, accountForm.password);
-        setAccountMessage("Signed in. Your saved customer tools are ready.");
-      } else {
-        const result = await signUpCustomer({
-          email: accountForm.email,
-          password: accountForm.password,
-          fullName: accountForm.name,
-        });
-        if (!result.session) {
-          setError("Account created. Confirm the email we sent you, then sign in. You can still order as a guest.");
-        }
-      }
+      await sendCustomerMagicLink({
+        email: accountForm.email,
+        fullName: accountForm.name,
+        slug,
+      });
+      logCustomerAccess("magic_link_requested", accountMode === "signup"
+        ? "Customer requested a new account sign-in link."
+        : "Customer requested a sign-in link.", {
+        contact: accountForm.email,
+      });
+      setAccountMessage("Check your email for a secure sign-in link. Tap it on this device to return to your bakery account.");
       setForm((current) => ({
         ...current,
         name: current.name || accountForm.name,
@@ -705,7 +763,10 @@ export default function CustomerOrderPortal({
     setAccountBusy("profile");
     setAccountMessage("");
     try {
-      await saveCustomerAccountDetails(nextProfile);
+      await saveCustomerAccountDetails(nextProfile, { bakeryId: storefront?.bakery?.id || "" });
+      logCustomerAccess("profile_saved", "Customer saved profile details.", {
+        contact: nextProfile.email || nextProfile.phone,
+      });
       setAccountProfile(nextProfile);
       applyAccountProfileToCheckout(nextProfile, { force: true });
       setAccountMessage("Customer profile saved to your account.");
@@ -816,6 +877,10 @@ export default function CustomerOrderPortal({
         },
       });
       setSuccess(result);
+      logCustomerAccess("order_submitted", "Customer order request sent.", {
+        contact: form.email.trim() || form.phone.trim(),
+        requestCode: result?.request_code || "",
+      });
       setQuantities({});
       setProductOptionSelections({});
       setCheckoutStep("browse");
@@ -827,6 +892,9 @@ export default function CustomerOrderPortal({
           .finally(() => setAccountHistoryLoading(false));
       }
     } catch (nextError) {
+      logCustomerAccess("order_failed", nextError.message || "Order request failed.", {
+        contact: form.email.trim() || form.phone.trim(),
+      });
       setError(nextError.message);
     }
   }
@@ -918,7 +986,7 @@ export default function CustomerOrderPortal({
       ) : null}
 
       {accountOpen ? (
-        <section className="customer-account-card">
+        <section className="customer-account-card" id="customer-account">
           <div className="customer-account-heading">
             <span><ShieldCheck size={18} /></span>
             <div>
@@ -939,16 +1007,17 @@ export default function CustomerOrderPortal({
                 <button type="button" className={accountMode === "signup" ? "selected" : ""} onClick={() => setAccountMode("signup")}>Create account</button>
               </div>
               <form className="form-stack" onSubmit={submitAccount}>
-                {accountMode === "signup" ? <label>Name<input required value={accountForm.name} onChange={(event) => setAccountForm({ ...accountForm, name: event.target.value })} /></label> : null}
+                {accountMode === "signup" ? <label>Name<input required value={accountForm.name} onChange={(event) => setAccountForm({ ...accountForm, name: event.target.value })} placeholder="Your name" /></label> : null}
                 <label>Email<input required type="email" value={accountForm.email} onChange={(event) => setAccountForm({ ...accountForm, email: event.target.value })} /></label>
-                <label>Password<input required minLength="8" type="password" value={accountForm.password} onChange={(event) => setAccountForm({ ...accountForm, password: event.target.value })} /></label>
-                <button className="primary-button" type="submit" disabled={accountBusy === "auth"}>{accountBusy === "auth" ? "Please wait…" : accountMode === "signin" ? "Sign in" : "Create account"}</button>
+                <button className="primary-button" type="submit" disabled={accountBusy === "auth"}>
+                  <Mail size={16} /> {accountBusy === "auth" ? "Sending link…" : accountMode === "signin" ? "Email me a sign-in link" : "Create account link"}
+                </button>
               </form>
               <small className="customer-account-private-note">
                 {guestCheckoutBlocked
                   ? "The baker currently requires sign-in before orders can be sent. You can still browse the menu first."
                   : customerProfileSavingEnabled
-                    ? "Saved preferences, allergies, favorite items, and order history are available after sign-in. Guests can still order without an account."
+                    ? "No password needed. We email a secure link, then saved preferences, allergies, favorite items, and order history are available after sign-in."
                     : "Guests can still order without an account. Customer profile saving is currently turned off."}
               </small>
             </>

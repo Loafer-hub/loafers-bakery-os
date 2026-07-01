@@ -10318,6 +10318,89 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   line-height: 1.35;
 }
 
+.owner-access-dashboard {
+  display: grid;
+  gap: 9px;
+}
+
+.customer-access-events {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid rgba(72,90,64,.12);
+  border-radius: 11px;
+  background: rgba(255,255,255,.52);
+}
+
+.customer-access-events > div:first-child,
+.customer-access-event {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.customer-access-events > div:first-child span,
+.customer-access-events > div:first-child strong,
+.customer-access-events > div:first-child small,
+.customer-access-event span,
+.customer-access-event strong,
+.customer-access-event small {
+  display: block;
+}
+
+.customer-access-events > div:first-child strong {
+  font-size: 10px;
+}
+
+.customer-access-events > div:first-child small,
+.customer-access-empty,
+.customer-access-error,
+.customer-access-event small {
+  color: var(--muted);
+  font-size: 8px;
+  line-height: 1.35;
+}
+
+.customer-access-events button {
+  min-height: 29px;
+  padding: 0 10px;
+  color: #485a40;
+  border: 1px solid rgba(72,90,64,.16);
+  border-radius: 999px;
+  background: rgba(255,255,255,.75);
+  font-size: 8px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.customer-access-event-list {
+  display: grid;
+  gap: 6px;
+}
+
+.customer-access-event {
+  padding: 8px 9px;
+  border: 1px solid rgba(224,213,198,.86);
+  border-radius: 9px;
+  background: rgba(250,247,240,.7);
+}
+
+.customer-access-event > span:last-child {
+  flex: 0 0 auto;
+  text-align: right;
+}
+
+.customer-access-event strong {
+  color: var(--ink);
+  font-size: 9px;
+}
+
+.customer-access-event.event-guest_checkout_blocked strong:first-child,
+.customer-access-error {
+  color: var(--accent);
+}
+
 .customer-account-heading,
 .customer-account-signed-in,
 .customer-history-title {
@@ -12779,6 +12862,16 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   .customer-history-list article > div {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .customer-access-events > div:first-child,
+  .customer-access-event {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .customer-access-event > span:last-child {
+    text-align: left;
   }
 
   .customer-history-list a,

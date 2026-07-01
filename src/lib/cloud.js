@@ -84,6 +84,35 @@ export async function signInWithEmail(email, password) {
   return data;
 }
 
+export async function sendCustomerMagicLink({ email, fullName = "", slug = "" }) {
+  const cleanEmail = String(email || "").trim().toLowerCase();
+  if (!cleanEmail) throw new Error("Enter an email address for the sign-in link.");
+  const redirectTo = (() => {
+    try {
+      const url = new URL(window.location.href);
+      if (slug) url.searchParams.set("order", slug);
+      url.hash = "customer-account";
+      return url.toString();
+    } catch {
+      return undefined;
+    }
+  })();
+  const { data, error } = await requireClient().auth.signInWithOtp({
+    email: cleanEmail,
+    options: {
+      data: {
+        account_type: "customer",
+        full_name: String(fullName || "").trim(),
+        bakery_slug: String(slug || "").trim().toLowerCase(),
+      },
+      emailRedirectTo: redirectTo,
+      shouldCreateUser: true,
+    },
+  });
+  throwIfError(error);
+  return data;
+}
+
 export async function signUpBaker({ email, password, fullName, bakeryName, slug }) {
   const { data, error } = await requireClient().auth.signUp({
     email,
@@ -116,7 +145,52 @@ export async function signUpCustomer({ email, password, fullName }) {
   return data;
 }
 
-export async function saveCustomerAccountDetails(details = {}) {
+function customerProfilePayload(details = {}, bakeryId = "") {
+  return {
+    bakery_id: bakeryId,
+    full_name: String(details.name || "").trim(),
+    email: String(details.email || "").trim().toLowerCase(),
+    phone: String(details.phone || "").trim(),
+    allergies: String(details.allergies || "").trim(),
+    preferences: String(details.preferences || "").trim(),
+    address: String(details.address || "").trim(),
+    default_payment_method: String(details.defaultPaymentMethod || "").trim(),
+    favorite_product_id: String(details.favoriteProductId || "").trim(),
+    favorite_product_name: String(details.favoriteProductName || "").trim(),
+    favorite_option_id: String(details.favoriteOptionId || "").trim(),
+    updated_at: new Date().toISOString(),
+  };
+}
+
+export async function loadCustomerAccountProfile(bakeryId) {
+  if (!bakeryId) return null;
+  const session = await getCloudSession();
+  const userId = session?.user?.id;
+  if (!userId) return null;
+  const { data, error } = await requireClient()
+    .from("customer_profiles")
+    .select("full_name, email, phone, allergies, preferences, address, default_payment_method, favorite_product_id, favorite_product_name, favorite_option_id, updated_at")
+    .eq("bakery_id", bakeryId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  throwIfError(error);
+  if (!data) return null;
+  return {
+    name: data.full_name || "",
+    email: data.email || session.user.email || "",
+    phone: data.phone || "",
+    allergies: data.allergies || "",
+    preferences: data.preferences || "",
+    address: data.address || "",
+    defaultPaymentMethod: data.default_payment_method || "Venmo",
+    favoriteProductId: data.favorite_product_id || "",
+    favoriteProductName: data.favorite_product_name || "",
+    favoriteOptionId: data.favorite_option_id || "",
+    updatedAt: data.updated_at || "",
+  };
+}
+
+export async function saveCustomerAccountDetails(details = {}, { bakeryId = "" } = {}) {
   const profile = {
     full_name: String(details.name || "").trim(),
     phone: String(details.phone || "").trim(),
@@ -131,6 +205,18 @@ export async function saveCustomerAccountDetails(details = {}) {
   };
   const { data, error } = await requireClient().auth.updateUser({ data: profile });
   throwIfError(error);
+  if (bakeryId) {
+    const session = await getCloudSession();
+    const userId = session?.user?.id;
+    if (!userId) throw new Error("Sign in before saving customer preferences.");
+    const { error: profileError } = await requireClient()
+      .from("customer_profiles")
+      .upsert({
+        ...customerProfilePayload(details, bakeryId),
+        user_id: userId,
+      }, { onConflict: "bakery_id,user_id" });
+    throwIfError(profileError);
+  }
   return data;
 }
 
@@ -510,6 +596,41 @@ export async function listEmailNotificationDeliveries(bakeryId, limit = 20) {
     .limit(Math.max(1, Math.min(100, Number(limit || 20))));
   throwIfError(error);
   return data || [];
+}
+
+export async function listCustomerAccessEvents(bakeryId, limit = 18) {
+  if (!bakeryId) return [];
+  const { data, error } = await requireClient()
+    .from("customer_access_events")
+    .select("id, event_type, reason, contact_hint, request_code, user_id, created_at")
+    .eq("bakery_id", bakeryId)
+    .order("created_at", { ascending: false })
+    .limit(Math.max(1, Math.min(50, Number(limit || 18))));
+  throwIfError(error);
+  return data || [];
+}
+
+export async function recordCustomerAccessEvent({
+  slug,
+  eventType,
+  reason = "",
+  contact = "",
+  requestCode = "",
+}) {
+  if (!cloudConfigured || !slug || !eventType) return false;
+  try {
+    const { error } = await requireClient().rpc("record_customer_access_event", {
+      p_slug: slug,
+      p_event_type: eventType,
+      p_reason: reason,
+      p_contact: contact,
+      p_request_code: requestCode,
+    });
+    if (error) return false;
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export async function listCustomerOrderRequests(bakeryId, status = "requested") {
