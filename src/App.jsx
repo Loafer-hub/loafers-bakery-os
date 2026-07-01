@@ -70,6 +70,101 @@ function canonicalPage(page) {
   return pageAliases[page] || page || "today";
 }
 
+function customerSlug(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+function cleanEmail(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function cleanPhone(value) {
+  return String(value || "").replace(/\D/g, "");
+}
+
+function appendUniqueNote(existing, note) {
+  const current = String(existing || "").trim();
+  const next = String(note || "").trim();
+  if (!next) return current;
+  if (!current) return next;
+  return current.includes(next) ? current : `${current}\n${next}`;
+}
+
+function mergeCommaList(existing, additions = []) {
+  const values = [
+    ...String(existing || "").split(","),
+    ...additions,
+  ]
+    .map((value) => String(value || "").trim())
+    .filter(Boolean);
+  return [...new Set(values)].slice(0, 8).join(", ");
+}
+
+function extractSavedField(notes, label) {
+  const match = String(notes || "").match(new RegExp(`${label}:\\s*([^\\n]+)`, "i"));
+  return match?.[1]?.trim() || "";
+}
+
+function profileIdFromCloudOrder(request) {
+  const accountId = String(request.customer_user_id || "").trim();
+  const customerId = String(request.customer_id || "").trim();
+  const email = cleanEmail(request.customer_email);
+  const phone = cleanPhone(request.customer_phone);
+  if (accountId) return `account-${accountId}`;
+  if (customerId) return `cloud-${customerId}`;
+  if (email) return `email-${customerSlug(email)}`;
+  if (phone) return `phone-${phone}`;
+  return customerSlug(request.customer_name) || `customer-${Date.now()}`;
+}
+
+function upsertCustomerProfileFromCloudOrder(currentProfiles, request, order) {
+  const email = cleanEmail(request.customer_email);
+  const phone = cleanPhone(request.customer_phone);
+  const accountId = String(request.customer_user_id || "").trim();
+  const customerId = String(request.customer_id || "").trim();
+  const nameKey = customerSlug(request.customer_name);
+  const productNames = (order.items || [])
+    .map((item) => item.product_name)
+    .filter(Boolean);
+  const savedPreferences = extractSavedField(request.customer_notes, "Saved preferences");
+  const savedAddress = extractSavedField(request.customer_notes, "Saved pickup note");
+  const existingIndex = currentProfiles.findIndex((profile) => (
+    (accountId && profile.customerUserId === accountId)
+    || (customerId && profile.customerId === customerId)
+    || (email && cleanEmail(profile.email) === email)
+    || (phone && cleanPhone(profile.phone) === phone)
+    || (!email && !phone && nameKey && customerSlug(profile.name) === nameKey)
+  ));
+  const existing = existingIndex >= 0 ? currentProfiles[existingIndex] : {};
+  const linkedNote = `Online request ${request.request_code}${accountId ? " · signed-in account" : ""}`;
+  const merged = {
+    ...existing,
+    id: existing.id || profileIdFromCloudOrder(request),
+    customerId: existing.customerId || customerId,
+    customerUserId: existing.customerUserId || accountId,
+    name: existing.name && existing.name !== "Customer" ? existing.name : request.customer_name || "Customer",
+    email: existing.email || request.customer_email || "",
+    phone: existing.phone || request.customer_phone || "",
+    allergies: existing.allergies || request.allergies || "",
+    preferences: existing.preferences || savedPreferences || "",
+    address: existing.address || savedAddress || "",
+    pickupNotes: existing.pickupNotes || request.pickup_location || "",
+    paymentNotes: existing.paymentNotes || request.payment_method || "",
+    favoriteItems: mergeCommaList(existing.favoriteItems, productNames),
+    notes: appendUniqueNote(existing.notes, linkedNote),
+    lastCloudOrderAt: order.pickupAt || request.created_at || new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+  if (existingIndex >= 0) {
+    return currentProfiles.map((profile, index) => (index === existingIndex ? merged : profile));
+  }
+  return [merged, ...currentProfiles];
+}
+
 export default function App() {
   const [active, setActive] = useState("today");
   const [selectedOrderId, setSelectedOrderId] = useState(null);
@@ -202,9 +297,11 @@ export default function App() {
       .slice(0, 2)
       .toUpperCase();
 
-    setOrders((current) => [{
+    const nextOrder = {
       id: `${Date.now()}-${request.id.slice(0, 6)}`,
       cloudOrderId: request.id,
+      customerId: request.customer_id,
+      customerUserId: request.customer_user_id,
       createdAt: request.created_at,
       customer: request.customer_name,
       customerEmail: request.customer_email,
@@ -240,7 +337,9 @@ export default function App() {
       accent: "sage",
       notes,
       isSample: false,
-    }, ...current]);
+    };
+    setOrders((current) => [nextOrder, ...current]);
+    setCustomerProfiles((current) => upsertCustomerProfileFromCloudOrder(current, request, nextOrder));
     setToast("Customer request accepted into Orders");
   }
 
