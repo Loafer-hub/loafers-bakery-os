@@ -34,7 +34,13 @@ import { BAKE_PHASES, normalizedBakeProgress } from "./lib/bakeProgress";
 import {
   deductInventoryForOrder,
   DEFAULT_PRODUCTION_AUTOMATION,
+  orderProductionLines,
 } from "./lib/productionPlanner";
+import {
+  batchCodeFor,
+  recipeVersionLabel,
+  withRecipeVersion,
+} from "./lib/recipeVersions";
 import BakePage from "./pages/BakePage";
 import CustomerOrderPortal from "./pages/CustomerOrderPortal";
 import LiquidPage from "./pages/LiquidPage";
@@ -218,6 +224,74 @@ function mergeSavedCustomerProfiles(currentProfiles, savedProfiles = []) {
   );
 }
 
+function recipeSnapshot(recipe) {
+  if (!recipe) return null;
+  return {
+    id: recipe.id,
+    name: recipe.name,
+    productType: recipe.productType || "bread",
+    version: Number(recipe.currentVersion || 1),
+    versionLabel: recipeVersionLabel(recipe),
+    ingredients: recipe.ingredients || [],
+    yield: recipe.yield,
+    unitName: recipe.unitName || "item",
+  };
+}
+
+function traceFromOrder(order, recipes, inventoryDeduction) {
+  const lines = orderProductionLines(order, recipes).filter((line) => line.recipe);
+  if (!lines.length) return null;
+  const now = new Date();
+  const units = lines.reduce((sum, line) => sum + Number(line.quantity || 0), 0);
+  return {
+    id: `trace-order-${order.id}-${Date.now()}`,
+    batchCode: batchCodeFor(lines[0].recipe?.name || order.product || "Order", now),
+    source: "completed-order",
+    status: "completed",
+    createdAt: now.toISOString(),
+    batchDate: now.toISOString().slice(0, 10),
+    recipeId: lines[0].recipe?.id || "",
+    recipeName: lines.map((line) => line.recipe?.name || line.name).join(", "),
+    recipeVersions: lines.map((line) => recipeSnapshot(line.recipe)).filter(Boolean),
+    producedUnits: units,
+    unitName: lines[0].recipe?.unitName || "item",
+    orderIds: [order.id],
+    customerNames: [order.customer].filter(Boolean),
+    requestCodes: [order.requestCode || order.cloudOrderId].filter(Boolean),
+    inventoryDeductions: inventoryDeduction?.deductions || order.inventoryDeductions || [],
+    ingredientLots: [],
+    qualityNotes: order.notes || "",
+    outcomeNotes: "Auto-created when the order was completed.",
+  };
+}
+
+function traceFromKitchenBake(bake, recipes) {
+  const recipe = recipes.find((item) => item.id === bake.recipeId)
+    || recipes.find((item) => item.name === bake.recipeName);
+  if (!recipe) return null;
+  const now = new Date();
+  return {
+    id: `trace-kitchen-${bake.id}-${Date.now()}`,
+    batchCode: batchCodeFor(bake.name || recipe.name, now),
+    source: "completed-kitchen-bake",
+    status: "completed",
+    createdAt: now.toISOString(),
+    batchDate: bake.completedAt?.slice(0, 10) || now.toISOString().slice(0, 10),
+    recipeId: recipe.id,
+    recipeName: recipe.name,
+    recipeVersions: [recipeSnapshot(recipe)].filter(Boolean),
+    producedUnits: Number(bake.loaves || recipe.yield || 1),
+    unitName: recipe.unitName || "item",
+    orderIds: bake.sourceOrderIds || [],
+    customerNames: [],
+    requestCodes: [],
+    inventoryDeductions: [],
+    ingredientLots: [],
+    qualityNotes: "",
+    outcomeNotes: `Auto-created from Kitchen bake “${bake.name || bake.recipeName || recipe.name}.”`,
+  };
+}
+
 export default function App() {
   const [active, setActive] = useState("today");
   const [selectedOrderId, setSelectedOrderId] = useState(null);
@@ -228,6 +302,7 @@ export default function App() {
   const [expenses, setExpenses] = usePersistentState("loafers-expenses-v1", seedExpenses);
   const [bakePlans, setBakePlans] = usePersistentState("loafers-bake-plans-v1", []);
   const [kitchenBakes, setKitchenBakes] = usePersistentState("loafers-kitchen-bakes-v1", []);
+  const [batchTraceRecords, setBatchTraceRecords] = usePersistentState("loafers-batch-trace-records-v1", []);
   const [liquidSafetyLogs, setLiquidSafetyLogs] = usePersistentState("loafers-liquid-safety-logs-v1", []);
   const [selectedKitchenBakeId, setSelectedKitchenBakeId] = usePersistentState("loafers-selected-kitchen-bake-v1", "");
   const [storedProductionAutomation, setProductionAutomation] = usePersistentState(
@@ -449,6 +524,10 @@ export default function App() {
       );
       if (inventoryDeduction.deductions.length) setInventory(inventoryDeduction.inventory);
     }
+    const batchTrace = traceFromOrder(order, recipes, inventoryDeduction);
+    if (batchTrace && !order.batchTraceId) {
+      setBatchTraceRecords((current) => [batchTrace, ...current]);
+    }
     setOrders((current) => current.map((item) => (
       item.id === id
         ? {
@@ -457,6 +536,7 @@ export default function App() {
           status: "Completed",
           bakeProgress: completedProgress,
           completedAt: new Date().toISOString(),
+          ...(batchTrace ? { batchTraceId: batchTrace.id } : {}),
           ...(inventoryDeduction?.deductions.length ? {
             inventoryDeductedAt: new Date().toISOString(),
             inventoryDeductions: inventoryDeduction.deductions,
@@ -585,10 +665,11 @@ export default function App() {
   function saveRecipe(recipe) {
     const { isNew, ...savedRecipe } = recipe;
     setRecipes((current) => {
-      const exists = current.some((item) => item.id === savedRecipe.id);
-      return exists
-        ? current.map((item) => item.id === savedRecipe.id ? savedRecipe : item)
-        : [savedRecipe, ...current];
+      const previous = current.find((item) => item.id === savedRecipe.id);
+      const versionedRecipe = withRecipeVersion(previous, savedRecipe);
+      return previous
+        ? current.map((item) => item.id === savedRecipe.id ? versionedRecipe : item)
+        : [versionedRecipe, ...current];
     });
     setToast(isNew ? "Recipe added" : "Recipe updated");
   }
@@ -695,12 +776,17 @@ export default function App() {
   }
 
   function saveKitchenBake(bake, options = {}) {
+    const previousBake = kitchenBakes.find((item) => item.id === bake.id);
+    const shouldCreateTrace = bake.status === "completed" && previousBake?.status !== "completed" && !bake.batchTraceId;
+    const batchTrace = shouldCreateTrace ? traceFromKitchenBake(bake, recipes) : null;
+    const savedBake = batchTrace ? { ...bake, batchTraceId: batchTrace.id } : bake;
     setKitchenBakes((current) => {
-      const exists = current.some((item) => item.id === bake.id);
+      const exists = current.some((item) => item.id === savedBake.id);
       return exists
-        ? current.map((item) => item.id === bake.id ? bake : item)
-        : [bake, ...current];
+        ? current.map((item) => item.id === savedBake.id ? savedBake : item)
+        : [savedBake, ...current];
     });
+    if (batchTrace) setBatchTraceRecords((current) => [batchTrace, ...current]);
     if (!options.silent) setToast(options.message || "Kitchen bake saved");
   }
 
@@ -722,6 +808,28 @@ export default function App() {
     });
   }
 
+  function saveBatchTraceRecord(record) {
+    const savedRecord = {
+      ...record,
+      id: record.id || `trace-manual-${Date.now()}`,
+      batchCode: record.batchCode?.trim() || batchCodeFor(record.recipeName || "Batch"),
+      createdAt: record.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    setBatchTraceRecords((current) => {
+      const exists = current.some((item) => item.id === savedRecord.id);
+      return exists
+        ? current.map((item) => item.id === savedRecord.id ? savedRecord : item)
+        : [savedRecord, ...current];
+    });
+    setToast("Batch trace saved");
+  }
+
+  function deleteBatchTraceRecord(id) {
+    setBatchTraceRecords((current) => current.filter((record) => record.id !== id));
+    setToast("Batch trace removed");
+  }
+
   async function updateBakerySettings(settings) {
     const normalized = normalizedBakerySettings(settings);
     setBakerySettings(normalized);
@@ -741,6 +849,7 @@ export default function App() {
     setExpenses(data.expenses);
     setBakePlans(data.bakePlans);
     setKitchenBakes(data.kitchenBakes || []);
+    setBatchTraceRecords(data.batchTraceRecords || []);
     setLiquidSafetyLogs(data.liquidSafetyLogs || []);
     setStarters(data.starters);
     setStarterLogs(data.starterLogs);
@@ -768,6 +877,7 @@ export default function App() {
     recipes,
     bakePlans,
     kitchenBakes,
+    batchTraceRecords,
     liquidSafetyLogs,
     selectedKitchenBakeId,
     starters,
@@ -783,6 +893,7 @@ export default function App() {
     onDeleteExpense: deleteExpense,
     onDeleteInventoryItem: deleteInventoryItem,
     onDeleteKitchenBake: deleteKitchenBake,
+    onDeleteBatchTraceRecord: deleteBatchTraceRecord,
     onDeleteLiquidSafetyLog: deleteLiquidSafetyLog,
     onDeleteRecipe: deleteRecipe,
     onDeleteStarter: deleteStarter,
@@ -802,6 +913,7 @@ export default function App() {
     onSaveBakePlan: saveBakePlan,
     onSaveInventoryItem: saveInventoryItem,
     onSaveKitchenBake: saveKitchenBake,
+    onSaveBatchTraceRecord: saveBatchTraceRecord,
     onSaveLiquidSafetyLog: saveLiquidSafetyLog,
     onSaveRecipe: saveRecipe,
     onSaveStarter: saveStarter,
@@ -915,6 +1027,7 @@ export default function App() {
             expenses,
             bakePlans,
             kitchenBakes,
+            batchTraceRecords,
             liquidSafetyLogs,
             starters,
             starterLogs,

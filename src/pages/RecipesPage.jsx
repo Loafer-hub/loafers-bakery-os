@@ -35,6 +35,11 @@ import {
   recipeAllowsStarterIngredient,
   suggestYeastTimeline,
 } from "../lib/recipeTimeline";
+import {
+  defaultLaborMinutesForRecipe,
+  estimateRecipeEconomics,
+} from "../lib/productCosting";
+import { recipeVersionLabel } from "../lib/recipeVersions";
 
 // yeast-breads-v1
 // recipe-grams-entry-v1
@@ -389,6 +394,13 @@ function recipeForm(recipe, bakerySettings) {
       salesOptions,
       flourWeight: 2400,
       baseWeight: 2400,
+      economics: {
+        laborMinutes: defaultLaborMinutesForRecipe({ productType: "bread" }),
+        laborRate: 20,
+        overheadPercent: 10,
+        packageCost: 0,
+      },
+      versionNote: "Initial formula",
       timelineSettings,
       isNew: true,
       ingredients: defaultIngredientsForType("bread", stamp),
@@ -415,6 +427,13 @@ function recipeForm(recipe, bakerySettings) {
     availabilityNote: recipe.availabilityNote || "",
     badges: Array.isArray(recipe.badges) ? recipe.badges : [],
     unitName: recipe.unitName || typeSettings.unitName || unitNameFor({ productType }),
+    economics: {
+      laborMinutes: Number(recipe.economics?.laborMinutes ?? recipe.laborMinutes ?? defaultLaborMinutesForRecipe({ productType })),
+      laborRate: Number(recipe.economics?.laborRate ?? recipe.laborRate ?? 20),
+      overheadPercent: Number(recipe.economics?.overheadPercent ?? recipe.overheadPercent ?? 10),
+      packageCost: Number(recipe.economics?.packageCost ?? recipe.packageCost ?? 0),
+    },
+    versionNote: "",
     salesOptions: (Array.isArray(recipe.salesOptions) && recipe.salesOptions.length
       ? normalizedSalesOptions(recipe)
       : salesOptionsForProductType(bakerySettings, productType, stamp)
@@ -432,17 +451,6 @@ function recipeForm(recipe, bakerySettings) {
       percent: Number(ingredient.percent || 0),
     })), { productType, timelineSettings }),
   });
-}
-
-function inventoryCostForIngredient(ingredient, weight, inventory) {
-  const matched = inventory.find((item) => item.name.trim().toLowerCase() === ingredient.name.trim().toLowerCase());
-  if (!matched || !Number(matched.unitCost)) return 0;
-  const unit = String(matched.unit || "").toLowerCase();
-  if (["kg", "kilogram", "kilograms"].includes(unit)) return weight / 1000 * Number(matched.unitCost);
-  if (["g", "gram", "grams"].includes(unit)) return weight * Number(matched.unitCost);
-  if (["lb", "pound", "pounds"].includes(unit)) return weight / 453.592 * Number(matched.unitCost);
-  if (["oz", "ounce", "ounces"].includes(unit)) return weight / 28.3495 * Number(matched.unitCost);
-  return 0;
 }
 
 function RecipeVisual({ recipe, large = false }) {
@@ -682,6 +690,13 @@ export default function RecipesPage({ bakerySettings, inventory, recipes, onDele
         price: Math.max(0, Number(option.price || 0)),
         capacityUnits: Math.max(0, Math.min(6, Number(option.capacityUnits ?? 1))),
       })),
+      economics: {
+        laborMinutes: Math.max(0, Number(form.economics?.laborMinutes || 0)),
+        laborRate: Math.max(0, Number(form.economics?.laborRate || 0)),
+        overheadPercent: Math.max(0, Number(form.economics?.overheadPercent || 0)),
+        packageCost: Math.max(0, Number(form.economics?.packageCost || 0)),
+      },
+      versionNote: form.versionNote?.trim() || "",
       price: Math.min(...form.salesOptions.map((option) => Math.max(0, Number(option.price || 0)))),
       flourWeight: baseWeight,
       baseWeight,
@@ -705,9 +720,8 @@ export default function RecipesPage({ bakerySettings, inventory, recipes, onDele
     const unitName = unitNameFor(selected);
     const factor = loaves / selected.yield;
     const total = selected.ingredients.reduce((sum, item) => sum + Math.round(item.weight * factor), 0);
-    const batchCost = selected.ingredients.reduce((sum, ingredient) => (
-      sum + inventoryCostForIngredient(ingredient, Number(ingredient.weight) * factor, inventory)
-    ), 0);
+    const costing = estimateRecipeEconomics(selected, inventory);
+    const batchCost = costing.baseIngredientCost * factor;
     const salesOptions = normalizedSalesOptions(selected);
     const price = lowestSalesPrice(selected);
     const ingredientCostPerLoaf = batchCost / Math.max(1, loaves);
@@ -722,6 +736,7 @@ export default function RecipesPage({ bakerySettings, inventory, recipes, onDele
         </div>
         <div className="recipe-facts">
           <span><Droplets size={17} /> {ratioLabelFor(selected)}</span>
+          <span>{recipeVersionLabel(selected)}</span>
           <span>From ${price.toFixed(2)}</span>
           <span>{selected.yield} {pluralUnit(unitName, selected.yield)} / base batch</span>
           <span>{selected.available === false ? "Unavailable this week" : "Available this week"}</span>
@@ -733,12 +748,18 @@ export default function RecipesPage({ bakerySettings, inventory, recipes, onDele
             <Package size={19} />
           </div>
           <div className="recipe-package-list">
-            {salesOptions.map((option) => (
+            {salesOptions.map((option) => {
+              const costRow = costing.optionRows.find((row) => row.id === option.id || row.label === option.label);
+              return (
               <div key={option.id}>
-                <span><strong>{option.label}</strong><small>{option.units} {pluralUnit(unitName, option.units)} · {option.capacityUnits} bake slot{option.capacityUnits === 1 ? "" : "s"}</small></span>
+                <span>
+                  <strong>{option.label}</strong>
+                  <small>{option.units} {pluralUnit(unitName, option.units)} · {option.capacityUnits} bake slot{option.capacityUnits === 1 ? "" : "s"} · {costRow ? `${costRow.margin.toFixed(0)}% margin` : "cost pending"}</small>
+                </span>
                 <strong>${option.price.toFixed(2)}</strong>
               </div>
-            ))}
+              );
+            })}
           </div>
         </section>
         <div className="section-title-line">
@@ -763,9 +784,47 @@ export default function RecipesPage({ bakerySettings, inventory, recipes, onDele
         <section className="recipe-cost-card">
           <CircleDollarSign size={20} />
           <div>
-            <span>Matched inventory cost</span>
-            <strong>${batchCost.toFixed(2)} batch · ${ingredientCostPerLoaf.toFixed(2)} / {unitName}</strong>
-            <small>Estimated gross margin from ${(price - ingredientCostPerLoaf).toFixed(2)} per base unit. Ingredients match inventory by name.</small>
+            <span>True cost estimate</span>
+            <strong>${costing.baseCost.toFixed(2)} batch · ${costing.costPerUnit.toFixed(2)} / {unitName}</strong>
+            <small>Ingredients ${batchCost.toFixed(2)} · labor ${costing.laborCost.toFixed(2)} · overhead ${costing.overheadCost.toFixed(2)}. Matched inventory by name.</small>
+          </div>
+        </section>
+        <section className="recipe-margin-panel">
+          <div className="section-title-line">
+            <div><span className="eyebrow-label dark">Pricing intelligence</span><h2>Profit by package</h2></div>
+            <CircleDollarSign size={19} />
+          </div>
+          <div className="recipe-margin-grid">
+            {costing.optionRows.map((option) => (
+              <article className={option.margin < 35 ? "recipe-margin-card warning" : "recipe-margin-card"} key={option.id}>
+                <span><strong>{option.label}</strong><small>{option.units} {pluralUnit(unitName, option.units)} · ${option.cost.toFixed(2)} estimated cost</small></span>
+                <b>${option.profit.toFixed(2)}</b>
+                <em>{option.margin.toFixed(0)}% margin · ${option.profitPerBakeSlot.toFixed(2)} / bake slot</em>
+                {option.margin < 35 ? <small>Consider ${option.suggestedPrice35.toFixed(2)}+ for 35% margin.</small> : null}
+              </article>
+            ))}
+          </div>
+        </section>
+        <section className="recipe-version-panel">
+          <div className="section-title-line">
+            <div><span className="eyebrow-label dark">Traceability</span><h2>Recipe versions</h2></div>
+            <Database size={19} />
+          </div>
+          <div className="recipe-version-list">
+            {(selected.versions || []).slice().reverse().map((version) => (
+              <article key={version.id || version.versionNumber}>
+                <strong>v{version.versionNumber}</strong>
+                <span>{version.note || "Formula update"}</span>
+                <small>{new Date(version.createdAt || Date.now()).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })} · {version.ingredients?.length || 0} ingredients</small>
+              </article>
+            ))}
+            {!(selected.versions || []).length ? (
+              <article>
+                <strong>v{selected.currentVersion || 1}</strong>
+                <span>Current formula will be versioned the next time you save formula changes.</span>
+                <small>Older recipes are migrated automatically.</small>
+              </article>
+            ) : null}
           </div>
         </section>
         {selectedFlours.length ? (
@@ -985,10 +1044,18 @@ function RecipeEditor({ bakerySettings, form, formError, onClose, onSubmit, setF
                     } : option
                   ));
                 const nextIngredients = shouldSwapTemplate ? defaultIngredientsForType(nextType.value) : current.ingredients;
+                const currentLaborMinutes = Number(current.economics?.laborMinutes ?? defaultLaborMinutesForRecipe(current));
+                const currentDefaultLabor = defaultLaborMinutesForRecipe(current);
                 return refreshRecipeTiming({
                   ...current,
                   productType: nextType.value,
                   formulaMode: nextType.formulaMode,
+                  economics: {
+                    ...current.economics,
+                    laborMinutes: currentLaborMinutes === currentDefaultLabor
+                      ? defaultLaborMinutesForRecipe({ productType: nextType.value })
+                      : currentLaborMinutes,
+                  },
                   timelineSettings: nextTimelineSettings,
                   unitName: shouldUseTypeUnit ? nextType.unitName : current.unitName,
                   salesOptions: nextSalesOptions,
@@ -1011,6 +1078,80 @@ function RecipeEditor({ bakerySettings, form, formError, onClose, onSubmit, setF
             </select>
           </label>
         </div>
+        <section className="recipe-economics-editor">
+          <div className="ingredient-editor-heading">
+            <div>
+              <strong>Version + true costing</strong>
+              <small>Every formula-changing save creates a recipe version. Costing includes labor, overhead, and packaging.</small>
+            </div>
+          </div>
+          <label>
+            Version note
+            <input
+              value={form.versionNote || ""}
+              onChange={(event) => setForm({ ...form, versionNote: event.target.value })}
+              placeholder={form.isNew ? "Initial formula" : "What changed in this version?"}
+            />
+          </label>
+          <div className="form-grid">
+            <label>
+              Labor minutes / base batch
+              <input
+                type="number"
+                min="0"
+                step="5"
+                value={form.economics?.laborMinutes ?? 0}
+                onChange={(event) => setForm((current) => ({
+                  ...current,
+                  economics: { ...(current.economics || {}), laborMinutes: Number(event.target.value) },
+                }))}
+              />
+            </label>
+            <label>
+              Labor rate / hour
+              <input
+                type="number"
+                min="0"
+                step="1"
+                value={form.economics?.laborRate ?? 0}
+                onChange={(event) => setForm((current) => ({
+                  ...current,
+                  economics: { ...(current.economics || {}), laborRate: Number(event.target.value) },
+                }))}
+              />
+            </label>
+          </div>
+          <div className="form-grid">
+            <label>
+              Overhead %
+              <input
+                type="number"
+                min="0"
+                max="100"
+                step="1"
+                value={form.economics?.overheadPercent ?? 0}
+                onChange={(event) => setForm((current) => ({
+                  ...current,
+                  economics: { ...(current.economics || {}), overheadPercent: Number(event.target.value) },
+                }))}
+              />
+            </label>
+            <label>
+              Package cost override
+              <input
+                type="number"
+                min="0"
+                step="0.05"
+                value={form.economics?.packageCost ?? 0}
+                onChange={(event) => setForm((current) => ({
+                  ...current,
+                  economics: { ...(current.economics || {}), packageCost: Number(event.target.value) },
+                }))}
+              />
+            </label>
+          </div>
+          <p className="form-help">Leave package cost at 0 to estimate from inventory items named bag, box, bottle, jar, or label.</p>
+        </section>
         <section className="recipe-timeline-settings">
           <div className="ingredient-editor-heading">
             <div>

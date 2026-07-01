@@ -1,7 +1,7 @@
 import { Preferences } from "@capacitor/preferences";
 
 const STORAGE_PREFIX = "loafers.v1.";
-export const BACKUP_SCHEMA_VERSION = 4;
+export const BACKUP_SCHEMA_VERSION = 5;
 export const STORAGE_DATASETS = [
   { id: "orders", label: "Orders" },
   { id: "customerProfiles", label: "Customer profiles" },
@@ -10,6 +10,7 @@ export const STORAGE_DATASETS = [
   { id: "expenses", label: "Expenses" },
   { id: "bakePlans", label: "Bake plans" },
   { id: "kitchenBakes", label: "Kitchen bakes" },
+  { id: "batchTraceRecords", label: "Batch trace records" },
   { id: "liquidSafetyLogs", label: "Liquid safety logs" },
   { id: "starters", label: "Starters" },
   { id: "starterLogs", label: "Starter feed logs" },
@@ -86,7 +87,7 @@ export function parseBackup(text) {
   }
   const normalizedData = {};
   STORAGE_DATASETS.forEach(({ id }) => {
-    if (["customerProfiles", "kitchenBakes", "liquidSafetyLogs"].includes(id) && backup.data[id] === undefined) {
+    if (["customerProfiles", "kitchenBakes", "batchTraceRecords", "liquidSafetyLogs"].includes(id) && backup.data[id] === undefined) {
       normalizedData[id] = [];
       return;
     }

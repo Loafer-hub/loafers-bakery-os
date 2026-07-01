@@ -34,6 +34,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { PageHeading } from "../components/AppChrome";
 import { EmptyState, Modal } from "../components/Primitives";
 import { usePersistentState } from "../hooks/usePersistentState";
+import { estimateRecipeEconomics } from "../lib/productCosting";
+import { batchCodeFor, recipeVersionLabel } from "../lib/recipeVersions";
 
 const emptyInventoryItem = {
   id: "",
@@ -674,6 +676,7 @@ function BarcodeImportPanel({
 }
 
 export default function MorePage({
+  batchTraceRecords = [],
   customerProfiles = [],
   expenses,
   inventory,
@@ -681,9 +684,11 @@ export default function MorePage({
   liquidSafetyLogs = [],
   orders,
   onDeleteExpense,
+  onDeleteBatchTraceRecord,
   onDeleteInventoryItem,
   onLogExpense,
   onOpenOrder,
+  onSaveBatchTraceRecord,
   onSaveCustomerProfile,
   onSaveInventoryItem,
   recipes = [],
@@ -696,6 +701,7 @@ export default function MorePage({
   const [customerDraft, setCustomerDraft] = useState(null);
   const [inventoryForm, setInventoryForm] = useState(null);
   const [purchaseForm, setPurchaseForm] = useState(null);
+  const [traceForm, setTraceForm] = useState(null);
   const [csvImportOpen, setCsvImportOpen] = useState(false);
   const [csvRows, setCsvRows] = useState([]);
   const [csvImportMessage, setCsvImportMessage] = useState("");
@@ -930,9 +936,22 @@ export default function MorePage({
   const traceabilityStats = [
     { label: "Order codes", value: orders.filter((order) => order.requestCode || order.cloudOrderId).length },
     { label: "Inventory-deducted", value: orders.filter((order) => order.inventoryDeductedAt).length },
-    { label: "Kitchen batches", value: kitchenBakes.length },
+    { label: "Batch traces", value: batchTraceRecords.length },
     { label: "Safety logs", value: liquidSafetyLogs.length },
   ];
+  const productCostRows = useMemo(() => recipes.map((recipe) => {
+    const costing = estimateRecipeEconomics(recipe, inventory);
+    return {
+      recipe,
+      costing,
+      bestOption: costing.bestProfitOption || costing.lowestPriceOption,
+      lowestOption: costing.lowestPriceOption,
+    };
+  }).sort((a, b) => (
+    Number(b.bestOption?.profitPerBakeSlot || 0) - Number(a.bestOption?.profitPerBakeSlot || 0)
+  )), [inventory, recipes]);
+  const underpricedRows = productCostRows.filter((row) => row.costing.underpriced);
+  const bestProfitPerSlot = productCostRows[0];
 
   function editInventory(item) {
     setInventoryForm(item ? { ...item, isNew: false } : {
@@ -941,6 +960,80 @@ export default function MorePage({
       isNew: true,
     });
     setConfirmDeleteId(null);
+  }
+
+  function openTraceForm(record = null) {
+    const recipe = record?.recipeId
+      ? recipes.find((item) => item.id === record.recipeId)
+      : recipes[0];
+    setTraceForm(record ? {
+      ...record,
+      orderIdsText: (record.orderIds || []).join(", "),
+      customerNamesText: (record.customerNames || []).join(", "),
+      ingredientLotsText: (record.ingredientLots || []).map((lot) => `${lot.name}: ${lot.lot}`).join("\n"),
+    } : {
+      id: "",
+      batchCode: batchCodeFor(recipe?.name || "Batch"),
+      batchDate: new Date().toISOString().slice(0, 10),
+      recipeId: recipe?.id || "",
+      recipeName: recipe?.name || "",
+      producedUnits: recipe?.yield || 1,
+      unitName: recipe?.unitName || "item",
+      orderIdsText: "",
+      customerNamesText: "",
+      ingredientLotsText: "",
+      qualityNotes: "",
+      outcomeNotes: "",
+      source: "manual",
+      status: "completed",
+    });
+  }
+
+  function updateTraceRecipe(recipeId) {
+    const recipe = recipes.find((item) => item.id === recipeId);
+    setTraceForm((current) => ({
+      ...current,
+      recipeId,
+      recipeName: recipe?.name || current.recipeName,
+      producedUnits: current.producedUnits || recipe?.yield || 1,
+      unitName: recipe?.unitName || current.unitName || "item",
+      batchCode: current.batchCode || batchCodeFor(recipe?.name || "Batch"),
+    }));
+  }
+
+  function saveTraceRecord(event) {
+    event.preventDefault();
+    if (!traceForm || !onSaveBatchTraceRecord) return;
+    const recipe = recipes.find((item) => item.id === traceForm.recipeId);
+    const ingredientLots = String(traceForm.ingredientLotsText || "")
+      .split("\n")
+      .map((line) => {
+        const [name, ...rest] = line.split(":");
+        return { name: name?.trim(), lot: rest.join(":").trim() };
+      })
+      .filter((lot) => lot.name || lot.lot);
+    onSaveBatchTraceRecord({
+      ...traceForm,
+      batchCode: traceForm.batchCode?.trim(),
+      recipeId: recipe?.id || traceForm.recipeId || "",
+      recipeName: recipe?.name || traceForm.recipeName || "Manual batch",
+      recipeVersions: recipe ? [{
+        id: recipe.id,
+        name: recipe.name,
+        version: Number(recipe.currentVersion || 1),
+        versionLabel: recipeVersionLabel(recipe),
+        productType: recipe.productType || "bread",
+        yield: recipe.yield,
+        unitName: recipe.unitName,
+      }] : traceForm.recipeVersions || [],
+      producedUnits: Number(traceForm.producedUnits || 0),
+      orderIds: String(traceForm.orderIdsText || "").split(",").map((value) => value.trim()).filter(Boolean),
+      customerNames: String(traceForm.customerNamesText || "").split(",").map((value) => value.trim()).filter(Boolean),
+      ingredientLots,
+      qualityNotes: traceForm.qualityNotes || "",
+      outcomeNotes: traceForm.outcomeNotes || "",
+    });
+    setTraceForm(null);
   }
 
   function toggleQualityTask(id) {
@@ -1256,6 +1349,70 @@ export default function MorePage({
         ) : null}
       </section>
 
+      <section className="pricing-intelligence-card">
+        <div className="section-title-line">
+          <div><span className="eyebrow-label dark">Pricing intelligence</span><h2>Cost, margin, and oven-slot value</h2></div>
+          <CircleDollarSign size={22} />
+        </div>
+        <div className="pricing-intelligence-summary">
+          <article>
+            <small>Best per bake slot</small>
+            <strong>{bestProfitPerSlot?.recipe.name || "No recipes yet"}</strong>
+            <span>{bestProfitPerSlot?.bestOption ? `$${bestProfitPerSlot.bestOption.profitPerBakeSlot.toFixed(2)} profit / slot` : "Add recipe pricing and inventory costs."}</span>
+          </article>
+          <article className={underpricedRows.length ? "warning" : ""}>
+            <small>Underpriced flags</small>
+            <strong>{underpricedRows.length}</strong>
+            <span>{underpricedRows.length ? "One or more packages are under 35% margin." : "No low-margin packages flagged."}</span>
+          </article>
+          <article>
+            <small>Recipes costed</small>
+            <strong>{productCostRows.length}</strong>
+            <span>Uses inventory, labor, overhead, and packaging estimates.</span>
+          </article>
+        </div>
+        <div className="pricing-intelligence-list">
+          {productCostRows.length ? productCostRows.slice(0, 8).map(({ recipe, costing, bestOption, lowestOption }) => (
+            <article className={costing.underpriced ? "pricing-product-row warning" : "pricing-product-row"} key={recipe.id}>
+              <span>
+                <strong>{recipe.name}</strong>
+                <small>{recipeVersionLabel(recipe)} · batch cost ${costing.baseCost.toFixed(2)} · unit cost ${costing.costPerUnit.toFixed(2)}</small>
+              </span>
+              <span>
+                <strong>{bestOption ? `$${bestOption.profitPerBakeSlot.toFixed(2)}` : "—"}</strong>
+                <small>profit / bake slot</small>
+              </span>
+              <span>
+                <strong>{lowestOption ? `${lowestOption.margin.toFixed(0)}%` : "—"}</strong>
+                <small>lowest package margin</small>
+              </span>
+              <button type="button" className="text-button" onClick={() => setActive("menu")}>Open recipe</button>
+            </article>
+          )) : <EmptyState title="No product costing yet" body="Add recipes, inventory unit costs, and package prices to rank products by margin." />}
+        </div>
+      </section>
+
+      <section className="batch-trace-card">
+        <div className="section-title-line">
+          <div><span className="eyebrow-label dark">Traceability</span><h2>Batch records</h2></div>
+          <button type="button" className="small-action-button" onClick={() => openTraceForm()}><Plus size={15} /> Trace</button>
+        </div>
+        <div className="batch-trace-list">
+          {batchTraceRecords.length ? batchTraceRecords.slice(0, 8).map((record) => (
+            <article className="batch-trace-row" key={record.id}>
+              <span>
+                <strong>{record.batchCode || "Batch"}</strong>
+                <small>{record.recipeName || "Recipe"} · {(record.recipeVersions || []).map((version) => version.versionLabel || `v${version.version}`).join(", ") || "version not linked"}</small>
+              </span>
+              <span><strong>{record.producedUnits || 0}</strong><small>{record.unitName || "items"}</small></span>
+              <span><strong>{(record.customerNames || []).length}</strong><small>customer links</small></span>
+              <span><strong>{record.batchDate || "No date"}</strong><small>{record.source || "manual"}</small></span>
+              <button type="button" className="text-button" onClick={() => openTraceForm(record)}>Open</button>
+            </article>
+          )) : <EmptyState title="No batch traces yet" body="Completing orders and Kitchen bakes will create records automatically, or add a manual trace here." />}
+        </div>
+      </section>
+
       <section className="trend-card">
         <div className="section-title-line">
           <div><span className="eyebrow-label">Current order book</span><h2>Revenue and spend</h2></div>
@@ -1358,6 +1515,40 @@ export default function MorePage({
               </section>
             )) : <EmptyState title="No orders yet" body="Customer order records will appear here." />}
           </div>
+        </Modal>
+      ) : null}
+
+      {traceForm ? (
+        <Modal title={traceForm.id ? `Batch ${traceForm.batchCode}` : "Add batch trace"} onClose={() => setTraceForm(null)}>
+          <form className="form-stack" onSubmit={saveTraceRecord}>
+            <div className="form-grid">
+              <label>Batch / lot code<input required value={traceForm.batchCode || ""} onChange={(event) => setTraceForm({ ...traceForm, batchCode: event.target.value })} /></label>
+              <label>Batch date<input type="date" value={traceForm.batchDate || ""} onChange={(event) => setTraceForm({ ...traceForm, batchDate: event.target.value })} /></label>
+            </div>
+            <label>
+              Recipe
+              <select value={traceForm.recipeId || ""} onChange={(event) => updateTraceRecipe(event.target.value)}>
+                <option value="">Manual / no recipe</option>
+                {recipes.map((recipe) => <option value={recipe.id} key={recipe.id}>{recipe.name} · {recipeVersionLabel(recipe)}</option>)}
+              </select>
+            </label>
+            <div className="form-grid">
+              <label>Units made<input type="number" min="0" step="1" value={traceForm.producedUnits || 0} onChange={(event) => setTraceForm({ ...traceForm, producedUnits: event.target.value })} /></label>
+              <label>Unit name<input value={traceForm.unitName || ""} onChange={(event) => setTraceForm({ ...traceForm, unitName: event.target.value })} /></label>
+            </div>
+            <label>Linked order IDs<input value={traceForm.orderIdsText || ""} onChange={(event) => setTraceForm({ ...traceForm, orderIdsText: event.target.value })} placeholder="1001, 1002, online request code…" /></label>
+            <label>Customers who received this batch<input value={traceForm.customerNamesText || ""} onChange={(event) => setTraceForm({ ...traceForm, customerNamesText: event.target.value })} placeholder="Joshua, Sarah, market table…" /></label>
+            <label>Ingredient lots<textarea value={traceForm.ingredientLotsText || ""} onChange={(event) => setTraceForm({ ...traceForm, ingredientLotsText: event.target.value })} placeholder={"Bread flour: Costco 06/30\nSalt: Morton box A"} /></label>
+            <label>Quality notes<textarea value={traceForm.qualityNotes || ""} onChange={(event) => setTraceForm({ ...traceForm, qualityNotes: event.target.value })} placeholder="Overproofed, great crumb, weak rise, reduce hydration next time…" /></label>
+            <label>Outcome / recall notes<textarea value={traceForm.outcomeNotes || ""} onChange={(event) => setTraceForm({ ...traceForm, outcomeNotes: event.target.value })} placeholder="Who got it, what to pull, what changed, customer feedback…" /></label>
+            <button className="primary-button" type="submit">Save batch trace</button>
+            {traceForm.id && onDeleteBatchTraceRecord ? (
+              <button type="button" className="delete-order-button" onClick={() => {
+                onDeleteBatchTraceRecord(traceForm.id);
+                setTraceForm(null);
+              }}><Trash2 size={15} /> Delete trace</button>
+            ) : null}
+          </form>
         </Modal>
       ) : null}
 

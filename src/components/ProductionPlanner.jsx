@@ -3,6 +3,8 @@ import {
   CalendarCheck2,
   CalendarDays,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   ClipboardList,
   Copy,
   Clock3,
@@ -52,6 +54,36 @@ function shortDateLabel(value) {
   const date = new Date(`${value}T12:00:00`);
   if (Number.isNaN(date.getTime())) return String(value);
   return date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+}
+
+function parseDay(value) {
+  if (value instanceof Date) return new Date(value);
+  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) return new Date(`${value}T12:00:00`);
+  return new Date(value || Date.now());
+}
+
+function addDays(value, days) {
+  const date = parseDay(value);
+  if (Number.isNaN(date.getTime())) return new Date();
+  date.setDate(date.getDate() + Number(days || 0));
+  date.setHours(12, 0, 0, 0);
+  return date;
+}
+
+function weekStartFor(value) {
+  const date = parseDay(value);
+  if (Number.isNaN(date.getTime())) return new Date();
+  const day = date.getDay();
+  const offset = day === 0 ? -6 : 1 - day;
+  date.setDate(date.getDate() + offset);
+  date.setHours(12, 0, 0, 0);
+  return date;
+}
+
+function weekRangeLabel(startKey) {
+  const start = parseDay(startKey);
+  const end = addDays(start, 6);
+  return `${start.toLocaleDateString("en-US", { month: "short", day: "numeric" })} – ${end.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
 }
 
 function localDateKey(value = new Date()) {
@@ -254,6 +286,36 @@ function buildForecastRows({ days, inventory, planner, settings }) {
     });
 }
 
+function buildWeeklyProductionDays({ weekStartKey, events, batches, inventory, settings }) {
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = addDays(weekStartKey, index);
+    const key = localDateKey(date);
+    const dayEvents = events.filter((event) => eventDateKey(event) === key);
+    const dayBatches = batches.filter((batch) => localDateKey(batch.pickupAt) === key);
+    const touchedBatches = new Map();
+    [...dayEvents.map((event) => event.batch), ...dayBatches].filter(Boolean).forEach((batch) => {
+      touchedBatches.set(batch.key, batch);
+    });
+    const batchList = [...touchedBatches.values()];
+    const requirements = ingredientRequirements(dayBatches.filter((batch) => batch.recipe));
+    const packageCount = dayBatches.reduce((sum, batch) => sum + Number(batch.packages || 0), 0);
+    const dayShortages = inventoryStatus(requirements, inventory, packageCount, settings.includePackaging)
+      .filter((row) => row.shortage && !row.skipped);
+    return {
+      key,
+      date,
+      events: dayEvents,
+      batches: batchList,
+      pickups: dayEvents.filter((event) => event.tone === "pickup"),
+      feeds: dayEvents.filter((event) => event.tone === "feed"),
+      mixes: dayEvents.filter((event) => event.tone === "mix"),
+      bakes: dayEvents.filter((event) => event.tone === "bake"),
+      items: batchList.reduce((sum, batch) => sum + Number(batch.loaves || 0), 0),
+      shortages: dayShortages,
+    };
+  });
+}
+
 function ToggleRow({ checked, disabled = false, label, note, onChange, warning = false }) {
   return (
     <label className={`automation-toggle-row ${warning ? "warning" : ""} ${disabled ? "disabled" : ""}`}>
@@ -279,6 +341,7 @@ export function ProductionPlanner({
   const [showSettings, setShowSettings] = useState(false);
   const [syncMessage, setSyncMessage] = useState("");
   const [selectedDay, setSelectedDay] = useState(() => localDateKey(new Date()));
+  const [weekStartKey, setWeekStartKey] = useState(() => localDateKey(weekStartFor(new Date())));
   const [forecastDays, setForecastDays] = useState(14);
   const [printMode, setPrintMode] = useState("");
   const [copyMessage, setCopyMessage] = useState("");
@@ -312,6 +375,20 @@ export function ProductionPlanner({
     selectedDayEvents.forEach((event) => batchMap.set(event.batch.key, event.batch));
     return [...batchMap.values()];
   }, [selectedDayEvents]);
+  const weekDays = useMemo(() => buildWeeklyProductionDays({
+    weekStartKey,
+    events: productionEvents,
+    batches: planner.batches,
+    inventory,
+    settings,
+  }), [inventory, planner.batches, productionEvents, settings, weekStartKey]);
+  const weekSummary = useMemo(() => ({
+    pickups: weekDays.reduce((sum, day) => sum + day.pickups.length, 0),
+    feeds: weekDays.reduce((sum, day) => sum + day.feeds.length, 0),
+    mixes: weekDays.reduce((sum, day) => sum + day.mixes.length, 0),
+    items: weekDays.reduce((sum, day) => sum + day.items, 0),
+    shortages: weekDays.reduce((sum, day) => sum + day.shortages.length, 0),
+  }), [weekDays]);
   const labelRows = useMemo(() => buildLabelRows(orders, recipes), [orders, recipes]);
   const forecastRows = useMemo(() => buildForecastRows({
     days: forecastDays,
@@ -383,6 +460,10 @@ export function ProductionPlanner({
     onSyncProductionPlans(planner.calendarPlans);
     syncedSignature.current = calendarSignature;
     setSyncMessage("Bake calendar synced.");
+  }
+
+  function moveWeek(days) {
+    setWeekStartKey(localDateKey(addDays(weekStartKey, days)));
   }
 
   function printSection(mode) {
@@ -473,6 +554,66 @@ export function ProductionPlanner({
         </section>
       ) : (
         <>
+          <section className="weekly-production-panel" aria-label="Weekly production planner">
+            <div className="section-title-line">
+              <div>
+                <span className="eyebrow-label dark">Weekly production planner</span>
+                <h2>{weekRangeLabel(weekStartKey)}</h2>
+                <small>See pickup load, starter feeds, mix days, bakes, and shortage pressure before you commit to the day.</small>
+              </div>
+              <CalendarDays size={21} />
+            </div>
+            <div className="weekly-production-toolbar">
+              <button type="button" className="secondary-button" onClick={() => moveWeek(-7)}><ChevronLeft size={15} /> Prev</button>
+              <button type="button" className="secondary-button" onClick={() => {
+                const today = localDateKey(new Date());
+                setSelectedDay(today);
+                setWeekStartKey(localDateKey(weekStartFor(new Date())));
+              }}>This week</button>
+              <button type="button" className="secondary-button" onClick={() => moveWeek(7)}>Next <ChevronRight size={15} /></button>
+            </div>
+            <div className="weekly-production-summary">
+              <span><strong>{weekSummary.pickups}</strong><small>pickups</small></span>
+              <span><strong>{weekSummary.mixes}</strong><small>mixes</small></span>
+              <span><strong>{weekSummary.feeds}</strong><small>feeds</small></span>
+              <span><strong>{weekSummary.items}</strong><small>items touched</small></span>
+              <span className={weekSummary.shortages ? "warning" : ""}><strong>{weekSummary.shortages}</strong><small>stock flags</small></span>
+            </div>
+            <div className="weekly-production-grid">
+              {weekDays.map((day) => {
+                const topEvents = day.events.slice(0, 4);
+                const eventOverflow = Math.max(0, day.events.length - topEvents.length);
+                return (
+                  <button
+                    type="button"
+                    className={`weekly-production-day ${selectedDay === day.key ? "selected" : ""} ${day.shortages.length ? "has-shortage" : ""}`}
+                    key={day.key}
+                    onClick={() => setSelectedDay(day.key)}
+                  >
+                    <span className="weekly-day-heading">
+                      <strong>{day.date.toLocaleDateString("en-US", { weekday: "short" })}</strong>
+                      <small>{day.date.toLocaleDateString("en-US", { month: "short", day: "numeric" })}</small>
+                    </span>
+                    <span className="weekly-day-load">
+                      <em>{day.items}</em>
+                      <small>{day.pickups.length} pickup{day.pickups.length === 1 ? "" : "s"} · {day.events.length} step{day.events.length === 1 ? "" : "s"}</small>
+                    </span>
+                    <span className="weekly-day-events">
+                      {topEvents.length ? topEvents.map((event) => (
+                        <i className={event.tone} key={event.id}>
+                          <b>{timeLabel(event.start)}</b>
+                          {event.label}
+                        </i>
+                      )) : <i className="quiet">No production scheduled</i>}
+                      {eventOverflow ? <i className="more">+{eventOverflow} more</i> : null}
+                    </span>
+                    {day.shortages.length ? <small className="weekly-shortage-note">{day.shortages.length} inventory warning{day.shortages.length === 1 ? "" : "s"}</small> : null}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
           <section className="production-day-mode" id="production-day-sheet" aria-label="Production day mode">
             <div className="section-title-line">
               <div>
