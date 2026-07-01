@@ -7222,6 +7222,63 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   font-weight: 700;
 }
 
+.customer-privacy-banner,
+.customer-checkout-lock {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0;
+  padding: 10px 11px;
+  color: #485a40;
+  border: 1px solid #c4d0be;
+  border-radius: 10px;
+  background: var(--sage-soft);
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.customer-privacy-banner svg,
+.customer-checkout-lock svg {
+  flex: 0 0 auto;
+  color: var(--sage);
+}
+
+.customer-privacy-banner span,
+.customer-checkout-lock span {
+  min-width: 0;
+  flex: 1;
+}
+
+.customer-privacy-banner button {
+  min-height: 30px;
+  padding: 0 10px;
+  color: #485a40;
+  border: 1px solid #c4d0be;
+  border-radius: 8px;
+  background: rgba(255,255,255,.75);
+  font-size: 8px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.customer-checkout-lock {
+  align-items: flex-start;
+  margin-top: 0;
+}
+
+.customer-checkout-lock strong,
+.customer-checkout-lock small {
+  display: block;
+}
+
+.customer-checkout-lock small {
+  margin-top: 2px;
+  color: #5b704f;
+  font-size: 8px;
+  line-height: 1.35;
+  font-weight: 700;
+}
+
 .customer-announcement {
   display: grid;
   grid-template-columns: auto 1fr;
