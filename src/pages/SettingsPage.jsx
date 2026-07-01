@@ -915,7 +915,7 @@ export default function SettingsPage({
           </div>
           <aside className="settings-provider-note">
             <EyeOff size={18} />
-            <span><strong>Guest checkout only</strong><small>Customer accounts and sign-in links are turned off. Customers can still send requests, track orders, and leave feedback when enabled.</small></span>
+            <span><strong>Guest checkout only</strong><small>Login links are turned off. Customers can still send requests, track orders, and leave feedback when enabled.</small></span>
           </aside>
         </CollapsibleSettingsCard>
 

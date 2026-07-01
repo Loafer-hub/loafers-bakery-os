@@ -390,7 +390,7 @@ function CustomerProfilesView({
               <span><strong>{linkedCustomer?.lastOrderAt ? dateTimeLabel(linkedCustomer.lastOrderAt) : "—"}</strong><small>Last order</small></span>
             </div>
             {customerDraft.customerUserId || linkedCustomer?.customerUserId ? (
-              <p className="customer-account-link-note"><UserRound size={13} /> Signed-in customer account linked</p>
+              <p className="customer-account-link-note"><UserRound size={13} /> Legacy customer login record linked</p>
             ) : null}
             <label>Name<input required value={customerDraft.name || ""} onChange={(event) => setCustomerDraft({ ...customerDraft, name: event.target.value })} placeholder="Customer name" /></label>
             <div className="form-grid">
