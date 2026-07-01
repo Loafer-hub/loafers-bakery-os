@@ -1104,13 +1104,50 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   display: flex;
   flex-direction: column;
   gap: 11px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   margin-top: 5px;
+  overflow: hidden;
+}
+
+.order-calendar .calendar-heading {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  grid-template-columns: 38px minmax(0, 1fr) 38px;
+  margin: 0 0 6px;
+}
+
+.order-calendar .calendar-heading h2 {
+  min-width: 0;
+  overflow: hidden;
+  font-size: clamp(28px, 4vw, 42px);
+  line-height: .95;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.order-calendar .calendar-weekdays {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.order-calendar .calendar-weekdays span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .order-calendar-legend {
   display: flex;
   flex-wrap: wrap;
   gap: 7px 12px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   padding: 9px 11px;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -1134,6 +1171,9 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 
 .order-calendar-grid {
   display: grid;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   grid-template-columns: repeat(7, minmax(0, 1fr));
   overflow: hidden;
   border-top: 1px solid var(--line);
@@ -1144,7 +1184,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .order-calendar-day,
 .order-calendar-grid .calendar-blank {
   min-width: 0;
-  min-height: 82px;
+  min-height: clamp(92px, 10.5vw, 132px);
   padding: 5px;
   border-right: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
@@ -1166,7 +1206,9 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 }
 
 .order-calendar-events {
-  max-height: 61px;
+  display: grid;
+  gap: 4px;
+  max-height: clamp(72px, 8.2vw, 106px);
   padding-right: 1px;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -1182,15 +1224,16 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 
 .order-calendar-event {
   min-width: 0;
+  min-height: 30px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 0;
-  padding: 3px 4px;
+  gap: 1px;
+  padding: 5px 7px;
   overflow: hidden;
   border: 0;
-  border-left: 3px solid currentColor;
-  border-radius: 3px;
+  border-left: 4px solid currentColor;
+  border-radius: 8px;
   background: color-mix(in srgb, currentColor 10%, white);
   text-align: left;
   cursor: default;
@@ -1201,13 +1244,14 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   max-width: 100%;
   overflow: hidden;
   color: currentColor;
-  font-size: 6px;
-  line-height: 1.2;
+  font-size: clamp(8px, .85vw, 12px);
+  line-height: 1.15;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .order-calendar-event small {
+  font-size: clamp(8px, .78vw, 11px);
   opacity: .78;
 }
 
