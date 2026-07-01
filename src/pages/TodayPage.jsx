@@ -219,9 +219,10 @@ function ProductionDashboard({
     ))
     .sort((a, b) => new Date(a.pickupAt || a.createdAt || 0) - new Date(b.pickupAt || b.createdAt || 0));
   const acceptedSlots = acceptedToday.reduce((sum, order) => sum + Number(order.quantity || 0), 0);
+  const openProductionOrders = orders.filter(isOpenProductionOrder);
   const activeBakes = useMemo(() => activeKitchenBakes(kitchenBakes), [kitchenBakes]);
   const productionPlan = useMemo(() => buildProductionPlanner({
-    orders: orders.filter(isOpenProductionOrder),
+    orders: openProductionOrders,
     recipes,
     inventory,
     starters,
@@ -270,6 +271,19 @@ function ProductionDashboard({
   }, [bakeryId, readyShelfEnabled, readyShelfRefreshKey]);
 
   const shelfQuantity = shelfItems.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+  const upcomingOrders = openProductionOrders
+    .filter((order) => pickupDateKey(order.pickupAt) !== todayKey)
+    .sort((a, b) => new Date(a.pickupAt || a.createdAt || 0) - new Date(b.pickupAt || b.createdAt || 0))
+    .slice(0, 4);
+  const nextPickup = acceptedToday[0] || upcomingOrders[0] || null;
+  const ordersMissingPickup = openProductionOrders.filter((order) => !order.pickupAt && !order.due).slice(0, 3);
+  const morningFocus = shortageRows.length
+    ? "Check shortages before you mix."
+    : acceptedToday.length
+      ? "Stage today’s pickups and keep the bake flow moving."
+      : activeBakes.length
+        ? "Keep active bakes moving through their checklists."
+        : "No urgent production flags right now.";
 
   return (
     <section className="production-dashboard" aria-label="Daily production dashboard">
@@ -280,6 +294,13 @@ function ProductionDashboard({
           <small>Accepted orders, ready shelf, active bakes, pickups, and shortages in one place.</small>
         </div>
         <Store size={22} />
+      </div>
+
+      <div className="production-morning-brief">
+        <span><strong>{morningFocus}</strong><small>Next pickup: {nextPickup ? `${timeLabel(nextPickup.pickupAt || nextPickup.createdAt)} · ${nextPickup.customer}` : "nothing scheduled"}</small></span>
+        <span><strong>{acceptedSlots}/{dailyCapacity}</strong><small>bake slots today</small></span>
+        <span><strong>{activeBakes.length}</strong><small>active bakes</small></span>
+        <span className={shortageRows.length ? "warning" : "clear"}><strong>{shortageRows.length}</strong><small>stock flags</small></span>
       </div>
 
       <div className="production-dashboard-grid">
@@ -298,6 +319,20 @@ function ProductionDashboard({
               </button>
             ))}
             {!acceptedToday.length ? <small>No accepted pickups for today yet.</small> : null}
+          </div>
+        </article>
+
+        <article className="production-card production-attention-card">
+          <span className="production-card-icon"><Gauge size={18} /></span>
+          <div>
+            <strong>Start here</strong>
+            <small>{shortageRows.length || ordersMissingPickup.length || upcomingOrders.length ? "The highest-value checks for this production day." : "No immediate action required. Keep an eye on new requests."}</small>
+          </div>
+          <div className="production-attention-list">
+            {shortageRows.length ? <button type="button" onClick={() => setActive("business")}><AlertTriangle size={14} /><span><strong>Review shortages</strong><small>{shortageRows.map((row) => row.name).slice(0, 2).join(", ")}</small></span></button> : null}
+            {ordersMissingPickup.map((order) => <button type="button" key={order.id} onClick={() => onOpenOrder?.(order.id)}><Clock3 size={14} /><span><strong>Add pickup time</strong><small>{order.customer} · {order.product || order.itemSummary || "Order"}</small></span></button>)}
+            {upcomingOrders.length ? <button type="button" onClick={() => setActive("orders")}><ShoppingBag size={14} /><span><strong>Upcoming accepted orders</strong><small>{upcomingOrders.length} after today</small></span></button> : null}
+            {!shortageRows.length && !ordersMissingPickup.length && !upcomingOrders.length ? <span><CheckCircle2 size={14} /><strong>All clear for now.</strong></span> : null}
           </div>
         </article>
 

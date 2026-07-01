@@ -101,6 +101,19 @@ function checkoutPickupLabel(date, time) {
   });
 }
 
+function checkoutPickupShortLabel(date, time) {
+  if (!date) return "Choose pickup";
+  const pickup = new Date(`${date}T${time || "00:00"}`);
+  if (Number.isNaN(pickup.getTime())) return `${date} ${time || ""}`.trim();
+  return pickup.toLocaleString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 function productSalesOptions(product) {
   if (Array.isArray(product.sales_options) && product.sales_options.length) {
     return product.sales_options.map((option, index) => ({
@@ -318,6 +331,7 @@ export default function CustomerOrderPortal({
   const [loading, setLoading] = useState(cloudAccount.configured);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(null);
+  const [copiedRequestCode, setCopiedRequestCode] = useState(false);
   const [quantities, setQuantities] = useState({});
   const [selectedOptions, setSelectedOptions] = useState({});
   const [productOptionSelections, setProductOptionSelections] = useState({});
@@ -607,6 +621,11 @@ export default function CustomerOrderPortal({
   const successTrackingLink = success
     ? customerTrackingLink(success.request_code, form.email.trim() || form.phone.trim())
     : "";
+  const checkoutSummary = {
+    cart: packageCount ? `${packageCount} package${packageCount === 1 ? "" : "s"} · ${dollars(total)}` : "Cart empty",
+    pickup: checkoutPickupShortLabel(form.pickupDate, form.pickupTime),
+    contact: form.name || form.email || form.phone ? [form.name, form.email || form.phone].filter(Boolean).join(" · ") : "Add contact",
+  };
   const favoriteProduct = storefrontProducts.find((product) => (
     String(product.id) === String(accountProfile.favoriteProductId)
     || String(product.recipe_id) === String(accountProfile.favoriteProductId)
@@ -1080,6 +1099,7 @@ export default function CustomerOrderPortal({
         },
       });
       setSuccess(result);
+      setCopiedRequestCode(false);
       logCustomerAccess("order_submitted", "Customer order request sent.", {
         contact: form.email.trim() || form.phone.trim(),
         requestCode: result?.request_code || "",
@@ -1099,6 +1119,17 @@ export default function CustomerOrderPortal({
         contact: form.email.trim() || form.phone.trim(),
       });
       setError(nextError.message);
+    }
+  }
+
+  async function copySuccessCode() {
+    const code = success?.request_code || "";
+    if (!code) return;
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopiedRequestCode(true);
+    } catch {
+      setCopiedRequestCode(false);
     }
   }
 
@@ -1124,7 +1155,15 @@ export default function CustomerOrderPortal({
         <span className="eyebrow-label dark">Request received</span>
         <h1>Thank you, {form.name.split(" ")[0]}.</h1>
         <p>{storefront.bakery.name} received your bread request. The baker will confirm availability and pickup details for {storefront.bakery.pickup_location || DEFAULT_PICKUP_LOCATION}.</p>
-        <div><small>Request code</small><strong>{success.request_code}</strong><span>{dollars(success.subtotal_cents)}</span></div>
+        <section className="success-summary-card">
+          <div><small>Request code</small><strong>{success.request_code}</strong><span>{dollars(success.subtotal_cents)}</span></div>
+          <button type="button" onClick={copySuccessCode}>{copiedRequestCode ? "Copied" : "Copy code"}</button>
+        </section>
+        <div className="success-next-steps" aria-label="What happens next">
+          <article><CheckCircle2 size={16} /><span><strong>Request sent</strong><small>The baker sees your items, pickup request, notes, and allergies.</small></span></article>
+          <article><Clock3 size={16} /><span><strong>Await confirmation</strong><small>You will get an update when it is accepted, adjusted, or declined.</small></span></article>
+          <article><PackageCheck size={16} /><span><strong>Track the bake</strong><small>Use your request code to follow bake phases and pickup readiness.</small></span></article>
+        </div>
         <aside className="success-payment-detail"><small>{form.paymentMethod}</small><strong>{PAYMENT_DETAILS[form.paymentMethod]}</strong></aside>
         <a className="success-track-link" href={successTrackingLink}>Track this bake</a>
         <CustomerOrderLookup
@@ -1395,6 +1434,10 @@ export default function CustomerOrderPortal({
           }}
           steps={CHECKOUT_STEPS}
         />
+        <CustomerCheckoutSummaryStrip
+          currentStep={checkoutStep}
+          summary={checkoutSummary}
+        />
 
         {checkoutStep === "browse" ? <section className="customer-menu">
           <div className="customer-section-heading"><div><h2>Choose your items</h2><p>Browse by category, ready shelf, or all goods. Requests are confirmed by the baker before they become final orders.</p></div></div>
@@ -1513,6 +1556,14 @@ export default function CustomerOrderPortal({
                 setError("");
               }}
             />
+            <aside className={form.pickupDate ? "pickup-choice-summary selected" : "pickup-choice-summary"}>
+              <Clock3 size={18} />
+              <span>
+                <small>{form.pickupDate ? "Selected pickup" : "Pickup not selected"}</small>
+                <strong>{checkoutPickupLabel(form.pickupDate, form.pickupTime)}</strong>
+                <em>{selectedCapacity && form.pickupDate ? `${selectedCapacity.remaining} bake slot${selectedCapacity.remaining === 1 ? "" : "s"} left for that date` : "Choose a date to see available times and remaining bake space."}</em>
+              </span>
+            </aside>
             <label>
               Preferred pickup time
               <select required disabled={!form.pickupDate} value={form.pickupTime} onChange={(event) => setForm({ ...form, pickupTime: event.target.value })}>
@@ -1591,7 +1642,7 @@ export default function CustomerOrderPortal({
         ) : null}
 
         <footer className="customer-order-footer">
-          <div><ShoppingBag size={18} /><span><strong>{packageCount} {packageCount === 1 ? "package" : "packages"} · {itemCount} {itemCount === 1 ? "item" : "items"}</strong><small>Estimated total {dollars(total)}</small></span></div>
+          <div><ShoppingBag size={18} /><span><strong>{packageCount} {packageCount === 1 ? "package" : "packages"} · {dollars(total)}</strong><small>{form.pickupDate ? checkoutPickupShortLabel(form.pickupDate, form.pickupTime) : `${itemCount} ${itemCount === 1 ? "item" : "items"} selected`}</small></span></div>
           <button
             className="primary-button"
             type={checkoutStep === "submit" ? "submit" : "button"}
@@ -1657,6 +1708,16 @@ function CustomerCheckoutSteps({ currentStep, currentStepIndex, onSelectStep, st
         </button>
       ))}
     </nav>
+  );
+}
+
+function CustomerCheckoutSummaryStrip({ currentStep, summary }) {
+  return (
+    <aside className="customer-checkout-summary-strip" aria-label="Checkout summary">
+      <span className={currentStep === "cart" || currentStep === "browse" ? "active" : ""}><ShoppingBag size={14} /><strong>{summary.cart}</strong></span>
+      <span className={currentStep === "pickup" ? "active" : ""}><Clock3 size={14} /><strong>{summary.pickup}</strong></span>
+      <span className={currentStep === "contact" || currentStep === "submit" ? "active" : ""}><UserRound size={14} /><strong>{summary.contact}</strong></span>
+    </aside>
   );
 }
 
