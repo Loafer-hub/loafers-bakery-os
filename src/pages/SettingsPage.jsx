@@ -626,6 +626,22 @@ export default function SettingsPage({
     setDraft((current) => ({ ...current, [key]: value }));
   }
 
+  function updateAllowGuestCheckout(value) {
+    setDraft((current) => ({
+      ...current,
+      allowGuestCheckout: value,
+      requireSignInForOrders: value ? false : current.requireSignInForOrders,
+    }));
+  }
+
+  function updateRequireSignInForOrders(value) {
+    setDraft((current) => ({
+      ...current,
+      requireSignInForOrders: value,
+      allowGuestCheckout: value ? false : current.allowGuestCheckout,
+    }));
+  }
+
   function updateWindow(group, index, value) {
     setDraft((current) => ({
       ...current,
@@ -877,14 +893,11 @@ export default function SettingsPage({
         <CollapsibleSettingsCard
           eyebrow="Customer storefront"
           icon={<Store size={20} />}
-          summary={`${draft.onlineOrdering ? "Ordering on" : "Ordering paused"} · ${draft.readyShelfEnabled ? "ready shelf on" : "ready shelf off"} · ${draft.reviewsVisible ? "reviews visible" : "reviews hidden"}`}
+          summary={`${draft.onlineOrdering ? "Ordering on" : "Ordering paused"} · announcement ${draft.announcementEnabled ? "on" : "off"}`}
           title="Storefront and checkout"
         >
           <div className="settings-toggle-list">
             <ToggleRow checked={draft.onlineOrdering} label="Online ordering" note="Pause new customer requests without removing the order lookup." onChange={(value) => update("onlineOrdering", value)} />
-            <ToggleRow checked={draft.readyShelfEnabled} label="Ready-to-go shelf" note="Show prebaked inventory on the customer order page." onChange={(value) => update("readyShelfEnabled", value)} />
-            <ToggleRow checked={draft.reviewsVisible} label="Public reviews" note="Display verified customer reviews on the storefront." onChange={(value) => update("reviewsVisible", value)} />
-            <ToggleRow checked={draft.feedbackEnabled} label="Suggestions and reviews" note="Allow verified customers to submit feedback from order lookup." onChange={(value) => update("feedbackEnabled", value)} />
             <ToggleRow checked={draft.announcementEnabled} label="Owner announcement" note="Show a short baker note at the top of the customer order page." onChange={(value) => update("announcementEnabled", value)} />
           </div>
           <label>Customer page introduction<textarea value={draft.orderingIntro} onChange={(event) => update("orderingIntro", event.target.value)} /></label>
@@ -894,6 +907,38 @@ export default function SettingsPage({
             <small>Leave the message blank to hide the announcement without changing the rest of your storefront.</small>
           </div>
           <label>Pickup location<input value={draft.pickupLocation} onChange={(event) => update("pickupLocation", event.target.value)} /></label>
+        </CollapsibleSettingsCard>
+
+        <CollapsibleSettingsCard
+          eyebrow="Customer privacy"
+          icon={<EyeOff size={20} />}
+          summary={`${draft.requireSignInForOrders || !draft.allowGuestCheckout ? "Sign-in required" : "Guest checkout allowed"} · Track My Bake ${draft.trackMyBakePublic ? "public" : "private"}`}
+          title="Privacy and customer account controls"
+        >
+          <div className="settings-toggle-list">
+            <ToggleRow
+              checked={draft.allowGuestCheckout && !draft.requireSignInForOrders}
+              label="Allow guest checkout"
+              note="Customers can send a request without creating an account."
+              onChange={updateAllowGuestCheckout}
+            />
+            <ToggleRow
+              checked={draft.requireSignInForOrders}
+              label="Require sign-in for orders"
+              note="Customers may browse, but must sign in before sending a request. This overrides guest checkout."
+              onChange={updateRequireSignInForOrders}
+            />
+            <ToggleRow checked={draft.trackMyBakePublic} label="Show Track My Bake publicly" note="Show the public lookup box and Track an order link on the customer page. Direct email tracking links still work." onChange={(value) => update("trackMyBakePublic", value)} />
+            <ToggleRow checked={draft.reviewsVisible} label="Show reviews publicly" note="Display verified customer reviews on the storefront." onChange={(value) => update("reviewsVisible", value)} />
+            <ToggleRow checked={draft.readyShelfEnabled} label="Show ready shelf publicly" note="Show prebaked ready-now inventory on the customer order page." onChange={(value) => update("readyShelfEnabled", value)} />
+            <ToggleRow checked={draft.customerReorderEnabled} label="Allow customer reorder" note="Let signed-in customers reorder favorite or previous items from their account." onChange={(value) => update("customerReorderEnabled", value)} />
+            <ToggleRow checked={draft.customerProfileSavingEnabled} label="Allow customer profile saving" note="Let signed-in customers save allergies, preferences, payment preference, and pickup notes." onChange={(value) => update("customerProfileSavingEnabled", value)} />
+            <ToggleRow checked={draft.feedbackEnabled} label="Allow lookup feedback" note="Let verified customers submit reviews or suggestions after finding an order." onChange={(value) => update("feedbackEnabled", value)} />
+          </div>
+          <aside className="settings-provider-note">
+            <EyeOff size={18} />
+            <span><strong>Privacy-first storefront controls</strong><small>These only change the public customer page and account features. Owner order records and private baker notes stay in your owner tools.</small></span>
+          </aside>
         </CollapsibleSettingsCard>
 
         <CollapsibleSettingsCard
