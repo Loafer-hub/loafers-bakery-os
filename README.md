@@ -29,6 +29,23 @@ When the Starlight VM deployment is enabled, the same frontend can also be hoste
 - Inventory, purchases, barcode/CSV import, cost tracking, expenditure trends, customer records, and business reporting
 - Cloud order storage through Supabase, automatic emails through Resend, and installable PWA support for phone-style use without a Mac
 
+## Current owner structure
+
+The owner app is organized around the real flow of a solo bakery:
+
+| Area | Clean role |
+| --- | --- |
+| Today | Daily command center |
+| Orders | Requests, active orders, customer records, and order calendar |
+| Production | Bread work and Liquid lab |
+| Production > Bread work > Bake desk | Plan, Kitchen, Batches, Calendar, and Starters |
+| Menu | Product catalog, recipes, ready shelf, and customer storefront preview |
+| Business | Inventory, purchases, customers, order history, trends, and reporting |
+| Settings | Bakery rules, privacy, product types, pickup rules, options, and notifications |
+| Storage | Backup, restore, recovery, and storage status |
+
+Older rough names were cleaned up as follows: Trends is now Business, Recipes/products live under Menu, and the old Bake area now lives under Production > Bread work as the Bake desk.
+
 ## Run locally
 
 ```powershell

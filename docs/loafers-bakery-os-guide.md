@@ -1,6 +1,6 @@
 # Loafers Bakery OS feature guide
 
-Last updated: July 1, 2026
+Last updated: July 2, 2026
 
 Loafers Bakery OS is a bakery command center built around one real constraint: a home baker does not have a staff. The app is designed to act like the missing office manager, prep list, order book, production planner, storefront, label helper, and memory system.
 
@@ -27,6 +27,43 @@ Brand kit:
 
 `docs/loafers-brand-kit.md`
 
+## Clean structure and naming
+
+The app now has two clear sides:
+
+- Owner App: the private bakery operating system used by the baker.
+- Customer Storefront: the public order page customers use to browse, request, and track orders.
+
+Going forward, use these names consistently:
+
+| Current name | What it means | Older/rough names it replaces |
+| --- | --- | --- |
+| Today | Daily command center for what needs attention now | Home, dashboard |
+| Orders | Owner order desk for requests, active orders, customers, and order calendar | Requests, order manager |
+| Production | The full making-work area | Bake tab, Bake / Production |
+| Production > Bread work | Bread, yeast, starter, and bake workflow | Bake |
+| Bread work > Bake desk | The branded command view inside Bread work | Dynamic bake plan area |
+| Bake desk > Plan | Build one science-backed bake timeline | Schedule |
+| Bake desk > Kitchen | Active in-progress bakes and checklists | Kitchen board |
+| Bake desk > Batches | Group accepted orders into efficient production | Batch plan |
+| Bake desk > Calendar | Planned bakes, accepted order bakes, blocked days | Bake calendar |
+| Bake desk > Starters | Starter profiles, feed logs, and starter science | Starter care |
+| Production > Liquid lab | Hot sauces, vinegars, infused oils, pH/salt/safety records | Liquid |
+| Menu | Product catalog, recipes, ready shelf, storefront preview | Recipes, products |
+| Business | Inventory, purchases, customers, order history, reporting | Trends |
+| Settings | Bakery controls, privacy, product types, pickup rules, notifications | Storefront settings, controls |
+| Storage | Backup, restore, recovery, local/cloud storage status | Backup center |
+
+The main owner workflow should be read like this:
+
+1. Today tells the baker what needs attention.
+2. Orders handles customer requests and commitments.
+3. Production turns commitments into real work.
+4. Menu controls what customers can buy.
+5. Business tracks supplies, money, customers, and history.
+6. Settings controls rules and visibility.
+7. Storage protects the data.
+
 ## High-level app map
 
 The owner side is organized around the way a solo bakery actually works:
@@ -35,8 +72,8 @@ The owner side is organized around the way a solo bakery actually works:
 | --- | --- |
 | Today | Daily command center: requests, active work, production dashboard, visual fermentation, ready shelf, starter quick log |
 | Orders | Customer requests, accepted orders, order details, payment state, customer profiles, order calendar |
-| Bake / Production | Bread planning, live kitchen board, batch planning, bake calendar, starter lab, liquid lab |
-| Menu | Recipes/products, storefront settings shortcut, ready shelf, owner preview of the customer page |
+| Production | Bread work, Bake desk, live kitchen tracking, Batches, Calendar, Starters, Liquid lab |
+| Menu | Product catalog, recipes, storefront settings shortcut, ready shelf, owner preview of the customer page |
 | Business | Inventory, purchases, barcode import, spending trends, customers, order history, owner cockpit |
 | Settings | Storefront, customer privacy, product types, product availability, capacity, pickup hours, notifications |
 | Storage | Backup, restore, recovery copy, local/cloud storage status |
@@ -65,7 +102,7 @@ It includes:
 - Ready-to-go shelf summary
 - Starter status and quick starter feed/check logging
 - Order summary and daily capacity progress
-- Quick links into Orders, Kitchen, Menu, Business, Settings, and Storage
+- Quick links into Orders, Production > Kitchen, Menu, Business, Settings, and Storage
 
 The goal is that the baker can open Today and know what needs attention without hunting through every tab.
 
@@ -132,9 +169,11 @@ Each profile can store:
 
 Customer lists can be viewed as active, past, account-linked, or all customers.
 
-### Bake / Production area
+### Production
 
-The Bake / Production area is organized as a compact production desk. The top Bread/Liquid chooser stays small, then Bread work opens into a branded Bake desk with status cards for in-progress bakes, next step, starter readiness, and production signal.
+Production is the owner area for making things. It contains Bread work and Liquid lab.
+
+Bread work opens into the branded Bake desk with status cards for in-progress bakes, next step, starter readiness, and production signal. Liquid lab handles hot sauces, vinegars, infused oils, pH/salt planning, and safety logs.
 
 Bread work is intentionally split by job:
 
@@ -143,11 +182,78 @@ Bread work is intentionally split by job:
 - Batches: group accepted orders into efficient production work
 - Calendar: plan and block bake days
 - Starters: manage starter profiles and feed history
-- Liquid: hot sauce, vinegar, oil, and liquid safety tools
+- Liquid lab: hot sauce, vinegar, oil, and liquid safety tools
 
 The Bake desk also includes a summary rail on larger screens with calendar load, active kitchen work, and upcoming saved bake plans. On phones, the same tools stack into a tighter flow so the baker can get from status to action quickly.
 
 This area is where the app acts most like the missing production manager.
+
+### Menu
+
+Menu is the owner area for the product catalog and customer-facing shelf.
+
+Use Menu for:
+
+- Recipes and products
+- Product photos
+- Package pricing
+- Customer-facing descriptions
+- Ingredients and estimated nutrition
+- Product availability and badges
+- Ready-now shelf items
+- Storefront preview
+
+The clean rule: if it changes what customers can buy or see on a product card, it belongs in Menu.
+
+### Business
+
+Business is the owner area for records, money, and operations history.
+
+Use Business for:
+
+- Inventory
+- Purchases and barcode imports
+- Spending and stock trends
+- Customer records
+- Order history
+- Product performance
+- Owner cockpit alerts
+- Batch trace records and reporting foundations
+
+The clean rule: if it helps understand cost, stock, customers, or history, it belongs in Business.
+
+### Settings
+
+Settings is the owner area for rules and visibility.
+
+Use Settings for:
+
+- Bakery name and public intro
+- Customer privacy controls
+- Product type controls
+- Customer option visibility
+- Order capacity and lead time
+- Pickup hours and pickup intervals
+- Payment methods
+- Customer notifications
+- Email delivery settings
+- Storefront announcements
+
+The clean rule: if it changes how the bakery behaves or what options customers are allowed to use, it belongs in Settings.
+
+### Storage
+
+Storage is the owner area for protecting data.
+
+Use Storage for:
+
+- Exporting backups
+- Restoring backups
+- Previewing backup contents
+- Undoing the last restore when available
+- Checking local/cloud storage status
+
+The clean rule: if it protects, restores, or moves records, it belongs in Storage.
 
 ## Recipe and product system
 
@@ -335,7 +441,7 @@ Yeast breads are handled differently than sourdough:
 
 This keeps sandwich bread, rolls, buns, and enriched yeast breads from being forced into a sourdough workflow.
 
-### Kitchen board
+### Bake desk > Kitchen
 
 Kitchen is the live bench list for work in progress.
 
@@ -359,9 +465,9 @@ It can:
 
 The “Start work,” “Optional suggestions,” and “In progress” areas are collapsible to save space on mobile.
 
-### Batch planning
+### Bake desk > Batches
 
-Batch plan groups accepted orders into production work.
+The Batches view groups accepted orders into production work.
 
 It can:
 
@@ -382,7 +488,7 @@ It can:
 
 Nothing starts automatically without the baker choosing to use it in Kitchen.
 
-### Bake calendar and blocked days
+### Bake desk > Calendar
 
 The calendar supports:
 
@@ -406,9 +512,9 @@ The customer calendar is limited by:
 - Unavailable days
 - Starter-feed reservation rules
 
-## Starter management
+## Bake desk > Starters
 
-The Starter lab supports multiple starter profiles.
+Starters supports multiple starter profiles.
 
 Each starter can store:
 
@@ -434,9 +540,9 @@ The starter feed calendar shows feed history, and estimates use:
 
 The goal is not just “did it double?” but “what does this flour and feed ratio mean for this culture?”
 
-## Liquid lab and food-safety helpers
+## Production > Liquid lab
 
-The Liquid tab covers non-bread fermented and infused products.
+Liquid lab covers non-bread fermented and infused products.
 
 ### Hot sauce calculator
 
@@ -842,21 +948,22 @@ A native iOS Capacitor shell exists, but publishing to the App Store still requi
 4. Review today’s accepted orders and pickups.
 5. Check shortages and inventory warnings.
 6. Review starter status and log a quick feed/check if needed.
-7. Open Kitchen if anything is hitting the bench.
+7. Open Production > Bread work > Kitchen if anything is hitting the bench.
 
 ### Planning a bake
 
-1. Go to Bake / Production.
-2. Use Plan for a one-off bake or Batch plan for accepted customer orders.
-3. Choose whether to start from mix time or finish by pickup time.
-4. Confirm the recipe, dough temperature, quantity, and proof timing.
-5. For sourdough, confirm starter and levain ratio.
-6. For yeast breads, confirm rise/proof timing instead of starter settings.
-7. Add the bake to Kitchen when you actually start work.
+1. Open Production.
+2. Choose Bread work.
+3. Use Plan for a one-off bake or Batches for accepted customer orders.
+4. Choose whether to start from mix time or finish by pickup time.
+5. Confirm the recipe, dough temperature, quantity, and proof timing.
+6. For sourdough, confirm starter and levain ratio.
+7. For yeast breads, confirm rise/proof timing instead of starter settings.
+8. Add the bake to Kitchen when you actually start work.
 
 ### Running active dough
 
-1. Open Kitchen.
+1. Open Production > Bread work > Kitchen.
 2. Name the bake so it is easy to recognize.
 3. Check off each stage as it happens.
 4. Use Show on Today to make that bake drive the visual fermentation display.
@@ -929,9 +1036,9 @@ For each product type:
 - Enable or disable customer options
 - Choose display order
 
-### 3. Products and recipes
+### 3. Menu products and recipes
 
-In Menu / Products:
+In Menu:
 
 - Add recipes/products
 - Choose product type
@@ -1236,6 +1343,8 @@ This changelog is written as a product history, not a line-by-line commit log.
 - Tightened the Orders calendar cell labels so mobile month view remains readable
 - Refreshed Bake / Production into a branded Bake desk with quick status cards, clearer Plan/Kitchen/Batches/Calendar/Starters tabs, a desktop summary rail, and a tighter mobile Production chooser
 - Added scroll-position polish so switching Bread work and Liquid lab opens from the top instead of landing mid-page
+- Cleaned up product documentation naming around Today, Orders, Production, Bread work, Bake desk, Menu, Business, Settings, and Storage
+- Added a clear structure map explaining what old rough names became and where each owner workflow belongs
 
 ## Known limitations and cautions
 
