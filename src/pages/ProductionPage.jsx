@@ -20,8 +20,12 @@ const productionViews = [
 ];
 
 export default function ProductionPage(props) {
-  const [view, setView] = useState("bake");
+  const [view, setView] = useState(props.productionView || "bake");
   const ActiveIcon = view === "liquid" ? Beaker : Wheat;
+
+  useEffect(() => {
+    if (props.productionView && props.productionView !== view) setView(props.productionView);
+  }, [props.productionView, view]);
 
   useEffect(() => {
     document.querySelector(".scroll-view")?.scrollTo({ top: 0, left: 0 });

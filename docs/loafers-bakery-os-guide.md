@@ -1358,6 +1358,7 @@ This changelog is written as a product history, not a line-by-line commit log.
 - Refreshed Menu into a branded Menu desk with customer-facing status cards, Products/Storefront/Ready shelf/Preview workspace tabs, product-type snapshots, mixed product previews, weekly visibility rail, and a real Add product shortcut
 - Renamed the embedded Menu product area to Product catalog so owner language matches what customers see
 - Matched the desktop Menu desk more closely to the dark Loafers reference: wider near-edge app shell, owner-style left navigation, aurora/banner hero, dark product panels, gold/cream text, and orange-brown action buttons
+- Scoped the dark desktop canvas to Menu only so Today, Business, and Settings keep readable light pages, and wired owner-sidebar shortcuts for Bake desk, Logbook, Customers, Reports, and Settings
 
 ## Known limitations and cautions
 

@@ -294,6 +294,7 @@ function traceFromKitchenBake(bake, recipes) {
 
 export default function App() {
   const [active, setActive] = useState("today");
+  const [desktopNavKey, setDesktopNavKey] = useState("today");
   const [selectedOrderId, setSelectedOrderId] = useState(null);
   const [orders, setOrders] = usePersistentState("loafers-orders-v1", seedOrders);
   const [customerProfiles, setCustomerProfiles] = usePersistentState("loafers-customer-profiles-v1", []);
@@ -325,6 +326,8 @@ export default function App() {
   const [quickActionsOpen, setQuickActionsOpen] = useState(false);
   const [storageOpen, setStorageOpen] = useState(false);
   const [menuView, setMenuView] = useState("recipes");
+  const [productionView, setProductionView] = useState("bake");
+  const [businessFocus, setBusinessFocus] = useState(null);
   const [quickFeed, setQuickFeed] = useState({
     starterId: "mabel",
     ratio: "1:2:2",
@@ -332,7 +335,8 @@ export default function App() {
     rise: 2,
     note: "",
   });
-  const Page = pages[canonicalPage(active)] || TodayPage;
+  const currentPage = canonicalPage(active);
+  const Page = pages[currentPage] || TodayPage;
   const cloudAccount = useCloudAccount();
   const openOrderCount = useMemo(() => orders.filter((order) => {
     const status = String(order.status || "").toLowerCase();
@@ -629,11 +633,19 @@ export default function App() {
     const nextPage = canonicalPage(page);
     if (nextPage !== "orders") setSelectedOrderId(null);
     if (nextPage === "menu" && options.menuView) setMenuView(options.menuView);
+    if (nextPage === "production" && options.productionView) setProductionView(options.productionView);
+    if (nextPage === "business") {
+      setBusinessFocus(options.businessFocus
+        ? { area: options.businessFocus, nonce: Date.now() }
+        : { area: "reports", nonce: Date.now() });
+    }
+    setDesktopNavKey(options.navKey || (nextPage === "business" ? "reports" : nextPage));
     setActive(nextPage);
   }
 
   function openOrder(id) {
     setSelectedOrderId(id);
+    setDesktopNavKey("orders");
     setActive("orders");
   }
 
@@ -923,7 +935,9 @@ export default function App() {
     onSaveStarter: saveStarter,
     onSelectKitchenBake: selectKitchenBake,
     onSyncProductionPlans: syncProductionPlans,
+    businessFocus,
     selectedOrderId,
+    productionView,
     starterLogs,
     menuView,
     onChangeMenuView: setMenuView,
@@ -981,13 +995,14 @@ export default function App() {
 
   return (
     <div className="app-stage">
-      <div className="app-shell">
+      <div className={`app-shell owner-page-${currentPage}`} data-page={currentPage}>
         <div className="scroll-view">
           <Page {...sharedProps} />
           <InstallAppPrompt context="owner" />
         </div>
         <BottomNav
-          active={canonicalPage(active)}
+          active={currentPage}
+          activeNavKey={desktopNavKey}
           onChange={navigate}
           orderBadgeCount={openOrderCount}
         />

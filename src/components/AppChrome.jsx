@@ -25,12 +25,12 @@ const navItems = [
 const desktopNavItems = [
   { id: "today", label: "Today", icon: House, page: "today" },
   { id: "orders", label: "Orders", icon: ClipboardList, page: "orders", showBadge: true },
-  { id: "bake-desk", label: "Bake desk", icon: Croissant, page: "production", activeWhen: "bake-desk" },
-  { id: "production", label: "Production", icon: ClipboardList, page: "production" },
+  { id: "bake-desk", label: "Bake desk", icon: Croissant, page: "production", productionView: "bake" },
+  { id: "production", label: "Production", icon: ClipboardList, page: "production", productionView: "bake" },
   { id: "menu", label: "Menu", icon: Store, page: "menu" },
-  { id: "logbook", label: "Logbook", icon: BookOpen, page: "business", activeWhen: "logbook" },
-  { id: "customers", label: "Customers", icon: UserRound, page: "business", activeWhen: "customers" },
-  { id: "reports", label: "Reports", icon: LineChart, page: "business", activeWhen: "business" },
+  { id: "logbook", label: "Logbook", icon: BookOpen, page: "business", businessFocus: "logbook" },
+  { id: "customers", label: "Customers", icon: UserRound, page: "business", businessFocus: "customers" },
+  { id: "reports", label: "Reports", icon: LineChart, page: "business", businessFocus: "reports" },
   { id: "settings", label: "Settings", icon: Settings2, page: "settings" },
 ];
 
@@ -77,7 +77,7 @@ export function BrandHeader({ compact = false, onOpenSettings, onOpenStorage }) 
   );
 }
 
-export function BottomNav({ active, onChange, orderBadgeCount = 0 }) {
+export function BottomNav({ active, activeNavKey = active, onChange, orderBadgeCount = 0 }) {
   const badgeLabel = orderBadgeCount > 99 ? "99+" : String(orderBadgeCount || "");
 
   return (
@@ -104,13 +104,13 @@ export function BottomNav({ active, onChange, orderBadgeCount = 0 }) {
       </div>
 
       <div className="desktop-nav-items">
-        {desktopNavItems.map(({ id, label, icon: Icon, page, activeWhen, showBadge }) => {
-          const isActive = active === (activeWhen || page);
+        {desktopNavItems.map(({ id, label, icon: Icon, page, productionView, businessFocus, showBadge }) => {
+          const isActive = activeNavKey === id || (!activeNavKey && active === page);
           return (
             <button
               key={id}
               className={isActive ? "nav-item active" : "nav-item"}
-              onClick={() => onChange(page)}
+              onClick={() => onChange(page, { navKey: id, productionView, businessFocus })}
               aria-current={isActive ? "page" : undefined}
             >
               <Icon size={20} strokeWidth={isActive ? 2.2 : 1.75} />

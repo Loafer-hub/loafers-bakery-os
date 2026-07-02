@@ -694,6 +694,7 @@ export default function MorePage({
   recipes = [],
   starterLogs = [],
   setActive,
+  businessFocus,
 }) {
   const [orderHistoryOpen, setOrderHistoryOpen] = useState(false);
   const [customerDirectoryOpen, setCustomerDirectoryOpen] = useState(false);
@@ -1075,6 +1076,26 @@ export default function MorePage({
     setCustomerView("all");
     setCustomerDirectoryOpen(true);
   }
+
+  useEffect(() => {
+    if (!businessFocus?.area) return;
+    if (businessFocus.area === "logbook") {
+      setCustomerDirectoryOpen(false);
+      setOrderHistoryOpen(true);
+      document.querySelector(".scroll-view")?.scrollTo({ top: 0, left: 0 });
+      return;
+    }
+    if (businessFocus.area === "customers") {
+      setOrderHistoryOpen(false);
+      openCustomerDirectory("active");
+      return;
+    }
+    if (businessFocus.area === "reports") {
+      setOrderHistoryOpen(false);
+      setCustomerDirectoryOpen(false);
+      document.querySelector(".scroll-view")?.scrollTo({ top: 0, left: 0 });
+    }
+  }, [businessFocus?.area, businessFocus?.nonce]);
 
   function saveCustomerProfile(event) {
     event.preventDefault();
