@@ -19,7 +19,7 @@ const navItems = [
   { id: "orders", label: "Orders", icon: ClipboardList },
   { id: "production", label: "Production", icon: Croissant },
   { id: "menu", label: "Menu", icon: Store },
-  { id: "business", label: "Business", icon: LineChart },
+  { id: "business", label: "Manage", icon: ClipboardList },
 ];
 
 const desktopNavItems = [
@@ -28,9 +28,10 @@ const desktopNavItems = [
   { id: "bake-desk", label: "Bake desk", icon: Croissant, page: "production", productionView: "bake" },
   { id: "production", label: "Production", icon: ClipboardList, page: "production", productionView: "operations", productionArea: "calendar" },
   { id: "menu", label: "Menu", icon: Store, page: "menu" },
+  { id: "management", label: "Management", icon: ClipboardList, page: "business", businessFocus: "management" },
+  { id: "reports", label: "Reports", icon: LineChart, page: "business", businessFocus: "reports" },
   { id: "logbook", label: "Logbook", icon: BookOpen, page: "business", businessFocus: "logbook" },
   { id: "customers", label: "Customers", icon: UserRound, page: "business", businessFocus: "customers" },
-  { id: "reports", label: "Reports", icon: LineChart, page: "business", businessFocus: "reports" },
   { id: "settings", label: "Settings", icon: Settings2, page: "settings" },
 ];
 

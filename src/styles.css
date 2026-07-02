@@ -7869,6 +7869,43 @@ button.owner-alert-row {
   max-width: none;
 }
 
+.management-logbook-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.management-logbook-section {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #e6d8c5;
+  border-radius: 18px;
+  background: rgba(255,255,255,.58);
+}
+
+.compact-logbook-list {
+  margin: 0;
+}
+
+.compact-logbook-list.expense-history {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.compact-logbook-list .expense-row,
+.compact-logbook-list .batch-trace-row {
+  background: #fffdf8;
+}
+
+.logbook-liquid-card {
+  background: #fffdf8;
+}
+
+.logbook-liquid-card h3 {
+  margin-bottom: 3px;
+}
+
 .customer-directory-row span,
 .customer-directory-row strong,
 .customer-directory-row small {

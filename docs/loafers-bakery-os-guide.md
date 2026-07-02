@@ -50,8 +50,9 @@ Going forward, use these names consistently:
 | Production > Inventory on hand | Quick stock view for production readiness | Inventory snapshot |
 | Production > Liquid lab | Hot sauces, vinegars, infused oils, pH/salt/safety records | Liquid |
 | Menu | Product catalog, recipes, ready shelf, storefront preview | Recipes, products |
-| Business | Inventory editing, purchases, reporting, traceability, and owner cockpit | Trends |
-| Logbook | Full order history and details from the owner sidebar | Order history modal |
+| Management | Owner alerts, daily checklist, inventory editing, order/customer shortcuts, and traceability controls | Business catch-all |
+| Reports | Financial reports, cost intelligence, pricing, margin, revenue, and spending | Trends, financial parts of Business |
+| Logbook | Purchases, bakes, batch traces, and finished liquid records | Order history modal |
 | Customers | Full customer directory and profile editor from the owner sidebar | Customer modal |
 | Settings | Bakery controls, privacy, product types, pickup rules, notifications | Storefront settings, controls |
 | Need help | In-app documentation and changelog | Help button to Settings |
@@ -64,9 +65,10 @@ The main owner workflow should be read like this:
 3. Bake desk turns commitments into timelines, kitchen work, and batches.
 4. Production keeps the calendar, starters, inventory readiness, and liquid work organized.
 5. Menu controls what customers can buy.
-6. Business tracks supplies, money, customers, and history.
-7. Settings controls rules and visibility.
-8. Storage protects the data.
+6. Management handles owner operations and inventory control.
+7. Reports tracks money, costs, margin, and pricing.
+8. Settings controls rules and visibility.
+9. Storage protects the data.
 
 ## High-level app map
 
@@ -79,8 +81,9 @@ The owner side is organized around the way a solo bakery actually works:
 | Bake desk | Plan, Kitchen, and Batches for bread and yeast work |
 | Production | Calendar, Starters, Inventory on hand, blocked days, and Liquid lab |
 | Menu | Product catalog, recipes, storefront settings shortcut, ready shelf, owner preview of the customer page |
-| Business | Inventory editing, purchases, barcode import, spending trends, owner cockpit, traceability |
-| Logbook | Full order history, order detail references, pickup/payment/allergy records |
+| Management | Owner alerts, daily checklist, inventory editing, order/customer shortcuts, and traceability controls |
+| Reports | Revenue, spending, product rankings, recipe costing, margins, and pricing intelligence |
+| Logbook | Purchase records, bake records, batch traces, and finished liquid safety records |
 | Customers | Active, past, account-linked, and all customer profiles |
 | Settings | Storefront, customer privacy, product types, product availability, capacity, pickup hours, notifications |
 | Need help | In-app documentation, workflow guide, food-safety reminders, and changelog |
@@ -223,22 +226,38 @@ Use Menu for:
 
 The clean rule: if it changes what customers can buy or see on a product card, it belongs in Menu.
 
-### Business
+### Management, Reports, and Logbook
 
-Business is the owner area for records, money, and operations history.
+The old Business catch-all is now split into three clearer owner areas.
 
-Use Business for:
+Use Management for:
 
-- Inventory
-- Purchases and barcode imports
-- Spending and stock trends
-- Customer records
-- Order history
-- Product performance
 - Owner cockpit alerts
+- Daily owner checklist
+- Inventory editing
+- Order and customer shortcuts
 - Batch trace records and reporting foundations
 
-The clean rule: if it helps understand cost, stock, customers, or history, it belongs in Business.
+Use Reports for:
+
+- Revenue
+- Net-before-unlogged-costs
+- Six-week expenditure chart
+- Product ranking
+- Recipe costing
+- Margin and underpriced flags
+- Profit per bake slot
+- Financial and cost answers
+
+Use Logbook for:
+
+- Purchase history
+- Completed bake records
+- Batch traces
+- Finished liquid safety records
+- Lot, pH, salt, shelf-life, storage, warning, and recall notes
+
+The clean rule: money and costs belong in Reports; saved records belong in Logbook; owner operations belong in Management.
 
 ### Settings
 
@@ -1370,6 +1389,10 @@ This changelog is written as a product history, not a line-by-line commit log.
 - Renamed the embedded Menu product area to Product catalog so owner language matches what customers see
 - Matched the desktop Menu desk more closely to the dark Loafers reference: wider near-edge app shell, owner-style left navigation, aurora/banner hero, dark product panels, gold/cream text, and orange-brown action buttons
 - Scoped the dark desktop canvas to Menu only so Today, Business, and Settings keep readable light pages, and wired owner-sidebar shortcuts for Bake desk, Logbook, Customers, Reports, and Settings
+- Split the old Business catch-all into Management, Reports, and Logbook so operations, money, and records each have a cleaner home
+- Added a Management left-rail button for owner alerts, daily checklist, inventory editing, order/customer shortcuts, and traceability controls
+- Narrowed Reports to financial and cost work: revenue, spend, product ranking, recipe costing, margin, underpriced flags, and pricing intelligence
+- Rebuilt Logbook as a record trail for purchases, bakes, batch traces, and finished liquid safety records
 
 ## Known limitations and cautions
 

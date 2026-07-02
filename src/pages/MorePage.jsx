@@ -10,6 +10,7 @@ import {
   CheckCircle2,
   Clipboard,
   ClipboardCheck,
+  ClipboardList,
   FileUp,
   Gauge,
   Heart,
@@ -59,6 +60,15 @@ const OPEN_FOOD_FACTS_FIELDS = [
   "image_front_small_url",
   "image_url",
 ].join(",");
+
+function liquidProductTypeLabel(value) {
+  const labels = {
+    hot_sauce: "Fermented hot sauce",
+    vinegar: "Vinegar",
+    infused_oil: "Infused oil",
+  };
+  return labels[value] || "Liquid product";
+}
 
 function weekKey(date) {
   const value = new Date(`${date}T12:00:00`);
@@ -698,7 +708,7 @@ export default function MorePage({
 }) {
   const [orderHistoryOpen, setOrderHistoryOpen] = useState(false);
   const [customerDirectoryOpen, setCustomerDirectoryOpen] = useState(false);
-  const [businessArea, setBusinessArea] = useState("reports");
+  const [businessArea, setBusinessArea] = useState("management");
   const [customerView, setCustomerView] = useState("active");
   const [customerDraft, setCustomerDraft] = useState(null);
   const [inventoryForm, setInventoryForm] = useState(null);
@@ -853,9 +863,9 @@ export default function MorePage({
     },
     {
       id: "business",
-      label: "Business",
-      title: "Money + records",
-      note: "Reports, stock, purchases, customer records, and bakery settings.",
+      label: "Management",
+      title: "Owner operations",
+      note: "Alerts, inventory, order shortcuts, customer shortcuts, and traceability controls.",
     },
   ];
   const qualityTasks = [
@@ -954,6 +964,19 @@ export default function MorePage({
   )), [inventory, recipes]);
   const underpricedRows = productCostRows.filter((row) => row.costing.underpriced);
   const bestProfitPerSlot = productCostRows[0];
+  const loggedPurchases = useMemo(() => [...expenses].sort((a, b) => (
+    new Date(`${b.date || "1970-01-01"}T12:00:00`) - new Date(`${a.date || "1970-01-01"}T12:00:00`)
+  )), [expenses]);
+  const loggedBatchRecords = useMemo(() => [...batchTraceRecords].sort((a, b) => (
+    new Date(b.createdAt || b.batchDate || "1970-01-01") - new Date(a.createdAt || a.batchDate || "1970-01-01")
+  )), [batchTraceRecords]);
+  const completedKitchenBakes = useMemo(() => kitchenBakes
+    .filter((bake) => String(bake.status || "").toLowerCase() === "completed" || bake.completedAt)
+    .sort((a, b) => new Date(b.completedAt || b.updatedAt || "1970-01-01") - new Date(a.completedAt || a.updatedAt || "1970-01-01")), [kitchenBakes]);
+  const loggedLiquidRecords = useMemo(() => [...liquidSafetyLogs].sort((a, b) => (
+    new Date(b.updatedAt || b.batchDate || b.createdAt || "1970-01-01")
+    - new Date(a.updatedAt || a.batchDate || a.createdAt || "1970-01-01")
+  )), [liquidSafetyLogs]);
 
   function editInventory(item) {
     setInventoryForm(item ? { ...item, isNew: false } : {
@@ -1096,6 +1119,13 @@ export default function MorePage({
     }
     if (businessFocus.area === "reports") {
       setBusinessArea("reports");
+      setOrderHistoryOpen(false);
+      setCustomerDirectoryOpen(false);
+      document.querySelector(".scroll-view")?.scrollTo({ top: 0, left: 0 });
+      return;
+    }
+    if (businessFocus.area === "management") {
+      setBusinessArea("management");
       setOrderHistoryOpen(false);
       setCustomerDirectoryOpen(false);
       document.querySelector(".scroll-view")?.scrollTo({ top: 0, left: 0 });
@@ -1377,16 +1407,103 @@ export default function MorePage({
     );
   }
 
+  function renderLogbookPanel() {
+    return (
+      <div className="management-logbook-panel">
+        <section className="management-logbook-section">
+          <div className="section-title-line">
+            <div>
+              <span className="eyebrow-label dark">Purchase records</span>
+              <h2>Purchases</h2>
+            </div>
+            <Receipt size={19} />
+          </div>
+          <div className="expense-history compact-logbook-list">
+            {loggedPurchases.length ? loggedPurchases.slice(0, 30).map((expense) => (
+              <div className="expense-row" key={expense.id}>
+                <span><strong>{expense.itemName}</strong><small>{new Date(`${expense.date}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} · {expense.quantity} {expense.unit}</small></span>
+                {expense.barcode ? <small className="expense-barcode">#{expense.barcode}</small> : null}
+                <strong>${Number(expense.totalCost || 0).toFixed(2)}</strong>
+                <button type="button" aria-label={`Delete ${expense.itemName} expense`} onClick={() => onDeleteExpense(expense.id)}><Trash2 size={14} /></button>
+              </div>
+            )) : <EmptyState title="No purchases logged" body="Purchase logs will appear here after you scan, import, or log supply buys." />}
+          </div>
+        </section>
+
+        <section className="management-logbook-section">
+          <div className="section-title-line">
+            <div>
+              <span className="eyebrow-label dark">Bake records</span>
+              <h2>Bakes</h2>
+            </div>
+            <Clipboard size={19} />
+          </div>
+          <div className="batch-trace-list compact-logbook-list">
+            {loggedBatchRecords.length ? loggedBatchRecords.slice(0, 30).map((record) => (
+              <article className="batch-trace-row" key={record.id}>
+                <span>
+                  <strong>{record.batchCode || "Batch"}</strong>
+                  <small>{record.recipeName || "Recipe"} · {(record.recipeVersions || []).map((version) => version.versionLabel || `v${version.version}`).join(", ") || "version not linked"}</small>
+                </span>
+                <span><strong>{record.producedUnits || 0}</strong><small>{record.unitName || "items"}</small></span>
+                <span><strong>{(record.customerNames || []).length}</strong><small>customer links</small></span>
+                <span><strong>{record.batchDate || "No date"}</strong><small>{record.source || "manual"}</small></span>
+              </article>
+            )) : completedKitchenBakes.length ? completedKitchenBakes.slice(0, 20).map((bake) => (
+              <article className="batch-trace-row" key={bake.id}>
+                <span>
+                  <strong>{bake.name || bake.recipeName || "Completed bake"}</strong>
+                  <small>{bake.recipeName || "Recipe"} · kitchen board record</small>
+                </span>
+                <span><strong>{bake.loaves || bake.quantity || 1}</strong><small>units</small></span>
+                <span><strong>{dateTimeLabel(bake.completedAt || bake.updatedAt) || "Done"}</strong><small>completed</small></span>
+              </article>
+            )) : <EmptyState title="No bakes logged yet" body="Completing orders, Kitchen bakes, or batch traces will put records here." />}
+          </div>
+        </section>
+
+        <section className="management-logbook-section">
+          <div className="section-title-line">
+            <div>
+              <span className="eyebrow-label dark">Finished liquid records</span>
+              <h2>Finished liquids</h2>
+            </div>
+            <ShieldCheck size={19} />
+          </div>
+          <div className="saved-safety-log-list compact-logbook-list">
+            {loggedLiquidRecords.length ? loggedLiquidRecords.slice(0, 24).map((log) => (
+              <article className="saved-safety-log-card logbook-liquid-card" key={log.id}>
+                <div>
+                  <span className="safety-log-type info">{liquidProductTypeLabel(log.productType)}</span>
+                  <h3>{log.batchName || "Liquid batch"}</h3>
+                  <small>{log.lotCode || "No lot code"} · {log.batchDate || "No date"} · shelf life {log.shelfLifeDays || 0} days</small>
+                </div>
+                <div className="safety-log-measures">
+                  <span><small>pH</small><strong>{log.ph || "—"}</strong></span>
+                  <span><small>Salt</small><strong>{log.saltPct ? `${log.saltPct}%` : "—"}</strong></span>
+                  <span><small>Qty</small><strong>{log.quantity || "—"}</strong></span>
+                </div>
+                {log.storageInstructions ? <p><b>Storage:</b> {log.storageInstructions}</p> : null}
+                {log.warningNotes ? <p><b>Warnings:</b> {log.warningNotes}</p> : null}
+                {log.recallNotes ? <p><b>Recall:</b> {log.recallNotes}</p> : null}
+              </article>
+            )) : <EmptyState title="No finished liquids logged yet" body="Saved hot sauce, vinegar, and infused oil safety records will appear here." />}
+          </div>
+        </section>
+      </div>
+    );
+  }
+
   if (businessArea === "logbook") {
     return (
       <main className="page business-page business-subpage">
         <PageHeading
           title="Logbook"
-          subtitle="A full order record trail with pickup, payment, allergy, customer notes, and bake-progress details."
-          action={<button className="small-action-button" type="button" onClick={() => setBusinessArea("reports")}><LineChart size={15} /> Reports</button>}
+          subtitle="The bakery record trail: purchases, bakes, batch traces, and finished liquid safety records."
+          action={<button className="small-action-button" type="button" onClick={() => setBusinessArea("management")}><ClipboardList size={15} /> Management</button>}
         />
         <section className="business-subpage-card">
-          {renderOrderHistoryPanel(true)}
+          {renderLogbookPanel()}
         </section>
       </main>
     );
@@ -1398,7 +1515,7 @@ export default function MorePage({
         <PageHeading
           title="Customers"
           subtitle="Customer profiles, allergies, preferences, contact info, pickup notes, payment notes, and linked order history."
-          action={<button className="small-action-button" type="button" onClick={() => setBusinessArea("reports")}><LineChart size={15} /> Reports</button>}
+          action={<button className="small-action-button" type="button" onClick={() => setBusinessArea("management")}><ClipboardList size={15} /> Management</button>}
         />
         <section className="business-subpage-card customer-subpage-card">
           {renderCustomerDirectoryPanel(true)}
@@ -1408,13 +1525,17 @@ export default function MorePage({
   }
 
   return (
-    <main className="page">
+    <main className="page business-page">
       <PageHeading
-        title="Business"
-        subtitle="Money, stock, purchases, customers, and the pulse of your one-person bakery."
+        title={businessArea === "reports" ? "Reports" : "Management"}
+        subtitle={businessArea === "reports"
+          ? "Financial reports, cost intelligence, margin checks, revenue, spending, and pricing answers."
+          : "Owner operations, alerts, inventory management, customer shortcuts, order records, and traceability controls."}
         action={<button className="round-action" type="button" onClick={() => setActive("settings")} aria-label="Open bakery settings"><Settings2 size={20} /></button>}
       />
 
+      {businessArea === "management" ? (
+        <>
       <section className="owner-flow-card">
         <div className="section-title-line">
           <div><span className="eyebrow-label dark">Professional flow</span><h2>Where work belongs</h2></div>
@@ -1482,7 +1603,11 @@ export default function MorePage({
           </div>
         </div>
       </section>
+        </>
+      ) : null}
 
+      {businessArea === "reports" ? (
+        <>
       <section className="owner-reports-card">
         <div className="section-title-line">
           <div><span className="eyebrow-label dark">Better reporting</span><h2>Owner answers</h2></div>
@@ -1496,15 +1621,6 @@ export default function MorePage({
               <span>{card.note}</span>
             </article>
           ))}
-        </div>
-        <div className="owner-traceability-strip">
-          <ShieldCheck size={18} />
-          <span><strong>Batch trail foundation</strong><small>These counts show which records already connect orders, batches, safety, and inventory.</small></span>
-          <div>
-            {traceabilityStats.map((stat) => (
-              <em key={stat.label}>{stat.value} {stat.label}</em>
-            ))}
-          </div>
         </div>
         {productStats.length ? (
           <div className="owner-product-rank">
@@ -1562,7 +1678,10 @@ export default function MorePage({
           )) : <EmptyState title="No product costing yet" body="Add recipes, inventory unit costs, and package prices to rank products by margin." />}
         </div>
       </section>
+        </>
+      ) : null}
 
+      {businessArea === "management" ? (
       <section className="batch-trace-card">
         <div className="section-title-line">
           <div><span className="eyebrow-label dark">Traceability</span><h2>Batch records</h2></div>
@@ -1583,7 +1702,10 @@ export default function MorePage({
           )) : <EmptyState title="No batch traces yet" body="Completing orders and Kitchen bakes will create records automatically, or add a manual trace here." />}
         </div>
       </section>
+      ) : null}
 
+      {businessArea === "reports" ? (
+        <>
       <section className="trend-card">
         <div className="section-title-line">
           <div><span className="eyebrow-label">Current order book</span><h2>Revenue and spend</h2></div>
@@ -1592,13 +1714,18 @@ export default function MorePage({
         <div className="trend-number"><strong>${revenue.toFixed(2)}</strong><span>${totalExpenses.toFixed(2)} recorded expenses</span></div>
         <div className="finance-summary-line"><span>Net before unlogged costs</span><strong>${(revenue - totalExpenses).toFixed(2)}</strong></div>
       </section>
+        </>
+      ) : null}
 
+      {businessArea === "management" ? (
       <section className="quick-metrics">
         <div><CircleDollarSign /><strong>${inventoryValue.toFixed(0)}</strong><span>stock value</span></div>
         <button type="button" className="metric-button" onClick={() => setOrderHistoryOpen(true)}><Box /><strong>{orders.length}</strong><span>orders</span></button>
         <button type="button" className="metric-button" onClick={() => openCustomerDirectory("active")}><UsersRound /><strong>{activeCustomerRecords.length}</strong><span>active customers</span></button>
       </section>
+      ) : null}
 
+      {businessArea === "reports" ? (
       <section className="spending-card">
         <div className="section-title-line">
           <div><span className="eyebrow-label dark">6-week expenditure</span><h2>Purchases</h2></div>
@@ -1618,7 +1745,9 @@ export default function MorePage({
           ))}
         </div>
       </section>
+      ) : null}
 
+      {businessArea === "management" ? (
       <section className="inventory-section">
         <div className="section-title-line">
           <div><h2>Inventory</h2><small>${inventoryValue.toFixed(2)} estimated on hand</small></div>
@@ -1636,7 +1765,9 @@ export default function MorePage({
           {!inventory.length ? <EmptyState title="No inventory yet" body="Add ingredients, packaging, and supplies to begin tracking cost." /> : null}
         </div>
       </section>
+      ) : null}
 
+      {businessArea === "logbook" ? (
       <section className="expense-history">
         <div className="section-title-line"><h2>Purchase history</h2><CalendarDays size={18} /></div>
         {expenses.length ? expenses.slice(0, 12).map((expense) => (
@@ -1648,6 +1779,7 @@ export default function MorePage({
           </div>
         )) : <EmptyState title="No purchases logged" body="Purchase logs create your expenditure chart and update inventory quantities." />}
       </section>
+      ) : null}
 
       {orderHistoryOpen ? (
         <Modal title="Order history" onClose={() => setOrderHistoryOpen(false)}>

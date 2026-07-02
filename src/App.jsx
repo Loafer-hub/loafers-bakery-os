@@ -641,9 +641,9 @@ export default function App() {
     if (nextPage === "business") {
       setBusinessFocus(options.businessFocus
         ? { area: options.businessFocus, nonce: Date.now() }
-        : { area: "reports", nonce: Date.now() });
+        : { area: "management", nonce: Date.now() });
     }
-    setDesktopNavKey(options.navKey || (nextPage === "business" ? "reports" : nextPage));
+    setDesktopNavKey(options.navKey || (nextPage === "business" ? "management" : nextPage));
     setActive(nextPage);
   }
 
