@@ -12,7 +12,6 @@ import {
   ClipboardCheck,
   ClipboardList,
   FileUp,
-  Gauge,
   Heart,
   LineChart,
   Mail,
@@ -836,38 +835,6 @@ export default function MorePage({
     }
     return alerts;
   }, [hasLiquidSafetyProducts, hiddenProductOrders, lowStockItems, missingPickupOrders, recentLiquidSafetyLog, setActive, unpaidOrders]);
-  const workflowCards = [
-    {
-      id: "today",
-      label: "Today",
-      title: "Command center",
-      note: `${todayPickupOrders.length} pickup${todayPickupOrders.length === 1 ? "" : "s"} today · ${kitchenBakes.length} kitchen bake${kitchenBakes.length === 1 ? "" : "s"}`,
-    },
-    {
-      id: "orders",
-      label: "Orders",
-      title: "Requests + customers",
-      note: `${activeOrders.length} active · ${customerRecords.length} customer record${customerRecords.length === 1 ? "" : "s"}`,
-    },
-    {
-      id: "production",
-      label: "Production",
-      title: "Bread + liquid work",
-      note: `${readyOrders.length} schedulable order${readyOrders.length === 1 ? "" : "s"} · ${liquidSafetyLogs.length} safety log${liquidSafetyLogs.length === 1 ? "" : "s"}`,
-    },
-    {
-      id: "menu",
-      label: "Menu",
-      title: "Products + shelf",
-      note: `${recipes.length} product${recipes.length === 1 ? "" : "s"} · weekly availability lives in settings`,
-    },
-    {
-      id: "business",
-      label: "Management",
-      title: "Owner operations",
-      note: "Alerts, inventory, order shortcuts, customer shortcuts, and traceability controls.",
-    },
-  ];
   const qualityTasks = [
     {
       id: "orders",
@@ -1536,27 +1503,6 @@ export default function MorePage({
 
       {businessArea === "management" ? (
         <>
-      <section className="owner-flow-card">
-        <div className="section-title-line">
-          <div><span className="eyebrow-label dark">Professional flow</span><h2>Where work belongs</h2></div>
-          <Gauge size={22} />
-        </div>
-        <div className="owner-flow-grid">
-          {workflowCards.map((card) => (
-            <button
-              type="button"
-              className={`owner-flow-step ${card.id === "business" ? "current" : ""}`}
-              key={card.id}
-              onClick={() => setActive(card.id)}
-            >
-              <span>{card.label}</span>
-              <strong>{card.title}</strong>
-              <small>{card.note}</small>
-            </button>
-          ))}
-        </div>
-      </section>
-
       <section className="owner-command-grid" aria-label="Owner command center">
         <div className="owner-alerts-card">
           <div className="section-title-line">

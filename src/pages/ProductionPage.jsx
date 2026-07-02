@@ -1,19 +1,13 @@
 import {
   AlertTriangle,
-  Beaker,
   Boxes,
   CalendarDays,
-  ChefHat,
   ClipboardList,
-  Factory,
-  FlaskConical,
   Package,
   Sprout,
-  Wheat,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { BakeCalendar } from "../components/BakeCalendar";
-import { PageHeading } from "../components/AppChrome";
 import { StarterLab } from "../components/StarterLab";
 import { pickupDateKey } from "../lib/orderCapacity";
 import {
@@ -23,27 +17,6 @@ import {
 } from "../lib/cloud";
 import BakePage from "./BakePage";
 import LiquidPage from "./LiquidPage";
-
-const productionViews = [
-  {
-    id: "bake",
-    label: "Bake desk",
-    icon: ChefHat,
-    title: "Plan timelines, work the kitchen board, and build batch plans.",
-  },
-  {
-    id: "operations",
-    label: "Production",
-    icon: ClipboardList,
-    title: "Calendar, starter care, blocked bake days, and inventory on hand.",
-  },
-  {
-    id: "liquid",
-    label: "Liquid lab",
-    icon: FlaskConical,
-    title: "Hot sauces, vinegars, oils, pH, salt, and extraction planning.",
-  },
-];
 
 const operationAreas = [
   { id: "calendar", label: "Calendar", icon: CalendarDays },
@@ -267,7 +240,6 @@ export default function ProductionPage(props) {
   const [operationArea, setOperationArea] = useState(props.productionArea || "calendar");
   const [productionPlanDate, setProductionPlanDate] = useState(null);
   const [productionPlanToLoad, setProductionPlanToLoad] = useState(null);
-  const ActiveIcon = view === "liquid" ? Beaker : view === "operations" ? Factory : Wheat;
 
   useEffect(() => {
     if (props.productionView) setView(props.productionView);
@@ -294,51 +266,6 @@ export default function ProductionPage(props) {
 
   return (
     <>
-      <section className="page hub-page production-hub-page">
-        <PageHeading
-          title={view === "bake" ? "Bake desk" : view === "liquid" ? "Liquid lab" : "Production"}
-          subtitle="Separate lanes for planning bakes, operating production, and building liquid projects."
-          action={<span className="hub-heading-icon"><Factory size={22} /></span>}
-        />
-
-        <div className="hub-switch" role="tablist" aria-label="Production areas">
-          {productionViews.map(({ id, label, icon: Icon, title }) => (
-            <button
-              type="button"
-              role="tab"
-              aria-selected={view === id}
-              className={view === id ? "selected" : ""}
-              key={id}
-              onClick={() => setView(id)}
-            >
-              <Icon size={18} />
-              <span><strong>{label}</strong><small>{title}</small></span>
-            </button>
-          ))}
-        </div>
-
-        <aside className="hub-context-card">
-          <ActiveIcon size={20} />
-          <span>
-            <strong>
-              {view === "liquid"
-                ? "Ferments and infusions belong in production too."
-                : view === "operations"
-                  ? "Production is now the home for shared operations."
-                  : "Bake desk is focused on planning and live kitchen work."}
-            </strong>
-            <small>
-              {view === "operations"
-                ? "Calendar, starters, unavailable days, and inventory are grouped here so Bake desk stays uncluttered."
-                : view === "liquid"
-                  ? "Use the liquid calculators before a product becomes menu-ready."
-                  : "Plan a bake, work the kitchen board, or group orders into batches."}
-            </small>
-          </span>
-          {view === "operations" ? <CalendarDays size={18} /> : null}
-        </aside>
-      </section>
-
       {view === "bake" ? (
         <BakePage
           {...props}

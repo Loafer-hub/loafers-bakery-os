@@ -1388,11 +1388,14 @@ This changelog is written as a product history, not a line-by-line commit log.
 - Refreshed Menu into a branded Menu desk with customer-facing status cards, Products/Storefront/Ready shelf/Preview workspace tabs, product-type snapshots, mixed product previews, weekly visibility rail, and a real Add product shortcut
 - Renamed the embedded Menu product area to Product catalog so owner language matches what customers see
 - Matched the desktop Menu desk more closely to the dark Loafers reference: wider near-edge app shell, owner-style left navigation, aurora/banner hero, dark product panels, gold/cream text, and orange-brown action buttons
-- Scoped the dark desktop canvas to Menu only so Today, Business, and Settings keep readable light pages, and wired owner-sidebar shortcuts for Bake desk, Logbook, Customers, Reports, and Settings
+- Extended the dark Loafers desktop canvas beyond Menu so owner pages share the same aurora/cream/gold command-desk feel while preserving readable forms and records
 - Split the old Business catch-all into Management, Reports, and Logbook so operations, money, and records each have a cleaner home
 - Added a Management left-rail button for owner alerts, daily checklist, inventory editing, order/customer shortcuts, and traceability controls
 - Narrowed Reports to financial and cost work: revenue, spend, product ranking, recipe costing, margin, underpriced flags, and pricing intelligence
 - Rebuilt Logbook as a record trail for purchases, bakes, batch traces, and finished liquid safety records
+- Removed the top Bake desk / Production shortcut hub so the left owner menu is the source of truth for those workspaces
+- Removed the Professional flow link grid from Management
+- Improved the customer menu flow by showing weekly baking and menu snapshot context before checkout, then opening customer account and Contact + payment as focused popups
 
 ## Known limitations and cautions
 

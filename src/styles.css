@@ -10217,6 +10217,14 @@ button.owner-alert-row {
   box-shadow: 0 12px 30px rgba(56,39,24,.07);
 }
 
+.customer-account-card-modal {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
 .customer-hero {
   max-width: 590px;
   padding: 34px 0 45px;
@@ -12185,6 +12193,40 @@ button.owner-alert-row {
 .customer-details .form-stack {
   max-width: 570px;
   margin-left: 47px;
+}
+
+.customer-contact-sheet {
+  min-height: auto;
+  padding: 0;
+  border-top: 0;
+}
+
+.customer-contact-sheet .form-stack {
+  max-width: none;
+  margin-left: 0;
+}
+
+.customer-contact-intro {
+  margin: -6px 0 18px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.customer-contact-modal-actions {
+  position: sticky;
+  z-index: 2;
+  bottom: -1px;
+  display: grid;
+  grid-template-columns: minmax(0, .72fr) minmax(0, 1fr);
+  gap: 10px;
+  margin-top: 2px;
+  padding: 12px 0 0;
+  background: linear-gradient(180deg, rgba(246, 234, 216, 0), #f6ead8 30%);
+}
+
+.customer-contact-modal-actions button {
+  min-height: 48px;
 }
 
 .notification-preferences {
@@ -16886,6 +16928,29 @@ button.owner-alert-row {
   font-weight: 700;
 }
 
+.customer-storefront .modal-backdrop {
+  align-items: center;
+  padding: clamp(18px, 4vw, 42px);
+  background: rgba(5, 9, 10, .62);
+  backdrop-filter: blur(9px);
+}
+
+.customer-storefront .modal-sheet {
+  width: min(760px, 100%);
+  max-height: min(88vh, 860px);
+  padding: 12px clamp(18px, 3vw, 30px) 28px;
+  border: 1px solid rgba(189, 150, 98, .58);
+  border-radius: 30px;
+  background:
+    radial-gradient(circle at 88% 0%, rgba(88, 196, 110, .08), transparent 24%),
+    linear-gradient(145deg, #fffaf0, #f6ead8);
+  box-shadow: 0 30px 90px rgba(2, 5, 9, .38);
+}
+
+.customer-storefront .modal-title-row h2 {
+  font-size: clamp(31px, 5vw, 45px);
+}
+
 .customer-storefront .portal-preview-banner {
   min-height: 46px;
   margin: 14px 0;
@@ -17011,7 +17076,8 @@ button.owner-alert-row {
 }
 
 .customer-storefront .customer-checkout-flow {
-  padding-bottom: 96px;
+  padding: 16px 0 96px;
+  border-top: 1px solid rgba(189, 150, 98, .36);
 }
 
 .customer-storefront .customer-checkout-steps {
@@ -17057,7 +17123,7 @@ button.owner-alert-row {
 }
 
 .customer-storefront .customer-checkout-summary-strip {
-  margin: 0 0 18px;
+  margin: 0 0 22px;
 }
 
 .customer-storefront .customer-checkout-summary-strip span {
@@ -17066,7 +17132,7 @@ button.owner-alert-row {
 }
 
 .customer-storefront .customer-menu {
-  padding-top: 18px;
+  padding-top: 8px;
   border-top: 0;
 }
 
@@ -17330,12 +17396,13 @@ button.owner-alert-row {
 }
 
 .customer-storefront .customer-weekly-bakes {
+  margin: 0 0 18px;
   border-radius: 28px;
   background: linear-gradient(135deg, rgba(255, 252, 245, .86), rgba(255, 240, 219, .72));
 }
 
 .customer-storefront .customer-menu-summary {
-  margin-bottom: 24px;
+  margin: 0 0 22px;
   border-color: rgba(189, 150, 98, .62);
   border-radius: 24px;
   background: rgba(255, 252, 245, .66);
@@ -17873,6 +17940,319 @@ button.owner-alert-row {
   background: rgba(255,255,255,.6);
   font-size: 10px;
   line-height: 1.5;
+}
+
+/* owner-dark-flow-v1 */
+@media (min-width: 760px) {
+  .app-shell:not(.owner-page-menu) .scroll-view {
+    background:
+      radial-gradient(circle at 78% -4%, rgba(88, 196, 110, .10), transparent 30%),
+      radial-gradient(circle at 88% 0%, rgba(141, 63, 198, .13), transparent 28%),
+      linear-gradient(180deg, #0a1215 0%, #0a1010 48%, #111311 100%);
+  }
+
+  .app-shell:not(.owner-page-menu) .page-heading h1,
+  .app-shell:not(.owner-page-menu) .greeting h1,
+  .app-shell:not(.owner-page-menu) .today-page > h2,
+  .app-shell:not(.owner-page-menu) .display-title {
+    color: #fff0d2;
+    text-shadow: 0 18px 38px rgba(0, 0, 0, .28);
+  }
+
+  .app-shell:not(.owner-page-menu) .page-heading p,
+  .app-shell:not(.owner-page-menu) .greeting p,
+  .app-shell:not(.owner-page-menu) .page-heading small {
+    color: rgba(255, 238, 205, .72);
+  }
+
+  .app-shell:not(.owner-page-menu) .compact-brand .brand-name {
+    color: #fff0d2;
+  }
+
+  .app-shell:not(.owner-page-menu) .compact-brand .brand-subname {
+    color: #f0c680;
+  }
+
+  .app-shell:not(.owner-page-menu) :is(
+    .bake-timeline,
+    .today-bake-selector,
+    .visual-fermentation-card,
+    .starter-panel,
+    .order-panel,
+    .today-accept-orders-card,
+    .production-dashboard,
+    .orders-intake-card,
+    .orders-command-grid article,
+    .orders-toolbar,
+    .order-command-card,
+    .orders-side-panel > section,
+    .orders-calendar-shell,
+    .bake-workbench-card,
+    .bake-side-card,
+    .production-ops-hero,
+    .production-ops-metrics article,
+    .production-inventory-summary article,
+    .production-inventory-row,
+    .production-inventory-empty,
+    .production-ops-note,
+    .production-batches,
+    .production-inventory-check,
+    .weekly-production-panel,
+    .production-day-mode,
+    .production-print-center,
+    .smart-prep-panel,
+    .label-compliance-center,
+    .inventory-forecast-panel,
+    .owner-alerts-card,
+    .owner-quality-card,
+    .owner-reports-card,
+    .pricing-intelligence-card,
+    .batch-trace-card,
+    .trend-card,
+    .spending-card,
+    .inventory-section,
+    .quick-metrics div,
+    .quick-metrics button,
+    .business-subpage-card,
+    .management-logbook-section,
+    .settings-card,
+    .settings-hero-card,
+    .help-hero-card,
+    .help-workflow-card,
+    .help-safety-card,
+    .help-changelog-card,
+    .help-note-card
+  ) {
+    color: #f8ecd2;
+    border-color: rgba(236, 208, 164, .24);
+    background:
+      linear-gradient(135deg, rgba(255, 255, 255, .075), rgba(255, 255, 255, .035)),
+      rgba(10, 15, 14, .82);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06), 0 18px 34px rgba(0, 0, 0, .24);
+  }
+
+  .app-shell:not(.owner-page-menu) :is(
+    .bake-timeline,
+    .today-bake-selector,
+    .visual-fermentation-card,
+    .starter-panel,
+    .order-panel,
+    .today-accept-orders-card,
+    .production-dashboard,
+    .orders-intake-card,
+    .orders-command-grid article,
+    .orders-toolbar,
+    .order-command-card,
+    .orders-side-panel > section,
+    .orders-calendar-shell,
+    .bake-workbench-card,
+    .bake-side-card,
+    .production-ops-hero,
+    .production-ops-metrics article,
+    .production-inventory-summary article,
+    .production-inventory-row,
+    .production-inventory-empty,
+    .production-batches,
+    .production-inventory-check,
+    .weekly-production-panel,
+    .production-day-mode,
+    .production-print-center,
+    .smart-prep-panel,
+    .label-compliance-center,
+    .inventory-forecast-panel,
+    .owner-alerts-card,
+    .owner-quality-card,
+    .owner-reports-card,
+    .pricing-intelligence-card,
+    .batch-trace-card,
+    .trend-card,
+    .spending-card,
+    .inventory-section,
+    .quick-metrics div,
+    .quick-metrics button,
+    .business-subpage-card,
+    .management-logbook-section,
+    .settings-card,
+    .settings-hero-card,
+    .help-hero-card,
+    .help-workflow-card,
+    .help-safety-card,
+    .help-changelog-card,
+    .help-note-card
+  ) :is(h2, h3, strong, b) {
+    color: #fff0d2;
+  }
+
+  .app-shell:not(.owner-page-menu) :is(
+    .bake-timeline,
+    .today-bake-selector,
+    .visual-fermentation-card,
+    .starter-panel,
+    .order-panel,
+    .today-accept-orders-card,
+    .production-dashboard,
+    .orders-intake-card,
+    .orders-command-grid article,
+    .orders-toolbar,
+    .order-command-card,
+    .orders-side-panel > section,
+    .orders-calendar-shell,
+    .bake-workbench-card,
+    .bake-side-card,
+    .production-ops-hero,
+    .production-ops-metrics article,
+    .production-inventory-summary article,
+    .production-inventory-row,
+    .production-inventory-empty,
+    .production-ops-note,
+    .production-batches,
+    .production-inventory-check,
+    .weekly-production-panel,
+    .production-day-mode,
+    .production-print-center,
+    .smart-prep-panel,
+    .label-compliance-center,
+    .inventory-forecast-panel,
+    .owner-alerts-card,
+    .owner-quality-card,
+    .owner-reports-card,
+    .pricing-intelligence-card,
+    .batch-trace-card,
+    .trend-card,
+    .spending-card,
+    .inventory-section,
+    .quick-metrics div,
+    .quick-metrics button,
+    .business-subpage-card,
+    .management-logbook-section,
+    .settings-card,
+    .settings-hero-card,
+    .help-hero-card,
+    .help-workflow-card,
+    .help-safety-card,
+    .help-changelog-card,
+    .help-note-card
+  ) :is(p, small, span, em, label) {
+    color: rgba(255, 238, 205, .68);
+  }
+
+  .app-shell:not(.owner-page-menu) :is(.section-title-line > svg, .orders-side-panel .section-title-line svg) {
+    color: #f0c680;
+  }
+
+  .app-shell:not(.owner-page-menu) :is(.search-field, .view-switch, .segmented-control) {
+    color: #f8ecd2;
+    border-color: rgba(236, 208, 164, .22);
+    background: rgba(255, 255, 255, .055);
+  }
+
+  .app-shell:not(.owner-page-menu) :is(.view-switch button, .segmented-control button) {
+    color: rgba(255, 238, 205, .66);
+  }
+
+  .app-shell:not(.owner-page-menu) :is(.view-switch button.selected, .segmented-control button.selected) {
+    color: #ffd99f;
+    background: rgba(255, 255, 255, .10);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08);
+  }
+
+  .app-shell:not(.owner-page-menu) :is(input, select, textarea) {
+    color: var(--ink);
+    border-color: rgba(236, 208, 164, .42);
+    background: rgba(255, 253, 248, .96);
+  }
+
+  .app-shell:not(.owner-page-menu) .round-action,
+  .app-shell:not(.owner-page-menu) .small-action-button,
+  .app-shell:not(.owner-page-menu) .primary-button {
+    border-color: rgba(218, 126, 62, .45);
+    background: linear-gradient(135deg, #c96f34, #904017);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, .22);
+  }
+
+  .app-shell:not(.owner-page-menu) .orders-command-hero,
+  .app-shell:not(.owner-page-menu) .bake-command-hero {
+    border-color: rgba(236, 208, 164, .24);
+    background:
+      linear-gradient(90deg, rgba(5, 11, 14, .88) 0%, rgba(5, 11, 14, .58) 45%, rgba(5, 11, 14, .72) 100%),
+      linear-gradient(180deg, rgba(5, 11, 14, .14), rgba(5, 11, 14, .86)),
+      var(--menu-hero-image, linear-gradient(135deg, #0a1215, #392114)) center 42% / cover no-repeat,
+      linear-gradient(135deg, #0a1215, #392114);
+  }
+
+  .app-shell:not(.owner-page-menu) .bake-command-card {
+    border-color: rgba(236, 208, 164, .20);
+    background: rgba(255, 255, 255, .08);
+  }
+
+  .app-shell:not(.owner-page-menu) .order-command-card:hover {
+    background:
+      linear-gradient(135deg, rgba(255, 255, 255, .11), rgba(255, 255, 255, .05)),
+      rgba(10, 15, 14, .9);
+  }
+
+  .app-shell:not(.owner-page-menu) :is(
+    .owner-alert-row,
+    .quality-check-row,
+    .batch-trace-row,
+    .pricing-product-row,
+    .compact-logbook-list .expense-row,
+    .compact-logbook-list .batch-trace-row,
+    .logbook-liquid-card,
+    .production-dashboard-card,
+    .production-shortage-card,
+    .production-pickup-window,
+    .orders-mini-list button,
+    .orders-timeline-list button
+  ) {
+    color: #f8ecd2;
+    border-color: rgba(236, 208, 164, .18);
+    background: rgba(255, 255, 255, .075);
+  }
+
+  .app-shell:not(.owner-page-menu) :is(.owner-alert-row.warning, .owner-alert-row.danger, .quality-check-row.complete) {
+    background:
+      linear-gradient(135deg, rgba(255, 255, 255, .10), rgba(255, 255, 255, .04)),
+      rgba(10, 15, 14, .88);
+  }
+
+  .app-shell:not(.owner-page-menu) :is(
+    .owner-alert-row,
+    .quality-check-row,
+    .batch-trace-row,
+    .pricing-product-row,
+    .compact-logbook-list .expense-row,
+    .compact-logbook-list .batch-trace-row,
+    .logbook-liquid-card,
+    .production-dashboard-card,
+    .production-shortage-card,
+    .production-pickup-window,
+    .orders-mini-list button,
+    .orders-timeline-list button
+  ) :is(strong, b) {
+    color: #fff0d2;
+  }
+
+  .app-shell:not(.owner-page-menu) :is(
+    .owner-alert-row,
+    .quality-check-row,
+    .batch-trace-row,
+    .pricing-product-row,
+    .compact-logbook-list .expense-row,
+    .compact-logbook-list .batch-trace-row,
+    .logbook-liquid-card,
+    .production-dashboard-card,
+    .production-shortage-card,
+    .production-pickup-window,
+    .orders-mini-list button,
+    .orders-timeline-list button
+  ) :is(small, span, em, p) {
+    color: rgba(255, 238, 205, .66);
+  }
+
+  .app-shell:not(.owner-page-menu) .quality-check-row input {
+    background: rgba(255, 253, 248, .96);
+  }
 }
 
 .help-page {

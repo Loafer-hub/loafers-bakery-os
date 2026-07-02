@@ -1299,7 +1299,8 @@ export default function CustomerOrderPortal({
       ) : null}
 
       {customerAccountsEnabled && accountOpen ? (
-        <section className="customer-account-card" id="customer-account">
+        <Modal title="Customer account" onClose={() => setAccountOpen(false)}>
+          <section className="customer-account-card customer-account-card-modal" id="customer-account">
           <div className="customer-account-heading">
             <span><ShieldCheck size={18} /></span>
             <div>
@@ -1459,7 +1460,8 @@ export default function CustomerOrderPortal({
           ) : null}
 
           {accountMessage ? <div className="customer-account-message">{accountMessage}</div> : null}
-        </section>
+          </section>
+        </Modal>
       ) : null}
 
       <section className="customer-hero">
@@ -1472,6 +1474,25 @@ export default function CustomerOrderPortal({
           <span><Banknote size={17} /><span><small>Payment</small><strong>{(storefront.bakery.payment_methods || DEFAULT_PAYMENT_METHODS).join(", ")}</strong></span></span>
           <span><Clock3 size={17} /><span><small>Pickup hours</small><strong>Weekdays {pickupHoursLabel("2026-06-22", rules)} · Weekends {pickupHoursLabel("2026-06-21", rules)}</strong></span></span>
         </div>
+      </section>
+
+      <CustomerWeeklyBakingBoard
+        board={weeklyBakingBoard}
+        onOpenProduct={(product) => {
+          if (product) setSelectedProduct(product);
+        }}
+        onOpenReadyShelf={() => {
+          setActiveCatalogTab("ready");
+          setCheckoutStep("browse");
+        }}
+      />
+
+      <section className="customer-menu-summary" aria-label="Menu snapshot">
+        <article><strong>{availableThisWeekCount}</strong><span>available this week</span></article>
+        <article><strong>{readyShelfItems.length}</strong><span>ready now</span></article>
+        <article><strong>{unavailableThisWeekCount}</strong><span>sold out / paused</span></article>
+        <article><strong>{enabledCustomerChoiceCount}</strong><span>optional choices</span></article>
+        {showTrackMyBake ? <a href="#track-my-bake">Track an order</a> : null}
       </section>
 
       <form className="customer-checkout-flow" onSubmit={submitOrder}>
@@ -1627,8 +1648,9 @@ export default function CustomerOrderPortal({
         ) : null}
 
         {checkoutStep === "contact" ? (
-          <section className="customer-details customer-flow-panel">
-            <div className="customer-section-heading"><div><h2>Contact + payment</h2><p>Leave enough information for the baker to confirm your request.</p></div></div>
+          <Modal title="Contact + payment" onClose={() => setCheckoutStep("pickup")}>
+          <section className="customer-details customer-flow-panel customer-contact-sheet">
+            <p className="customer-contact-intro">Leave enough information for the baker to confirm your request.</p>
             {guestCheckoutBlocked ? (
               <aside className="customer-checkout-lock">
                 <LockKeyhole size={16} />
@@ -1676,8 +1698,16 @@ export default function CustomerOrderPortal({
                 <span><strong>Text updates</strong><small>Message and data rates may apply. You can ask the baker to stop updates at any time.</small></span>
               </label>
             </fieldset>
+            <div className="customer-contact-modal-actions">
+              <button className="secondary-button" type="button" onClick={() => setCheckoutStep("pickup")}>Back to pickup</button>
+              <button className="primary-button" type="button" onClick={advanceCheckout}>
+                {guestCheckoutBlocked ? "Sign in to order" : "Review request"}
+              </button>
+            </div>
+            {error ? <p className="form-error customer-form-error" role="alert">{error}</p> : null}
           </div>
         </section>
+        </Modal>
         ) : null}
 
         {checkoutStep === "submit" ? (
@@ -1690,7 +1720,7 @@ export default function CustomerOrderPortal({
           />
         ) : null}
 
-        <footer className="customer-order-footer">
+        {checkoutStep !== "contact" ? <footer className="customer-order-footer">
           <div><ShoppingBag size={18} /><span><strong>{packageCount} {packageCount === 1 ? "package" : "packages"} · {dollars(total)}</strong><small>{form.pickupDate ? checkoutPickupShortLabel(form.pickupDate, form.pickupTime) : `${itemCount} ${itemCount === 1 ? "item" : "items"} selected`}</small></span></div>
           <button
             className="primary-button"
@@ -1703,28 +1733,9 @@ export default function CustomerOrderPortal({
                 ? guestCheckoutBlocked ? "Sign in to order" : "Review request"
                 : CHECKOUT_STEPS[Math.min(CHECKOUT_STEPS.length - 1, checkoutStepIndex + 1)]?.label || "Continue"}
           </button>
-        </footer>
-        {error ? <p className="form-error customer-form-error" role="alert">{error}</p> : null}
+        </footer> : null}
+        {error && checkoutStep !== "contact" ? <p className="form-error customer-form-error" role="alert">{error}</p> : null}
       </form>
-
-      <CustomerWeeklyBakingBoard
-        board={weeklyBakingBoard}
-        onOpenProduct={(product) => {
-          if (product) setSelectedProduct(product);
-        }}
-        onOpenReadyShelf={() => {
-          setActiveCatalogTab("ready");
-          setCheckoutStep("browse");
-        }}
-      />
-
-      <section className="customer-menu-summary" aria-label="Menu snapshot">
-        <article><strong>{availableThisWeekCount}</strong><span>available this week</span></article>
-        <article><strong>{readyShelfItems.length}</strong><span>ready now</span></article>
-        <article><strong>{unavailableThisWeekCount}</strong><span>sold out / paused</span></article>
-        <article><strong>{enabledCustomerChoiceCount}</strong><span>optional choices</span></article>
-        {showTrackMyBake ? <a href="#track-my-bake">Track an order</a> : null}
-      </section>
 
       {rules.reviewsVisible && (storefront.reviews || []).length ? (
         <section className="customer-reviews" aria-label="Customer reviews">
