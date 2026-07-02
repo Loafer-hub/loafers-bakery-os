@@ -1397,6 +1397,7 @@ This changelog is written as a product history, not a line-by-line commit log.
 - Removed the Professional flow link grid from Management
 - Improved the customer menu flow by showing weekly baking and menu snapshot context before checkout, then opening customer account and Contact + payment as focused popups
 - Fixed the Menu desk Storefront / Ready shelf / Preview panels so they open inside the main Menu workspace and use the full available width instead of dropping underneath the right summary cards
+- Added a bronze/grey contrast refresh: replaced white panels with warm grey-tan surfaces, moved light backgrounds toward the Loafers swatch color, widened desktop popup work panels, and pushed owner/customer text toward bronze and brown for better readability
 
 ## Known limitations and cautions
 
