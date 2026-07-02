@@ -3144,7 +3144,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   align-items: end;
   margin: 0 0 14px;
   padding: 20px;
-  color: #fff1d5;
+  color: var(--bronze-on-dark);
   border: 1px solid rgba(236, 208, 164, .45);
   border-radius: 24px;
   background:
@@ -3171,11 +3171,12 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 }
 
 .bake-command-copy .eyebrow-label.dark {
-  color: var(--flour-gold) !important;
+  color: #c8843f !important;
 }
 
 .bake-command-copy h1 {
   margin: 2px 0 6px;
+  color: #d4a06a;
   font-family: "Newsreader", Georgia, serif;
   font-size: clamp(40px, 11vw, 64px);
   font-weight: 500;
@@ -3186,7 +3187,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .bake-command-copy p {
   max-width: 620px;
   margin: 0;
-  color: rgba(255, 241, 213, .78);
+  color: rgba(200, 149, 88, .82);
   font-size: 11px;
   line-height: 1.45;
 }
@@ -3219,7 +3220,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   padding: 11px;
   border: 1px solid rgba(236, 208, 164, .2);
   border-radius: 16px;
-  background: rgba(255, 247, 233, .1);
+  color: var(--bronze-on-dark);
+  background: rgba(49, 38, 26, .46);
   backdrop-filter: blur(10px);
 }
 
@@ -3235,7 +3237,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 
 .bake-command-card small {
   overflow: hidden;
-  color: rgba(255, 241, 213, .62);
+  color: rgba(200, 149, 88, .76);
   font-size: 7px;
   font-weight: 800;
   letter-spacing: .08em;
@@ -3246,6 +3248,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 
 .bake-command-card strong {
   overflow: hidden;
+  color: #d0a06a;
   font-family: "Newsreader", Georgia, serif;
   font-size: 22px;
   font-weight: 500;
@@ -3256,7 +3259,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 
 .bake-command-card em {
   overflow: hidden;
-  color: rgba(255, 241, 213, .66);
+  color: rgba(200, 149, 88, .74);
   font-size: 8px;
   font-style: normal;
   line-height: 1.25;
@@ -18313,22 +18316,22 @@ button.owner-alert-row {
   .app-shell:not(.owner-page-menu) .greeting h1,
   .app-shell:not(.owner-page-menu) .today-page > h2,
   .app-shell:not(.owner-page-menu) .display-title {
-    color: #fff0d2;
+    color: #d0a06a;
     text-shadow: 0 18px 38px rgba(0, 0, 0, .28);
   }
 
   .app-shell:not(.owner-page-menu) .page-heading p,
   .app-shell:not(.owner-page-menu) .greeting p,
   .app-shell:not(.owner-page-menu) .page-heading small {
-    color: rgba(255, 238, 205, .72);
+    color: rgba(200, 149, 88, .78);
   }
 
   .app-shell:not(.owner-page-menu) .compact-brand .brand-name {
-    color: #fff0d2;
+    color: #d0a06a;
   }
 
   .app-shell:not(.owner-page-menu) .compact-brand .brand-subname {
-    color: #f0c680;
+    color: #c89558;
   }
 
   .app-shell:not(.owner-page-menu) :is(
@@ -18381,7 +18384,7 @@ button.owner-alert-row {
     .help-changelog-card,
     .help-note-card
   ) {
-    color: #f8ecd2;
+    color: var(--bronze-on-dark);
     border-color: rgba(236, 208, 164, .24);
     background:
       linear-gradient(135deg, rgba(255, 255, 255, .075), rgba(255, 255, 255, .035)),
@@ -18438,7 +18441,7 @@ button.owner-alert-row {
     .help-changelog-card,
     .help-note-card
   ) :is(h2, h3, strong, b) {
-    color: #fff0d2;
+    color: #d0a06a;
   }
 
   .app-shell:not(.owner-page-menu) :is(
@@ -18491,25 +18494,25 @@ button.owner-alert-row {
     .help-changelog-card,
     .help-note-card
   ) :is(p, small, span, em, label) {
-    color: rgba(255, 238, 205, .68);
+    color: rgba(200, 149, 88, .76);
   }
 
   .app-shell:not(.owner-page-menu) :is(.section-title-line > svg, .orders-side-panel .section-title-line svg) {
-    color: #f0c680;
+    color: #c89558;
   }
 
   .app-shell:not(.owner-page-menu) :is(.search-field, .view-switch, .segmented-control) {
-    color: #f8ecd2;
+    color: var(--bronze-on-dark);
     border-color: rgba(236, 208, 164, .22);
     background: rgba(255, 255, 255, .055);
   }
 
   .app-shell:not(.owner-page-menu) :is(.view-switch button, .segmented-control button) {
-    color: rgba(255, 238, 205, .66);
+    color: rgba(200, 149, 88, .74);
   }
 
   .app-shell:not(.owner-page-menu) :is(.view-switch button.selected, .segmented-control button.selected) {
-    color: #ffd99f;
+    color: #d0a06a;
     background: rgba(255, 255, 255, .10);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08);
   }
@@ -18540,7 +18543,8 @@ button.owner-alert-row {
 
   .app-shell:not(.owner-page-menu) .bake-command-card {
     border-color: rgba(236, 208, 164, .20);
-    background: rgba(255, 255, 255, .08);
+    color: var(--bronze-on-dark);
+    background: rgba(49, 38, 26, .46);
   }
 
   .app-shell:not(.owner-page-menu) .order-command-card:hover {
@@ -18563,7 +18567,7 @@ button.owner-alert-row {
     .orders-mini-list button,
     .orders-timeline-list button
   ) {
-    color: #f8ecd2;
+    color: var(--bronze-on-dark);
     border-color: rgba(236, 208, 164, .18);
     background: rgba(255, 255, 255, .075);
   }
@@ -18588,7 +18592,7 @@ button.owner-alert-row {
     .orders-mini-list button,
     .orders-timeline-list button
   ) :is(strong, b) {
-    color: #fff0d2;
+    color: #d0a06a;
   }
 
   .app-shell:not(.owner-page-menu) :is(
@@ -18605,7 +18609,7 @@ button.owner-alert-row {
     .orders-mini-list button,
     .orders-timeline-list button
   ) :is(small, span, em, p) {
-    color: rgba(255, 238, 205, .66);
+    color: rgba(200, 149, 88, .74);
   }
 
   .app-shell:not(.owner-page-menu) .quality-check-row input {
