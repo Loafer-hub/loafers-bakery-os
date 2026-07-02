@@ -1,9 +1,11 @@
 import {
   Banknote,
   BellRing,
+  CalendarCheck2,
   CalendarDays,
   CheckCircle2,
   ChevronRight,
+  Clock3,
   Heart,
   List,
   Mail,
@@ -14,12 +16,12 @@ import {
   Search,
   Send,
   ShoppingBag,
+  Sparkles,
   Trash2,
   UserRound,
   UsersRound,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { PageHeading } from "../components/AppChrome";
 import { CloudOrderInbox } from "../components/CloudOrderInbox";
 import { OrderCalendar, orderPickupDate } from "../components/OrderCalendar";
 import { EmptyState, Modal, Status } from "../components/Primitives";
@@ -90,6 +92,37 @@ function localInputValue(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
   return new Date(date.getTime() - date.getTimezoneOffset() * 60 * 1000).toISOString().slice(0, 16);
+}
+
+function dateKey(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, "0"),
+    String(date.getDate()).padStart(2, "0"),
+  ].join("-");
+}
+
+function pickupTimeValue(order) {
+  const pickup = orderPickupDate(order);
+  return pickup ? pickup.getTime() : Number.MAX_SAFE_INTEGER;
+}
+
+function formatShortPickup(order) {
+  const pickup = orderPickupDate(order);
+  if (!pickup) return order.due || "Arrange pickup";
+  return pickup.toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function formatPickupTime(order) {
+  const pickup = orderPickupDate(order);
+  if (!pickup) return "";
+  return pickup.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 }
 
 function capacityError(status, requestedSlots) {
@@ -526,20 +559,48 @@ export default function OrdersPage({
 
   const filteredOrders = useMemo(() => {
     const normalized = query.trim().toLowerCase();
-    return orders.filter((order) => {
-      const matchesFilter = filter === "All"
-        || (filter === "Active" && isActiveOrder(order))
-        || (filter === "Ready" && readyOrderStatuses.has(String(workflowLabel(order.status)).toLowerCase()))
-        || (filter === "Completed" && workflowLabel(order.status) === "Completed");
-      const matchesQuery = !normalized || `${order.customer} ${order.product}`.toLowerCase().includes(normalized);
-      return matchesFilter && matchesQuery;
-    });
+    return orders
+      .filter((order) => {
+        const matchesFilter = filter === "All"
+          || (filter === "Active" && isActiveOrder(order))
+          || (filter === "Ready" && readyOrderStatuses.has(String(workflowLabel(order.status)).toLowerCase()))
+          || (filter === "Completed" && workflowLabel(order.status) === "Completed");
+        const searchText = [
+          order.customer,
+          order.product,
+          order.itemSummary,
+          order.notes,
+          order.internalNotes,
+          order.requestCode,
+          order.customerEmail,
+          order.customerPhone,
+          order.paymentMethod,
+        ].filter(Boolean).join(" ").toLowerCase();
+        const matchesQuery = !normalized || searchText.includes(normalized);
+        return matchesFilter && matchesQuery;
+      })
+      .sort((a, b) => pickupTimeValue(a) - pickupTimeValue(b));
   }, [filter, orders, query]);
 
-  const openOrders = orders.filter(isActiveOrder).length;
-  const bookedRevenue = orders.reduce((sum, order) => sum + order.total, 0);
+  const activeOrders = orders.filter(isActiveOrder);
+  const readyOrders = orders.filter((order) => readyOrderStatuses.has(String(workflowLabel(order.status)).toLowerCase()));
+  const completedOrders = orders.filter((order) => workflowLabel(order.status) === "Completed");
+  const unpaidOrders = activeOrders.filter((order) => !["paid", "refunded"].includes(inferredPaymentStatus(order)));
+  const openOrders = activeOrders.length;
+  const bookedRevenue = orders.reduce((sum, order) => sum + Number(order.total || 0), 0);
+  const activeRevenue = activeOrders.reduce((sum, order) => sum + Number(order.total || 0), 0);
   const sampleOrderCount = orders.filter(isSampleOrder).length;
   const selectedOrder = orders.find((order) => order.id === selectedOrderId);
+  const todayKey = dateKey(new Date());
+  const todaysPickups = activeOrders
+    .filter((order) => dateKey(orderPickupDate(order)) === todayKey)
+    .sort((a, b) => pickupTimeValue(a) - pickupTimeValue(b));
+  const nextOrders = activeOrders
+    .filter((order) => orderPickupDate(order))
+    .sort((a, b) => pickupTimeValue(a) - pickupTimeValue(b))
+    .slice(0, 4);
+  const capacityToday = todaysPickups.reduce((sum, order) => sum + Number(order.quantity || 0), 0);
+  const nextPickup = nextOrders[0];
   const formRecipe = recipes.find((recipe) => recipe.name === form.product) || recipes[0];
   const formSaleOptions = normalizedSalesOptions(formRecipe || {});
   const formSaleOption = formSaleOptions.find((option) => option.id === form.saleOptionId) || formSaleOptions[0];
@@ -744,42 +805,58 @@ export default function OrdersPage({
   }
 
   return (
-    <main className="page">
-      <PageHeading
-        title="Orders"
-        subtitle="Keep commitments clear and capacity honest."
-        action={
-          <button className="round-action" onClick={() => setShowAdd(true)} aria-label="Add order">
-            <Plus size={21} />
-          </button>
-        }
-      />
-
-      <section className="metric-strip" aria-label="Order metrics">
-        <div><strong>{orders.length}</strong><span>booked orders</span></div>
-        <div><strong>{openOrders}</strong><span>need attention</span></div>
-        <div><strong>${bookedRevenue}</strong><span>booked revenue</span></div>
+    <main className="page orders-page">
+      <section className="orders-command-hero">
+        <div>
+          <span className="eyebrow-label dark">Loafers Home Bakery</span>
+          <h1>Orders desk</h1>
+          <p>Accept requests, watch pickup capacity, keep payment status separate, and open every customer record from one owner workspace.</p>
+        </div>
+        <button className="orders-add-button" onClick={() => setShowAdd(true)} type="button">
+          <Plus size={18} />
+          Add order
+        </button>
       </section>
 
-      <CloudOrderInbox
-        cloudAccount={cloudAccount}
-        orders={orders}
-        onImportOrder={onImportCloudOrder}
-      />
+      <section className="orders-command-grid" aria-label="Order metrics">
+        <article>
+          <ShoppingBag size={18} />
+          <span>Active orders</span>
+          <strong>{openOrders}</strong>
+          <small>{readyOrders.length} ready · {completedOrders.length} completed</small>
+        </article>
+        <article>
+          <CalendarCheck2 size={18} />
+          <span>Pickup today</span>
+          <strong>{todaysPickups.length}</strong>
+          <small>{capacityToday} of {dailyCapacity} bake slots</small>
+        </article>
+        <article>
+          <Clock3 size={18} />
+          <span>Next pickup</span>
+          <strong>{nextPickup ? formatShortPickup(nextPickup) : "Clear"}</strong>
+          <small>{nextPickup ? `${formatPickupTime(nextPickup)} · ${nextPickup.customer}` : "No dated pickups"}</small>
+        </article>
+        <article>
+          <Sparkles size={18} />
+          <span>Active revenue</span>
+          <strong>${activeRevenue.toFixed(0)}</strong>
+          <small>{unpaidOrders.length} unpaid · ${bookedRevenue.toFixed(0)} booked</small>
+        </article>
+      </section>
 
-      <div className="orders-view-row">
-        <div className="view-switch" aria-label="Order view">
-          <button type="button" className={view === "list" ? "selected" : ""} onClick={() => setView("list")}><List size={14} /> List</button>
-          <button type="button" className={view === "calendar" ? "selected" : ""} onClick={() => {
-            onOpenOrder(null);
-            setView("calendar");
-          }}><CalendarDays size={14} /> Calendar</button>
-          <button type="button" className={view === "customers" ? "selected" : ""} onClick={() => {
-            onOpenOrder(null);
-            setView("customers");
-          }}><UsersRound size={14} /> Customers</button>
+      <section className="orders-intake-card" aria-label="Customer requests">
+        <div>
+          <span className="eyebrow-label dark">Request intake</span>
+          <h2>Accept orders without hunting</h2>
+          <p>Customer web requests open below. Once accepted, they land in the active order list and capacity calendar.</p>
         </div>
-      </div>
+        <CloudOrderInbox
+          cloudAccount={cloudAccount}
+          orders={orders}
+          onImportOrder={onImportCloudOrder}
+        />
+      </section>
 
       {sampleOrderCount ? (
         <aside className="sample-record-banner">
@@ -791,68 +868,145 @@ export default function OrdersPage({
         </aside>
       ) : null}
 
-      {view === "list" ? <div className="search-row">
-        <label className="search-field">
-          <Search size={17} />
-          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search orders" />
-        </label>
-        <div className="segmented-control">
-          {filters.map((item) => (
-            <button key={item} className={filter === item ? "selected" : ""} onClick={() => setFilter(item)}>
-              {item}
-            </button>
-          ))}
-        </div>
-      </div> : null}
-
-      {view === "customers" ? (
-        <CustomerProfilesView
-          customerProfiles={customerProfiles}
-          onOpenOrder={onOpenOrder}
-          onSaveCustomerProfile={onSaveCustomerProfile}
-          orders={orders}
-        />
-      ) : view === "calendar" ? (
-        <OrderCalendar
-          orders={orders}
-          recipes={recipes}
-          starters={starters}
-          starterLogs={starterLogs}
-        />
-      ) : <section className="order-list">
-        {filteredOrders.length ? filteredOrders.map((order) => (
-          <button
-            className="order-row"
-            key={order.id}
-            onClick={() => onOpenOrder(order.id)}
-            type="button"
-            aria-label={`Open order for ${order.customer}`}
-          >
-            <span className={`avatar avatar-${order.accent}`}>{order.initials}</span>
-            <div className="order-main">
-              <div className="order-title-line">
-                <h3>{order.customer}</h3>
-                <strong>${order.total}</strong>
-              </div>
-              <p>{order.itemSummary || `${order.quantity} × ${order.product}`}</p>
-              <div className="order-meta">
-                <span className="order-due">
-                  {order.due}
-                  {order.notes ? <MessageSquareText size={13} aria-label="Has notes" /> : null}
-                </span>
-                <Status tone={workflowTone(order.status)}>
-                  {workflowTone(order.status) === "success" ? <CheckCircle2 size={13} /> : <ShoppingBag size={13} />}
-                  {workflowLabel(order.status)}
-                </Status>
-                <span className={`payment-status-chip ${inferredPaymentStatus(order)}`}>
-                  <Banknote size={12} />
-                  {paymentStatusLabel(inferredPaymentStatus(order))}
-                </span>
-              </div>
+      <section className={view === "customers" ? "orders-workspace customers-open" : "orders-workspace"}>
+        <div className="orders-main-column">
+          <div className="orders-toolbar">
+            <div>
+              <span className="eyebrow-label dark">Order records</span>
+              <h2>{view === "customers" ? "Customer profiles" : view === "calendar" ? "Production calendar" : "Customer queue"}</h2>
             </div>
-          </button>
-        )) : <EmptyState title="No matching orders" body={orders.length ? "Try a different status or customer name." : "Add your first real order with the plus button."} />}
-      </section>}
+            <div className="view-switch" aria-label="Order view">
+              <button type="button" className={view === "list" ? "selected" : ""} onClick={() => setView("list")}><List size={14} /> List</button>
+              <button type="button" className={view === "calendar" ? "selected" : ""} onClick={() => {
+                onOpenOrder(null);
+                setView("calendar");
+              }}><CalendarDays size={14} /> Calendar</button>
+              <button type="button" className={view === "customers" ? "selected" : ""} onClick={() => {
+                onOpenOrder(null);
+                setView("customers");
+              }}><UsersRound size={14} /> Customers</button>
+            </div>
+          </div>
+
+          {view === "list" ? <div className="search-row orders-search-row">
+            <label className="search-field">
+              <Search size={17} />
+              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search customer, item, note, code, payment" />
+            </label>
+            <div className="segmented-control">
+              {filters.map((item) => (
+                <button key={item} className={filter === item ? "selected" : ""} onClick={() => setFilter(item)}>
+                  {item}
+                </button>
+              ))}
+            </div>
+          </div> : null}
+
+          {view === "customers" ? (
+            <CustomerProfilesView
+              customerProfiles={customerProfiles}
+              onOpenOrder={onOpenOrder}
+              onSaveCustomerProfile={onSaveCustomerProfile}
+              orders={orders}
+            />
+          ) : view === "calendar" ? (
+            <div className="orders-calendar-shell">
+              <OrderCalendar
+                orders={orders}
+                recipes={recipes}
+                starters={starters}
+                starterLogs={starterLogs}
+              />
+            </div>
+          ) : <section className="order-list orders-card-list">
+            {filteredOrders.length ? filteredOrders.map((order) => (
+              <button
+                className={`order-row order-command-card status-${String(workflowLabel(order.status) || "new").toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
+                key={order.id}
+                onClick={() => onOpenOrder(order.id)}
+                type="button"
+                aria-label={`Open order for ${order.customer}`}
+              >
+                <span className={`avatar avatar-${order.accent}`}>{order.initials}</span>
+                <div className="order-main">
+                  <div className="order-title-line">
+                    <h3>{order.customer}</h3>
+                    <strong>${Number(order.total || 0).toFixed(0)}</strong>
+                  </div>
+                  <p>{order.itemSummary || `${order.quantity} × ${order.product}`}</p>
+                  <div className="order-meta">
+                    <span className="order-due">
+                      {formatShortPickup(order)} {formatPickupTime(order)}
+                      {order.notes || order.internalNotes ? <MessageSquareText size={13} aria-label="Has notes" /> : null}
+                    </span>
+                    <Status tone={workflowTone(order.status)}>
+                      {workflowTone(order.status) === "success" ? <CheckCircle2 size={13} /> : <ShoppingBag size={13} />}
+                      {workflowLabel(order.status)}
+                    </Status>
+                    <span className={`payment-status-chip ${inferredPaymentStatus(order)}`}>
+                      <Banknote size={12} />
+                      {paymentStatusLabel(inferredPaymentStatus(order))}
+                    </span>
+                  </div>
+                </div>
+                <ChevronRight className="order-card-arrow" size={17} />
+              </button>
+            )) : <EmptyState title="No matching orders" body={orders.length ? "Try a different status, customer, item, note, request code, or payment method." : "Add your first real order with the plus button."} />}
+          </section>}
+        </div>
+
+        {view !== "customers" ? (
+          <aside className="orders-side-panel" aria-label="Order day overview">
+            <section>
+              <div className="section-title-line">
+                <div><span className="eyebrow-label dark">Today</span><h2>Pickup lane</h2></div>
+                <UsersRound size={18} />
+              </div>
+              {todaysPickups.length ? (
+                <div className="orders-mini-list">
+                  {todaysPickups.map((order) => (
+                    <button key={order.id} type="button" onClick={() => onOpenOrder(order.id)}>
+                      <span>{formatPickupTime(order) || "Time TBD"}</span>
+                      <strong>{order.customer}</strong>
+                      <small>{orderItemsLabel(order)}</small>
+                    </button>
+                  ))}
+                </div>
+              ) : <p className="orders-side-empty">No pickups scheduled for today.</p>}
+            </section>
+
+            <section>
+              <div className="section-title-line">
+                <div><span className="eyebrow-label dark">Next</span><h2>Upcoming flow</h2></div>
+                <Clock3 size={18} />
+              </div>
+              {nextOrders.length ? (
+                <div className="orders-timeline-list">
+                  {nextOrders.map((order) => (
+                    <button key={order.id} type="button" onClick={() => onOpenOrder(order.id)}>
+                      <i />
+                      <span>
+                        <strong>{formatShortPickup(order)} {formatPickupTime(order)}</strong>
+                        <small>{order.customer} · {orderItemsLabel(order)}</small>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              ) : <p className="orders-side-empty">No upcoming pickup dates yet.</p>}
+            </section>
+
+            <section className="orders-capacity-card">
+              <span>Today’s bake slots</span>
+              <strong>{Math.min(capacityToday, dailyCapacity)} / {dailyCapacity}</strong>
+              <div className="capacity-track" style={{ "--slot-count": dailyCapacity }} aria-hidden="true">
+                {Array.from({ length: dailyCapacity }, (_, index) => (
+                  <i key={index} className={index < capacityToday ? "filled" : ""} />
+                ))}
+              </div>
+            </section>
+          </aside>
+        ) : null}
+      </section>
 
       {showAdd ? (
         <Modal title="New customer order" onClose={() => setShowAdd(false)}>

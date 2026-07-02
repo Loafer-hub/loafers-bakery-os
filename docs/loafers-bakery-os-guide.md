@@ -75,6 +75,9 @@ Orders supports both manually entered orders and cloud customer requests.
 
 Owner order tools include:
 
+- Branded Orders desk dashboard for the owner workflow
+- Active order, pickup-today, next-pickup, and active-revenue summary cards
+- Request intake panel for accepting customer web orders
 - Pending online request inbox
 - Accept request
 - Reject request
@@ -89,11 +92,15 @@ Owner order tools include:
 - Pickup location
 - Payment method and payment status
 - Venmo, Zelle, Cash, and custom payment notes
+- Side pickup lane for today’s customer handoffs
+- Upcoming flow panel for the next dated pickups
+- Daily bake-slot capacity card
 - Add-to-calendar export with step-by-step bake schedule
 - Customer bake phase checkoffs
 - Email/text notification links and automatic email hooks
 - Active, ready, completed, and all-order views
-- Order calendar with order placed, feed, start bread, and pickup events
+- Order calendar with order placed, feed, start, and pickup events
+- Dedicated Customers view for profile and history work
 
 Calendar colors:
 
@@ -1220,6 +1227,9 @@ This changelog is written as a product history, not a line-by-line commit log.
 - Added batch trace records to backup/restore
 - Added Loafers Home Bakery brand-kit foundation using the supplied round badge and advertising banner
 - Redesigned the customer storefront with a polished public-shop layout, refined hero, premium menu tabs, branded product cards, and a cleaner sticky cart
+- Began the deep owner UI refresh one group at a time, starting with Orders
+- Redesigned Orders into a branded owner desk with summary cards, request intake, cleaner List/Calendar/Customers workspace, today pickup lane, upcoming flow, capacity card, and refreshed order cards
+- Tightened the Orders calendar cell labels so mobile month view remains readable
 
 ## Known limitations and cautions
 

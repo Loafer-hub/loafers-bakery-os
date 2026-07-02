@@ -5,9 +5,9 @@ import { buildBakeSchedule } from "../lib/fermentationModel";
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const eventTypes = {
-  placed: { label: "Ordered", className: "placed" },
+  placed: { label: "Ordered", shortLabel: "Order", className: "placed" },
   feed: { label: "Feed", className: "feed" },
-  start: { label: "Start bread", className: "start" },
+  start: { label: "Start bread", shortLabel: "Start", className: "start" },
   pickup: { label: "Pickup", className: "pickup" },
 };
 
@@ -218,7 +218,7 @@ export function OrderCalendar({
                       role="listitem"
                       title={`${config.label}: ${event.customer}`}
                     >
-                      <strong>{config.label}</strong>
+                      <strong>{config.shortLabel || config.label}</strong>
                       <small>{event.customer.split(" ")[0]}</small>
                     </div>
                   );
