@@ -51,6 +51,7 @@ import ProductionPage from "./pages/ProductionPage";
 import RecipesPage from "./pages/RecipesPage";
 import SettingsPage from "./pages/SettingsPage";
 import TodayPage from "./pages/TodayPage";
+import HelpPage from "./pages/HelpPage";
 
 // customer-options-v1
 // checkout-flow-v1
@@ -62,6 +63,7 @@ const pages = {
   menu: MenuPage,
   business: MorePage,
   settings: SettingsPage,
+  help: HelpPage,
 };
 
 const pageAliases = {
@@ -326,7 +328,8 @@ export default function App() {
   const [quickActionsOpen, setQuickActionsOpen] = useState(false);
   const [storageOpen, setStorageOpen] = useState(false);
   const [menuView, setMenuView] = useState("recipes");
-  const [productionView, setProductionView] = useState("bake");
+  const [productionView, setProductionView] = useState("operations");
+  const [productionArea, setProductionArea] = useState("calendar");
   const [businessFocus, setBusinessFocus] = useState(null);
   const [quickFeed, setQuickFeed] = useState({
     starterId: "mabel",
@@ -634,6 +637,7 @@ export default function App() {
     if (nextPage !== "orders") setSelectedOrderId(null);
     if (nextPage === "menu" && options.menuView) setMenuView(options.menuView);
     if (nextPage === "production" && options.productionView) setProductionView(options.productionView);
+    if (nextPage === "production" && options.productionArea) setProductionArea(options.productionArea);
     if (nextPage === "business") {
       setBusinessFocus(options.businessFocus
         ? { area: options.businessFocus, nonce: Date.now() }
@@ -938,6 +942,7 @@ export default function App() {
     businessFocus,
     selectedOrderId,
     productionView,
+    productionArea,
     starterLogs,
     menuView,
     onChangeMenuView: setMenuView,

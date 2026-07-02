@@ -26,7 +26,7 @@ const desktopNavItems = [
   { id: "today", label: "Today", icon: House, page: "today" },
   { id: "orders", label: "Orders", icon: ClipboardList, page: "orders", showBadge: true },
   { id: "bake-desk", label: "Bake desk", icon: Croissant, page: "production", productionView: "bake" },
-  { id: "production", label: "Production", icon: ClipboardList, page: "production", productionView: "bake" },
+  { id: "production", label: "Production", icon: ClipboardList, page: "production", productionView: "operations", productionArea: "calendar" },
   { id: "menu", label: "Menu", icon: Store, page: "menu" },
   { id: "logbook", label: "Logbook", icon: BookOpen, page: "business", businessFocus: "logbook" },
   { id: "customers", label: "Customers", icon: UserRound, page: "business", businessFocus: "customers" },
@@ -104,13 +104,13 @@ export function BottomNav({ active, activeNavKey = active, onChange, orderBadgeC
       </div>
 
       <div className="desktop-nav-items">
-        {desktopNavItems.map(({ id, label, icon: Icon, page, productionView, businessFocus, showBadge }) => {
+        {desktopNavItems.map(({ id, label, icon: Icon, page, productionView, productionArea, businessFocus, showBadge }) => {
           const isActive = activeNavKey === id || (!activeNavKey && active === page);
           return (
             <button
               key={id}
               className={isActive ? "nav-item active" : "nav-item"}
-              onClick={() => onChange(page, { navKey: id, productionView, businessFocus })}
+              onClick={() => onChange(page, { navKey: id, productionView, productionArea, businessFocus })}
               aria-current={isActive ? "page" : undefined}
             >
               <Icon size={20} strokeWidth={isActive ? 2.2 : 1.75} />
@@ -122,7 +122,11 @@ export function BottomNav({ active, activeNavKey = active, onChange, orderBadgeC
       </div>
 
       <div className="desktop-nav-footer">
-        <button className="desktop-help-link" type="button" onClick={() => onChange("settings")}>
+        <button
+          className={activeNavKey === "help" ? "desktop-help-link active" : "desktop-help-link"}
+          type="button"
+          onClick={() => onChange("help", { navKey: "help" })}
+        >
           <BookOpen size={18} />
           <span>Need help?</span>
         </button>

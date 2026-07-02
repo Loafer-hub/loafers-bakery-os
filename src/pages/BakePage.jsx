@@ -107,6 +107,7 @@ const bakeViews = [
   },
 ];
 
+const bakeDeskViews = bakeViews.filter((item) => !["calendar", "starter"].includes(item.id));
 const bakeViewCopy = Object.fromEntries(bakeViews.map((item) => [item.id, item]));
 
 export default function BakePage({
@@ -133,6 +134,9 @@ export default function BakePage({
   onSelectKitchenBake,
   onSyncProductionPlans,
   onStarterLogged,
+  onOpenProductionArea,
+  productionPlanDate,
+  productionPlanToLoad,
 }) {
   const [view, setView] = useState("plan");
   const [editingPlanId, setEditingPlanId] = useState(null);
@@ -173,11 +177,23 @@ export default function BakePage({
   }), [orders]);
 
   useEffect(() => {
+    if (["calendar", "starter"].includes(view)) setView("plan");
+  }, [view]);
+
+  useEffect(() => {
     if (recipes.length && !recipes.some((item) => item.id === recipeId)) {
       setRecipeId(recipes[0].id);
       setLoaves(recipes[0].yield);
     }
   }, [recipeId, recipes]);
+
+  useEffect(() => {
+    if (productionPlanDate?.date) resetForDate(productionPlanDate.date);
+  }, [productionPlanDate?.nonce]);
+
+  useEffect(() => {
+    if (productionPlanToLoad?.plan) loadPlan(productionPlanToLoad.plan);
+  }, [productionPlanToLoad?.nonce]);
 
   useEffect(() => {
     if (!usesStarter) {
@@ -408,7 +424,7 @@ export default function BakePage({
               <span>{model ? `Finish ${formatScheduleTime(model.bakeEnd)}` : "Choose a work area"}</span>
             </div>
             <div className="view-switch bake-view-switch" aria-label="Bake work areas">
-              {bakeViews.map((item) => (
+              {bakeDeskViews.map((item) => (
                 <button
                   className={view === item.id ? "selected" : ""}
                   key={item.id}
@@ -605,7 +621,13 @@ export default function BakePage({
           <div className="planner-empty-stack">
             {!recipes.length ? <EmptyState title="Add a recipe first" body="The planner needs recipe timing, hydration, and flour settings." /> : null}
             {usesStarter && !starters.length ? <EmptyState title="Add a starter first" body="Create a starter profile so feed timing and flour blend can be included." /> : null}
-            <button className="primary-button" type="button" onClick={() => setView(usesStarter && !starters.length ? "starter" : "plan")}>Set up baking data</button>
+            <button
+              className="primary-button"
+              type="button"
+              onClick={() => (usesStarter && !starters.length ? onOpenProductionArea?.("starters") : setView("plan"))}
+            >
+              {usesStarter && !starters.length ? "Open starter setup" : "Set up baking data"}
+            </button>
           </div>
         )
       ) : null}
@@ -649,11 +671,11 @@ export default function BakePage({
           <section className="bake-side-card bake-side-card-dark">
             <span><CalendarDays size={20} /></span>
             <div>
-              <small>Calendar load</small>
+              <small>Production calendar</small>
               <strong>{bakePlans.length} planned · {acceptedOrderBakes.length} accepted</strong>
-              <p>{unavailableDays.length ? `${unavailableDays.length} blocked bake ${unavailableDays.length === 1 ? "day" : "days"} saved.` : "No blocked bake days right now."}</p>
+              <p>Calendar, starters, and inventory now live in Production.</p>
             </div>
-            <button type="button" onClick={() => setView("calendar")}>Open calendar</button>
+            <button type="button" onClick={() => onOpenProductionArea?.("calendar")}>Open Production</button>
           </section>
 
           <section className="bake-side-card">

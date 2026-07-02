@@ -698,6 +698,7 @@ export default function MorePage({
 }) {
   const [orderHistoryOpen, setOrderHistoryOpen] = useState(false);
   const [customerDirectoryOpen, setCustomerDirectoryOpen] = useState(false);
+  const [businessArea, setBusinessArea] = useState("reports");
   const [customerView, setCustomerView] = useState("active");
   const [customerDraft, setCustomerDraft] = useState(null);
   const [inventoryForm, setInventoryForm] = useState(null);
@@ -1050,9 +1051,9 @@ export default function MorePage({
     });
   }
 
-  function openCustomerDirectory(view = "active") {
+  function openCustomerDirectory(view = "active", options = {}) {
     setCustomerView(view);
-    setCustomerDirectoryOpen(true);
+    if (options.modal !== false) setCustomerDirectoryOpen(true);
     const firstCustomer = view === "active"
       ? activeCustomerRecords[0]
       : view === "past"
@@ -1074,23 +1075,27 @@ export default function MorePage({
       name: "",
     });
     setCustomerView("all");
-    setCustomerDirectoryOpen(true);
+    if (businessArea !== "customers") setCustomerDirectoryOpen(true);
   }
 
   useEffect(() => {
     if (!businessFocus?.area) return;
     if (businessFocus.area === "logbook") {
+      setBusinessArea("logbook");
       setCustomerDirectoryOpen(false);
-      setOrderHistoryOpen(true);
+      setOrderHistoryOpen(false);
       document.querySelector(".scroll-view")?.scrollTo({ top: 0, left: 0 });
       return;
     }
     if (businessFocus.area === "customers") {
+      setBusinessArea("customers");
       setOrderHistoryOpen(false);
-      openCustomerDirectory("active");
+      setCustomerDirectoryOpen(false);
+      openCustomerDirectory("active", { modal: false });
       return;
     }
     if (businessFocus.area === "reports") {
+      setBusinessArea("reports");
       setOrderHistoryOpen(false);
       setCustomerDirectoryOpen(false);
       document.querySelector(".scroll-view")?.scrollTo({ top: 0, left: 0 });
@@ -1255,6 +1260,151 @@ export default function MorePage({
     });
     setCsvImportOpen(false);
     setCsvRows([]);
+  }
+
+  function renderOrderHistoryPanel(pageMode = false) {
+    return (
+      <div className={`order-history-panel ${pageMode ? "business-page-panel" : ""}`}>
+        <p className="form-help">Every order record with customer, pickup, payment, allergy, notes, item, and bake progress details.</p>
+        {orders.length ? [...orders].sort((a, b) => orderTimestamp(b) - orderTimestamp(a)).map((order) => (
+          <section className="order-history-card" key={order.id}>
+            <div className="order-history-heading">
+              <span>
+                <strong>{order.customer || "Customer"}</strong>
+                <small>{order.product || order.itemSummary || "Order"} · {order.status || "New"}</small>
+              </span>
+              <strong>${Number(order.total || 0).toFixed(2)}</strong>
+            </div>
+            <div className="order-history-facts">
+              <span><CalendarDays size={13} /> Ordered {dateTimeLabel(order.createdAt) || "Unknown"}</span>
+              <span><BellRing size={13} /> {orderProgressLabel(order) || "Bake progress not started"}</span>
+              <span><MapPin size={13} /> {order.pickupAt ? dateTimeLabel(order.pickupAt) : order.due || "Pickup not set"}</span>
+              <span><Receipt size={13} /> {order.paymentMethod || "Payment not recorded"}</span>
+            </div>
+            <div className="order-history-detail-grid">
+              <span><strong>Items</strong><small>{orderItemsLabel(order)}</small></span>
+              <span><strong>Quantity</strong><small>{order.totalUnits || order.quantity || 1} unit{Number(order.totalUnits || order.quantity || 1) === 1 ? "" : "s"}</small></span>
+              <span><strong>Contact</strong><small>{[order.customerEmail, order.customerPhone].filter(Boolean).join(" · ") || "No contact saved"}</small></span>
+              <span><strong>Allergies</strong><small>{order.allergies || "None listed"}</small></span>
+              <span><strong>Pickup</strong><small>{order.pickupLocation || "Pickup location not saved"}</small></span>
+              <span><strong>Record</strong><small>{order.requestCode ? `Request ${order.requestCode}` : `ID ${order.id}`}</small></span>
+            </div>
+            {order.notes ? <p className="order-history-notes">{order.notes}</p> : null}
+            {onOpenOrder ? (
+              <button type="button" className="text-button order-history-open" onClick={() => {
+                setOrderHistoryOpen(false);
+                onOpenOrder(order.id);
+              }}>Open in Orders <ChevronRight size={14} /></button>
+            ) : null}
+          </section>
+        )) : <EmptyState title="No orders yet" body="Customer order records will appear here." />}
+      </div>
+    );
+  }
+
+  function renderCustomerDirectoryPanel(pageMode = false) {
+    return (
+      <div className={`customer-directory-panel ${pageMode ? "business-page-panel" : ""}`}>
+        <div className="customer-directory-toolbar">
+          <div className="segmented-control customer-filter">
+            <button type="button" className={customerView === "active" ? "selected" : ""} onClick={() => setCustomerView("active")}>Active <span>{activeCustomerRecords.length}</span></button>
+            <button type="button" className={customerView === "past" ? "selected" : ""} onClick={() => setCustomerView("past")}>Past <span>{pastCustomerRecords.length}</span></button>
+            <button type="button" className={customerView === "accounts" ? "selected" : ""} onClick={() => setCustomerView("accounts")}>Accounts <span>{accountCustomerRecords.length}</span></button>
+            <button type="button" className={customerView === "all" ? "selected" : ""} onClick={() => setCustomerView("all")}>All <span>{customerRecords.length}</span></button>
+          </div>
+          <button type="button" className="small-action-button" onClick={addCustomerProfile}><Plus size={14} /> Add customer</button>
+        </div>
+        <div className="customer-directory-layout">
+          <div className="customer-directory-list">
+            {visibleCustomers.length ? visibleCustomers.map((customer) => (
+              <button type="button" className={`customer-directory-row ${customerDraft?.id === customer.id ? "selected" : ""}`} key={customer.id} onClick={() => editCustomer(customer)}>
+                <UserRound size={17} />
+                <span>
+                  <strong>{customer.name || "Customer"}</strong>
+                  <small>{customer.orders.length} order{customer.orders.length === 1 ? "" : "s"} · ${customer.totalSpent.toFixed(2)} lifetime</small>
+                  {customer.customerUserId ? <em>Customer account</em> : null}
+                </span>
+                <ChevronRight size={14} />
+              </button>
+            )) : <EmptyState title="No customers in this view" body="Switch to All or add a customer profile." />}
+          </div>
+          {customerDraft ? (
+            <form className="form-stack customer-profile-form" onSubmit={saveCustomerProfile}>
+              <div className="customer-profile-summary">
+                <UserRound size={19} />
+                <span>
+                  <strong>{customerDraft.name || "New customer"}</strong>
+                  <small>{linkedCustomer?.orders.length || 0} linked order record{(linkedCustomer?.orders.length || 0) === 1 ? "" : "s"}</small>
+                </span>
+              </div>
+              <div className="customer-profile-stats">
+                <span><strong>{linkedCustomer?.orders.length || 0}</strong><small>Lifetime orders</small></span>
+                <span><strong>${Number(linkedCustomer?.totalSpent || 0).toFixed(2)}</strong><small>Total spent</small></span>
+                <span><strong>{linkedCustomer?.lastOrderAt ? dateTimeLabel(linkedCustomer.lastOrderAt) : "—"}</strong><small>Last order</small></span>
+                {customerDraft.customerUserId || linkedCustomer?.customerUserId ? (
+                  <span><strong>{dateTimeLabel(customerDraft.lastAccountProfileAt || linkedCustomer?.lastAccountProfileAt) || "Linked"}</strong><small>Account saved</small></span>
+                ) : null}
+              </div>
+              {customerDraft.customerUserId || linkedCustomer?.customerUserId ? (
+                <p className="customer-account-link-note"><UserRound size={13} /> Customer account linked</p>
+              ) : null}
+              <label>Name<input required value={customerDraft.name || ""} onChange={(event) => setCustomerDraft({ ...customerDraft, name: event.target.value })} placeholder="Customer name" /></label>
+              <div className="form-grid">
+                <label>Email<input type="email" value={customerDraft.email || ""} onChange={(event) => setCustomerDraft({ ...customerDraft, email: event.target.value })} placeholder="name@example.com" /></label>
+                <label>Phone<input value={customerDraft.phone || ""} onChange={(event) => setCustomerDraft({ ...customerDraft, phone: event.target.value })} placeholder="907…" /></label>
+              </div>
+              <label>Address<textarea value={customerDraft.address || ""} onChange={(event) => setCustomerDraft({ ...customerDraft, address: event.target.value })} placeholder="Street, city, delivery notes…" /></label>
+              <label>Allergies / safety notes<textarea value={customerDraft.allergies || ""} onChange={(event) => setCustomerDraft({ ...customerDraft, allergies: event.target.value })} placeholder="Wheat, sesame, dairy, nut allergies, cross-contact notes…" /></label>
+              <label>Preferences<textarea value={customerDraft.preferences || ""} onChange={(event) => setCustomerDraft({ ...customerDraft, preferences: event.target.value })} placeholder="Crust darkness, slicing, add-ins, pickup habits…" /></label>
+              <div className="form-grid">
+                <label>Favorite items<input value={customerDraft.favoriteItems || ""} onChange={(event) => setCustomerDraft({ ...customerDraft, favoriteItems: event.target.value })} placeholder="Country, bagels, hot sauce…" /></label>
+                <label>Payment notes<input value={customerDraft.paymentNotes || ""} onChange={(event) => setCustomerDraft({ ...customerDraft, paymentNotes: event.target.value })} placeholder="Venmo, cash, invoice…" /></label>
+              </div>
+              <label>Pickup / delivery notes<textarea value={customerDraft.pickupNotes || ""} onChange={(event) => setCustomerDraft({ ...customerDraft, pickupNotes: event.target.value })} placeholder="Porch box, text on arrival, gate code…" /></label>
+              <label>Private notes<textarea value={customerDraft.notes || ""} onChange={(event) => setCustomerDraft({ ...customerDraft, notes: event.target.value })} placeholder="Anything useful for future orders…" /></label>
+              <div className="customer-profile-chips">
+                <span><Mail size={13} /> {customerDraft.email || "No email"}</span>
+                <span><Phone size={13} /> {customerDraft.phone || "No phone"}</span>
+                <span><Heart size={13} /> {customerDraft.favoriteItems || "No favorites yet"}</span>
+              </div>
+              <button className="primary-button" type="submit">Save customer profile</button>
+            </form>
+          ) : (
+            <EmptyState title="Pick a customer" body="Choose a customer or add a new profile to save details." />
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (businessArea === "logbook") {
+    return (
+      <main className="page business-page business-subpage">
+        <PageHeading
+          title="Logbook"
+          subtitle="A full order record trail with pickup, payment, allergy, customer notes, and bake-progress details."
+          action={<button className="small-action-button" type="button" onClick={() => setBusinessArea("reports")}><LineChart size={15} /> Reports</button>}
+        />
+        <section className="business-subpage-card">
+          {renderOrderHistoryPanel(true)}
+        </section>
+      </main>
+    );
+  }
+
+  if (businessArea === "customers") {
+    return (
+      <main className="page business-page business-subpage customer-directory-page">
+        <PageHeading
+          title="Customers"
+          subtitle="Customer profiles, allergies, preferences, contact info, pickup notes, payment notes, and linked order history."
+          action={<button className="small-action-button" type="button" onClick={() => setBusinessArea("reports")}><LineChart size={15} /> Reports</button>}
+        />
+        <section className="business-subpage-card customer-subpage-card">
+          {renderCustomerDirectoryPanel(true)}
+        </section>
+      </main>
+    );
   }
 
   return (
