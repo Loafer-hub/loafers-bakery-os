@@ -1,5 +1,5 @@
 import { Beaker, CalendarDays, ChefHat, Factory, FlaskConical, Wheat } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PageHeading } from "../components/AppChrome";
 import BakePage from "./BakePage";
 import LiquidPage from "./LiquidPage";
@@ -22,6 +22,10 @@ const productionViews = [
 export default function ProductionPage(props) {
   const [view, setView] = useState("bake");
   const ActiveIcon = view === "liquid" ? Beaker : Wheat;
+
+  useEffect(() => {
+    document.querySelector(".scroll-view")?.scrollTo({ top: 0, left: 0 });
+  }, [view]);
 
   return (
     <>

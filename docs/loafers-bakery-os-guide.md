@@ -134,14 +134,18 @@ Customer lists can be viewed as active, past, account-linked, or all customers.
 
 ### Bake / Production area
 
-The Bake / Production area is intentionally split by job:
+The Bake / Production area is organized as a compact production desk. The top Bread/Liquid chooser stays small, then Bread work opens into a branded Bake desk with status cards for in-progress bakes, next step, starter readiness, and production signal.
+
+Bread work is intentionally split by job:
 
 - Plan: build a single bake timeline
-- Kitchen: track active bakes currently in progress
-- Batch plan: group accepted orders into efficient production work
+- Kitchen: track active bakes currently in progress with named bakes and checklists
+- Batches: group accepted orders into efficient production work
 - Calendar: plan and block bake days
 - Starters: manage starter profiles and feed history
 - Liquid: hot sauce, vinegar, oil, and liquid safety tools
+
+The Bake desk also includes a summary rail on larger screens with calendar load, active kitchen work, and upcoming saved bake plans. On phones, the same tools stack into a tighter flow so the baker can get from status to action quickly.
 
 This area is where the app acts most like the missing production manager.
 
@@ -1230,6 +1234,8 @@ This changelog is written as a product history, not a line-by-line commit log.
 - Began the deep owner UI refresh one group at a time, starting with Orders
 - Redesigned Orders into a branded owner desk with summary cards, request intake, cleaner List/Calendar/Customers workspace, today pickup lane, upcoming flow, capacity card, and refreshed order cards
 - Tightened the Orders calendar cell labels so mobile month view remains readable
+- Refreshed Bake / Production into a branded Bake desk with quick status cards, clearer Plan/Kitchen/Batches/Calendar/Starters tabs, a desktop summary rail, and a tighter mobile Production chooser
+- Added scroll-position polish so switching Bread work and Liquid lab opens from the top instead of landing mid-page
 
 ## Known limitations and cautions
 

@@ -1105,6 +1105,68 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   line-height: 1.4;
 }
 
+.production-hub-page {
+  padding-bottom: 8px;
+}
+
+.production-hub-page .page-heading {
+  margin-bottom: 12px;
+}
+
+.production-hub-page .page-heading h1 {
+  font-size: clamp(38px, 9vw, 56px);
+}
+
+.production-hub-page .page-heading p {
+  max-width: 720px;
+  font-size: 10px;
+}
+
+.production-hub-page .hub-switch {
+  margin-bottom: 10px;
+}
+
+.production-hub-page .hub-switch button {
+  min-height: 58px;
+}
+
+.production-hub-page .hub-context-card {
+  padding: 10px 12px;
+}
+
+@media (max-width: 540px) {
+  .production-hub-page {
+    padding-top: 14px;
+    padding-bottom: 4px;
+  }
+
+  .production-hub-page .page-heading {
+    margin-bottom: 9px;
+  }
+
+  .production-hub-page .page-heading h1 {
+    font-size: 36px;
+  }
+
+  .production-hub-page .hub-switch {
+    gap: 7px;
+    margin-bottom: 0;
+  }
+
+  .production-hub-page .hub-switch button {
+    min-height: 45px;
+    grid-template-columns: 22px minmax(0, 1fr);
+    gap: 7px;
+    padding: 8px;
+    border-radius: 14px;
+  }
+
+  .production-hub-page .hub-switch small,
+  .production-hub-page .hub-context-card {
+    display: none;
+  }
+}
+
 .menu-ready-shelf-page {
   padding-top: 0;
 }
@@ -2363,6 +2425,352 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 
 .bake-view-switch {
   flex-wrap: wrap;
+}
+
+.bake-page {
+  position: relative;
+  isolation: isolate;
+}
+
+.bake-command-hero {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: end;
+  margin: 0 0 14px;
+  padding: 20px;
+  color: #fff1d5;
+  border: 1px solid rgba(236, 208, 164, .45);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 85% 8%, rgba(88, 196, 110, .35), transparent 24%),
+    radial-gradient(circle at 73% 25%, rgba(141, 63, 198, .32), transparent 28%),
+    linear-gradient(135deg, var(--night) 0%, #111b1b 54%, #3a2214 100%);
+  box-shadow: 0 18px 38px rgba(28, 14, 7, .18);
+}
+
+.bake-command-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(115deg, transparent 0 52%, rgba(236, 208, 164, .1) 52% 53%, transparent 53%),
+    radial-gradient(circle at 18% 18%, rgba(255,255,255,.16), transparent 18%);
+  mix-blend-mode: screen;
+}
+
+.bake-command-hero > * {
+  position: relative;
+  z-index: 1;
+}
+
+.bake-command-copy .eyebrow-label.dark {
+  color: var(--flour-gold) !important;
+}
+
+.bake-command-copy h1 {
+  margin: 2px 0 6px;
+  font-family: "Newsreader", Georgia, serif;
+  font-size: clamp(40px, 11vw, 64px);
+  font-weight: 500;
+  line-height: .9;
+  letter-spacing: -.055em;
+}
+
+.bake-command-copy p {
+  max-width: 620px;
+  margin: 0;
+  color: rgba(255, 241, 213, .78);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.bake-command-mark {
+  width: 54px;
+  height: 54px;
+  display: grid;
+  place-items: center;
+  color: var(--night);
+  border: 1px solid rgba(255,255,255,.28);
+  border-radius: 18px;
+  background: linear-gradient(135deg, var(--flour-gold), #c88b45);
+  box-shadow: 0 12px 24px rgba(0,0,0,.22);
+}
+
+.bake-command-grid {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.bake-command-card {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  padding: 11px;
+  border: 1px solid rgba(236, 208, 164, .2);
+  border-radius: 16px;
+  background: rgba(255, 247, 233, .1);
+  backdrop-filter: blur(10px);
+}
+
+.bake-command-card svg {
+  color: var(--flour-gold);
+}
+
+.bake-command-card span {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+
+.bake-command-card small {
+  overflow: hidden;
+  color: rgba(255, 241, 213, .62);
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bake-command-card strong {
+  overflow: hidden;
+  font-family: "Newsreader", Georgia, serif;
+  font-size: 22px;
+  font-weight: 500;
+  line-height: .95;
+  text-overflow: ellipsis;
+  white-space: normal;
+}
+
+.bake-command-card em {
+  overflow: hidden;
+  color: rgba(255, 241, 213, .66);
+  font-size: 8px;
+  font-style: normal;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bake-workspace {
+  display: grid;
+  gap: 13px;
+}
+
+.bake-main-column,
+.bake-side-panel {
+  min-width: 0;
+}
+
+.bake-workbench-card {
+  overflow: hidden;
+  border: 1px solid rgba(189, 150, 98, .58);
+  border-radius: 22px;
+  background:
+    linear-gradient(145deg, rgba(255,251,242,.94), rgba(248, 238, 222, .82)),
+    var(--paper);
+  box-shadow: 0 14px 32px rgba(68, 39, 19, .08);
+}
+
+.bake-workbench-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 16px 10px;
+}
+
+.bake-workbench-head small {
+  display: block;
+  color: var(--accent);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+}
+
+.bake-workbench-head h2 {
+  margin: 2px 0 0;
+  font-family: "Newsreader", Georgia, serif;
+  font-size: 32px;
+  font-weight: 500;
+  line-height: .95;
+  letter-spacing: -.035em;
+}
+
+.bake-workbench-head > span:last-child {
+  max-width: 42%;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.35;
+  text-align: right;
+}
+
+.bake-workbench-card .bake-view-switch {
+  width: auto;
+  margin: 0 14px;
+  overflow-x: auto;
+  border-radius: 999px;
+  scrollbar-width: none;
+}
+
+.bake-workbench-card .bake-view-switch::-webkit-scrollbar {
+  display: none;
+}
+
+.bake-workbench-card .bake-view-switch button {
+  flex: 1 0 auto;
+  min-width: max-content;
+  padding: 8px 13px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.bake-workbench-body {
+  padding: 14px;
+}
+
+.bake-workbench-body > :last-child {
+  margin-bottom: 0;
+}
+
+.bake-side-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.bake-side-card {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: rgba(255, 251, 242, .92);
+  box-shadow: 0 10px 24px rgba(59, 34, 17, .06);
+}
+
+.bake-side-card-dark {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  color: #fff1d5;
+  border-color: rgba(236, 208, 164, .32);
+  background:
+    radial-gradient(circle at 90% 0%, rgba(88, 196, 110, .22), transparent 30%),
+    linear-gradient(135deg, #101b1a, #382114);
+}
+
+.bake-side-card-dark > span {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  color: var(--night);
+  border-radius: 14px;
+  background: var(--flour-gold);
+}
+
+.bake-side-card small {
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+
+.bake-side-card-dark small {
+  color: rgba(255, 241, 213, .66);
+}
+
+.bake-side-card strong {
+  display: block;
+  margin-top: 2px;
+  font-family: "Newsreader", Georgia, serif;
+  font-size: 22px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.bake-side-card p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.4;
+}
+
+.bake-side-card-dark p {
+  color: rgba(255, 241, 213, .68);
+}
+
+.bake-side-card-dark button {
+  grid-column: 1 / -1;
+}
+
+.bake-side-card button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 8px 10px;
+  color: var(--accent-dark);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255,255,255,.86);
+  font-size: 9px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.bake-side-card .section-title-line {
+  margin: 0;
+}
+
+.bake-side-card .section-title-line h3 {
+  margin: 0;
+  font-family: "Newsreader", Georgia, serif;
+  font-size: 24px;
+  font-weight: 500;
+}
+
+.bake-side-card .section-title-line button {
+  min-height: 28px;
+  padding: 6px 10px;
+}
+
+.bake-side-row {
+  width: 100%;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  text-align: left;
+}
+
+.bake-side-row span,
+.bake-side-row small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bake-side-row span {
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.bake-side-empty {
+  margin: 0 !important;
 }
 
 .kitchen-board {
@@ -13037,6 +13445,32 @@ button.owner-alert-row {
 
   .orders-command-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .bake-command-hero {
+    min-height: 190px;
+    padding: 28px;
+  }
+
+  .bake-command-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .bake-workspace {
+    grid-template-columns: minmax(0, 1fr) 300px;
+    align-items: start;
+  }
+
+  .bake-workbench-head {
+    padding: 20px 20px 12px;
+  }
+
+  .bake-workbench-body {
+    padding: 18px 20px 20px;
+  }
+
+  .bake-workbench-card .bake-view-switch {
+    margin-inline: 20px;
   }
 
   .orders-intake-card {

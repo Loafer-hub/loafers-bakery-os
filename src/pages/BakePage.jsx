@@ -1,13 +1,18 @@
 import {
   AlertTriangle,
   Beaker,
+  CalendarDays,
+  ChefHat,
+  ClipboardCheck,
+  Clock3,
+  Layers3,
   Minus,
   Plus,
   Thermometer,
   Trash2,
+  Wheat,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { PageHeading } from "../components/AppChrome";
 import { BakeCalendar } from "../components/BakeCalendar";
 import { KitchenBoard } from "../components/KitchenBoard";
 import { ProductionPlanner } from "../components/ProductionPlanner";
@@ -71,21 +76,21 @@ function sameCalendarDay(a, b) {
 const bakeViews = [
   {
     id: "plan",
-    label: "Schedule",
-    heading: "Bake schedule",
-    editHeading: "Change schedule",
+    label: "Plan",
+    heading: "Plan a bake",
+    editHeading: "Change bake plan",
     subtitle: "Build one science-backed timeline from mix time or desired finish.",
   },
   {
     id: "kitchen",
-    label: "Kitchen board",
-    heading: "Kitchen board",
+    label: "Kitchen",
+    heading: "Kitchen work",
     subtitle: "Live checklists for active bakes, folds, proofing, baking, and completion.",
   },
   {
     id: "production",
-    label: "Batch plan",
-    heading: "Batch plan",
+    label: "Batches",
+    heading: "Batch planning",
     subtitle: "Group accepted orders, stagger starts, check formulas, and spot shortages.",
   },
   {
@@ -96,7 +101,7 @@ const bakeViews = [
   },
   {
     id: "starter",
-    label: "Starter care",
+    label: "Starters",
     heading: "Starter care",
     subtitle: "Starter profiles, feed logs, ratios, and flour blends.",
   },
@@ -326,22 +331,95 @@ export default function BakePage({
       : model
         ? `${activeViewCopy.subtitle} Estimated finish ${formatScheduleTime(model.bakeEnd)}.`
         : activeViewCopy.subtitle;
+  const activeKitchenList = kitchenBakes.filter((bake) => !bake.completedAt && String(bake.status || "active").toLowerCase() !== "completed");
+  const upcomingPlans = [...bakePlans]
+    .sort((a, b) => new Date(a.anchorDateTime || a.bakeEnd || a.date) - new Date(b.anchorDateTime || b.bakeEnd || b.date))
+    .slice(0, 3);
+  const now = new Date();
+  const nextModelStep = model?.steps?.find((step) => new Date(step.end || step.start).getTime() >= now.getTime()) || model?.steps?.[0];
+  const productionSignal = model?.dough?.activityRate > 1.65
+    ? { value: "Fast dough", detail: "Check earlier than the timeline." }
+    : activeKitchenList.length >= 4
+      ? { value: "Busy bench", detail: "Use Kitchen before starting more." }
+      : acceptedOrderBakes.length
+        ? { value: "Orders queued", detail: `${acceptedOrderBakes.length} accepted pickup ${acceptedOrderBakes.length === 1 ? "order" : "orders"}.` }
+        : { value: "On track", detail: "No production risk flagged." };
+  const heroMetrics = [
+    {
+      label: "In progress",
+      value: activeKitchenList.length,
+      detail: activeKitchenList.length ? "Active kitchen bakes" : "Nothing on the bench",
+      icon: ClipboardCheck,
+    },
+    {
+      label: "Next step",
+      value: nextModelStep?.label || "No plan",
+      detail: nextModelStep ? formatScheduleTime(nextModelStep.start) : "Start from Plan",
+      icon: Clock3,
+    },
+    {
+      label: usesStarter ? "Starter ready" : "Rise mode",
+      value: usesStarter ? (starter?.name || "Add starter") : "Yeast / direct",
+      detail: usesStarter && model?.starterPeak ? `Peak about ${model.starterPeak.hours.toFixed(1)}h after feed` : `${timelineSettings.primaryLabel || "Rise"} timing`,
+      icon: Wheat,
+    },
+    {
+      label: "Production signal",
+      value: productionSignal.value,
+      detail: productionSignal.detail,
+      icon: Layers3,
+    },
+  ];
 
   return (
     <main className="page bake-page">
-      <PageHeading title={headingTitle} subtitle={headingSubtitle} />
-      <div className="view-switch bake-view-switch" aria-label="Bake work areas">
-        {bakeViews.map((item) => (
-          <button
-            className={view === item.id ? "selected" : ""}
-            key={item.id}
-            onClick={() => setView(item.id)}
-            type="button"
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
+      <section className="bake-command-hero">
+        <div className="bake-command-copy">
+          <span className="eyebrow-label dark">Loafers production</span>
+          <h1>Bake desk</h1>
+          <p>{headingSubtitle}</p>
+        </div>
+        <span className="bake-command-mark" aria-hidden="true"><ChefHat size={34} /></span>
+        <div className="bake-command-grid">
+          {heroMetrics.map((metric) => {
+            const MetricIcon = metric.icon;
+            return (
+              <article className="bake-command-card" key={metric.label}>
+                <MetricIcon size={18} />
+                <span>
+                  <small>{metric.label}</small>
+                  <strong>{metric.value}</strong>
+                  <em>{metric.detail}</em>
+                </span>
+              </article>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="bake-workspace">
+        <div className="bake-main-column">
+          <section className="bake-workbench-card">
+            <div className="bake-workbench-head">
+              <span>
+                <small>{activeViewCopy.label}</small>
+                <h2>{headingTitle}</h2>
+              </span>
+              <span>{model ? `Finish ${formatScheduleTime(model.bakeEnd)}` : "Choose a work area"}</span>
+            </div>
+            <div className="view-switch bake-view-switch" aria-label="Bake work areas">
+              {bakeViews.map((item) => (
+                <button
+                  className={view === item.id ? "selected" : ""}
+                  key={item.id}
+                  onClick={() => setView(item.id)}
+                  type="button"
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+            <div className="bake-workbench-body">
 
       {view === "kitchen" ? (
         <KitchenBoard
@@ -563,6 +641,51 @@ export default function BakePage({
       {view === "plan" && model?.dough.activityRate > 1.65 ? (
         <div className="warning-callout compact-warning"><AlertTriangle size={18} /> Fast fermentation estimate—check the dough earlier than usual.</div>
       ) : null}
+            </div>
+          </section>
+        </div>
+
+        <aside className="bake-side-panel" aria-label="Bake desk summary">
+          <section className="bake-side-card bake-side-card-dark">
+            <span><CalendarDays size={20} /></span>
+            <div>
+              <small>Calendar load</small>
+              <strong>{bakePlans.length} planned · {acceptedOrderBakes.length} accepted</strong>
+              <p>{unavailableDays.length ? `${unavailableDays.length} blocked bake ${unavailableDays.length === 1 ? "day" : "days"} saved.` : "No blocked bake days right now."}</p>
+            </div>
+            <button type="button" onClick={() => setView("calendar")}>Open calendar</button>
+          </section>
+
+          <section className="bake-side-card">
+            <div className="section-title-line compact">
+              <h3>Kitchen now</h3>
+              <button type="button" onClick={() => setView("kitchen")}>Open</button>
+            </div>
+            {activeKitchenList.length ? activeKitchenList.slice(0, 3).map((bake) => (
+              <button className="bake-side-row" key={bake.id} type="button" onClick={() => {
+                onSelectKitchenBake?.(bake.id);
+                setView("kitchen");
+              }}>
+                <span>{bake.name || bake.recipeName || "Active bake"}</span>
+                <small>{bake.loaves || 1} item{Number(bake.loaves || 1) === 1 ? "" : "s"}</small>
+              </button>
+            )) : <p className="bake-side-empty">No active bakes yet. Add one from Kitchen when dough hits the bench.</p>}
+          </section>
+
+          <section className="bake-side-card">
+            <div className="section-title-line compact">
+              <h3>Up next</h3>
+              <button type="button" onClick={() => setView("plan")}>Plan</button>
+            </div>
+            {upcomingPlans.length ? upcomingPlans.map((plan) => (
+              <button className="bake-side-row" key={plan.id} type="button" onClick={() => loadPlan(plan)}>
+                <span>{plan.recipeName || "Planned bake"}</span>
+                <small>{plan.anchorDateTime ? formatScheduleTime(new Date(plan.anchorDateTime)) : plan.date}</small>
+              </button>
+            )) : <p className="bake-side-empty">No saved bake plans. Build one from Plan or accept orders into Batches.</p>}
+          </section>
+        </aside>
+      </section>
     </main>
   );
 }
