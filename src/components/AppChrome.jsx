@@ -10,8 +10,8 @@ import {
   Store,
   X,
   UserRound,
-  Wheat,
 } from "lucide-react";
+import { LOAFERS_BRAND } from "../lib/brand";
 
 const navItems = [
   { id: "today", label: "Today", icon: House },
@@ -39,8 +39,11 @@ export function BrandHeader({ compact = false, onOpenSettings, onOpenStorage }) 
     return (
       <header className="compact-brand">
         <div className="brand-lockup">
-          <span className="brand-mark"><Wheat size={20} strokeWidth={1.8} /></span>
-          <span className="brand-name">Loafers</span>
+          <span className="brand-mark"><img src={LOAFERS_BRAND.badgeSrc} alt="" /></span>
+          <span>
+            <span className="brand-name">{LOAFERS_BRAND.shortName}</span>
+            <span className="brand-subname">Home Bakery</span>
+          </span>
         </div>
         {actions}
       </header>
@@ -50,8 +53,11 @@ export function BrandHeader({ compact = false, onOpenSettings, onOpenStorage }) 
   return (
     <header className="brand-header">
       <div className="brand-lockup">
-        <span className="brand-mark"><Wheat size={23} strokeWidth={1.8} /></span>
-        <span className="brand-name">Loafers</span>
+        <span className="brand-mark"><img src={LOAFERS_BRAND.badgeSrc} alt="" /></span>
+        <span>
+          <span className="brand-name">{LOAFERS_BRAND.shortName}</span>
+          <span className="brand-subname">Home Bakery</span>
+        </span>
       </div>
       {actions}
     </header>

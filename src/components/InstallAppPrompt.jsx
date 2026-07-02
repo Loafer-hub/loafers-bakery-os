@@ -1,5 +1,6 @@
 import { Bell, Download, Smartphone, WifiOff, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { LOAFERS_BRAND } from "../lib/brand";
 
 function isStandaloneApp() {
   return window.matchMedia?.("(display-mode: standalone)")?.matches
@@ -61,10 +62,10 @@ export function InstallAppPrompt({ context = "owner" }) {
   }
 
   return (
-    <section className="install-app-card" aria-label="Install Loafers as an app">
+    <section className="install-app-card" aria-label={`Install ${LOAFERS_BRAND.shortName} as an app`}>
       <span className="install-app-icon"><Smartphone size={19} /></span>
       <div>
-        <strong>{context === "customer" ? "Save this order page" : "Install Loafers on this device"}</strong>
+        <strong>{context === "customer" ? "Save this order page" : `Install ${LOAFERS_BRAND.shortName} on this device`}</strong>
         <p>
           {showInstructionOnly
             ? "On iPhone: tap Share, then Add to Home Screen. It opens like an app and keeps the bakery tools handy."

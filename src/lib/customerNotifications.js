@@ -1,4 +1,5 @@
 import { BAKE_PHASES, normalizedBakeProgress } from "./bakeProgress";
+import { LOAFERS_BRAND } from "./brand";
 
 // checkout-flow-v1
 
@@ -60,7 +61,7 @@ export function buildCustomerStatusMessage(order, progress = order.bakeProgress,
   const firstName = String(order.customer || "there").trim().split(/\s+/)[0];
   const status = STATUS_LABELS[order.status] || String(order.status || "updated").toLowerCase();
   const lines = [
-    `Hi ${firstName}, this is Joshua from Loafers.`,
+    `Hi ${firstName}, this is Joshua from ${LOAFERS_BRAND.businessName}.`,
     EVENT_LINES[eventType] || `Your order is ${status}.`,
     eventType === "bakeProgress" && phase ? `Current bake step: ${phase.label} — ${phase.detail}` : "",
     `Order: ${order.itemSummary || `${order.quantity} × ${order.product}`}.`,
@@ -74,7 +75,7 @@ export function buildCustomerStatusMessage(order, progress = order.bakeProgress,
 }
 
 export function emailNotificationHref(order, progress, eventType) {
-  const subject = encodeURIComponent(`Loafers order update${order.requestCode ? ` · ${order.requestCode}` : ""}`);
+  const subject = encodeURIComponent(`${LOAFERS_BRAND.shortName} order update${order.requestCode ? ` · ${order.requestCode}` : ""}`);
   const body = encodeURIComponent(buildCustomerStatusMessage(order, progress, eventType));
   return `mailto:${encodeURIComponent(order.customerEmail || "")}?subject=${subject}&body=${body}`;
 }

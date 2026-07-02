@@ -23,6 +23,10 @@ Customer storefront:
 
 Starlight VM/domain hosting can also serve the same built app when the VM deployment is enabled.
 
+Brand kit:
+
+`docs/loafers-brand-kit.md`
+
 ## High-level app map
 
 The owner side is organized around the way a solo bakery actually works:
@@ -1210,6 +1214,7 @@ This changelog is written as a product history, not a line-by-line commit log.
 - Added owner cockpit/business pro workflow sections
 - Added true product costing and pricing intelligence panels
 - Added batch trace records to backup/restore
+- Added Loafers Home Bakery brand-kit foundation using the supplied round badge and advertising banner
 
 ## Known limitations and cautions
 

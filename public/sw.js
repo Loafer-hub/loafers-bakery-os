@@ -1,4 +1,4 @@
-const CACHE_NAME = "loafers-v9";
+const CACHE_NAME = "loafers-brand-v11";
 const APP_SHELL = [
   "./",
   "./offline.html",
@@ -6,6 +6,8 @@ const APP_SHELL = [
   "./icons/icon-180.png",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
+  "./brand/loafers-home-bakery-badge.png",
+  "./brand/loafers-home-bakery-banner-hero.jpg",
 ];
 
 self.addEventListener("install", (event) => {

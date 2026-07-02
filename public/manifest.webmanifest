@@ -1,14 +1,14 @@
 {
-  "name": "Loafers Bakery OS",
+  "name": "Loafers Home Bakery Command",
   "short_name": "Loafers",
-  "description": "Orders, starter, recipes and bake planning for a one-person bakery.",
+  "description": "Loafers Home Bakery command center for handcrafted bread, customer orders, recipes and bake days.",
   "id": "/loafers-bakery-os/",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui", "browser"],
-  "background_color": "#fbfaf7",
-  "theme_color": "#fbfaf7",
+  "background_color": "#08111e",
+  "theme_color": "#08111e",
   "orientation": "portrait-primary",
   "categories": ["food", "business", "productivity"],
   "icons": [
@@ -41,7 +41,7 @@
       "name": "Customer menu",
       "short_name": "Menu",
       "url": "./?order=loafers",
-      "description": "Open the public Loafers order page."
+      "description": "Open the public Loafers Home Bakery order page."
     }
   ]
 }

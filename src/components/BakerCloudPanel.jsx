@@ -22,6 +22,7 @@ import {
   signUpBaker,
   uploadCloudSnapshot,
 } from "../lib/cloud";
+import { LOAFERS_BRAND } from "../lib/brand";
 import { createBackup, parseBackup } from "../lib/storage";
 
 function dateLabel(value) {
@@ -60,7 +61,7 @@ export function BakerCloudPanel({
     email: "",
     password: "",
     fullName: "",
-    bakeryName: "Loafers",
+    bakeryName: LOAFERS_BRAND.businessName,
     slug: "loafers",
   });
   const backup = useMemo(() => createBackup(data), [data]);

@@ -54,6 +54,7 @@ import {
 import { estimateRecipeNutrition } from "../lib/nutrition";
 import { pluralUnit } from "../lib/salesOptions";
 import { productTypeMap, productTypeSettingsFor } from "../lib/productTypes";
+import { LOAFERS_BRAND } from "../lib/brand";
 
 // product-type-settings-v1
 // customer-options-v1
@@ -450,9 +451,9 @@ export default function CustomerOrderPortal({
     if (!cloudAccount.configured) {
       setStorefront({
         bakery: {
-          name: "Loafers",
+          name: LOAFERS_BRAND.businessName,
           slug,
-          ordering_intro: "Fresh sourdough, made in small batches. Choose a loaf and preview the customer request flow.",
+          ordering_intro: "Handcrafted bread and small-batch goods made at home. Choose an item and preview the customer request flow.",
           pickup_location: DEFAULT_PICKUP_LOCATION,
           payment_methods: DEFAULT_PAYMENT_METHODS,
         },
@@ -998,7 +999,7 @@ export default function CustomerOrderPortal({
       exportedAt: new Date().toISOString(),
       bakery: {
         id: storefront?.bakery?.id || "",
-        name: storefront?.bakery?.name || "Loafers",
+        name: storefront?.bakery?.name || LOAFERS_BRAND.businessName,
         slug,
       },
       account: {
@@ -1213,7 +1214,7 @@ export default function CustomerOrderPortal({
         <Wheat size={31} />
         <h1>Order page unavailable</h1>
         <p>{error}</p>
-        <a href={window.location.pathname}><ChevronLeft size={15} /> Return to Loafers</a>
+        <a href={window.location.pathname}><ChevronLeft size={15} /> Return to {LOAFERS_BRAND.shortName}</a>
       </main>
     );
   }
@@ -1252,11 +1253,12 @@ export default function CustomerOrderPortal({
     return (
       <main className="customer-portal customer-ordering-paused">
         <header className="customer-header">
-          <div className="brand-lockup"><span className="brand-mark"><Wheat size={23} /></span><span className="brand-name">{storefront.bakery.name}</span></div>
+          <div className="brand-lockup"><span className="brand-mark"><img src={LOAFERS_BRAND.badgeSrc} alt="" /></span><span><span className="brand-name">{LOAFERS_BRAND.shortName}</span><span className="brand-subname">Home Bakery</span></span></div>
         </header>
         {customerAnnouncement ? <CustomerAnnouncement announcement={customerAnnouncement} /> : null}
         <section className="customer-hero">
-          <span className="eyebrow-label dark">Small-batch sourdough</span>
+          <img className="customer-brand-banner" src={LOAFERS_BRAND.bannerSrc} alt={`${LOAFERS_BRAND.businessName} breads and aurora banner`} />
+          <span className="eyebrow-label dark">{LOAFERS_BRAND.tagline}</span>
           <h1>Online ordering is paused.</h1>
           <p>{showTrackMyBake ? "The baker is not accepting new requests right now. Existing customers can still track an order below." : "The baker is not accepting new requests right now."}</p>
           <div className="customer-fulfillment-strip">
@@ -1277,7 +1279,7 @@ export default function CustomerOrderPortal({
   return (
     <main className="customer-portal">
       <header className="customer-header">
-        <div className="brand-lockup"><span className="brand-mark"><Wheat size={23} /></span><span className="brand-name">{storefront.bakery.name}</span></div>
+        <div className="brand-lockup"><span className="brand-mark"><img src={LOAFERS_BRAND.badgeSrc} alt="" /></span><span><span className="brand-name">{LOAFERS_BRAND.shortName}</span><span className="brand-subname">Home Bakery</span></span></div>
         {customerAccountsEnabled ? (
           <button type="button" onClick={() => setAccountOpen((value) => !value)}><UserRound size={17} /> {cloudAccount.session ? "My account" : "Customer account"}</button>
         ) : null}
@@ -1338,7 +1340,7 @@ export default function CustomerOrderPortal({
                 ) : null}
               </form>
               <small className="customer-account-private-note">
-                Use a unique password you do not use elsewhere. Password reset uses email for security, but sign-in stays email + password. Loafers never sees the password.
+                Use a unique password you do not use elsewhere. Password reset uses email for security, but sign-in stays email + password. {LOAFERS_BRAND.shortName} never sees the password.
               </small>
             </>
           )}
@@ -1460,7 +1462,8 @@ export default function CustomerOrderPortal({
       ) : null}
 
       <section className="customer-hero">
-        <span className="eyebrow-label dark">Small-batch sourdough</span>
+        <img className="customer-brand-banner" src={LOAFERS_BRAND.bannerSrc} alt={`${LOAFERS_BRAND.businessName} breads and aurora banner`} />
+        <span className="eyebrow-label dark">{LOAFERS_BRAND.tagline}</span>
         <h1>Bread worth planning for.</h1>
         <p>{storefront.bakery.ordering_intro}</p>
         <div className="customer-fulfillment-strip">
@@ -1491,7 +1494,7 @@ export default function CustomerOrderPortal({
 
       {rules.reviewsVisible && (storefront.reviews || []).length ? (
         <section className="customer-reviews" aria-label="Customer reviews">
-          <div className="customer-section-heading"><div><h2>From the bread table</h2><p>Recent reviews from verified Loafers orders.</p></div></div>
+          <div className="customer-section-heading"><div><h2>From the bread table</h2><p>Recent reviews from verified {LOAFERS_BRAND.shortName} orders.</p></div></div>
           <div className="customer-review-list">
             {storefront.reviews.map((review) => (
               <article className="customer-review-card" key={review.id}>
@@ -1695,7 +1698,7 @@ export default function CustomerOrderPortal({
               <span><small>{form.paymentMethod} payment</small><strong>{PAYMENT_DETAILS[form.paymentMethod] || "Pay as arranged with the baker"}</strong></span>
             </aside>
             <label>Allergies or food sensitivities<textarea value={form.allergies} onChange={(event) => setForm({ ...form, allergies: event.target.value })} placeholder="List allergies, sensitivities, or write “None.” The baker will confirm before accepting." /></label>
-            <aside className="allergy-warning"><strong>Home bakery notice</strong><span>Loafers handles wheat and may handle dairy, seeds, and other allergens. An allergy note is a request for review, not a guarantee against cross-contact.</span></aside>
+            <aside className="allergy-warning"><strong>Home bakery notice</strong><span>{LOAFERS_BRAND.businessName} handles wheat and may handle dairy, seeds, and other allergens. An allergy note is a request for review, not a guarantee against cross-contact.</span></aside>
             <label>Request notes<textarea value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} placeholder="Scoring preference, timing, or anything else the baker should know." /></label>
             <fieldset className="notification-preferences">
               <legend>Order status notifications</legend>

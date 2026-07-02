@@ -25,7 +25,7 @@ export const DEFAULT_BAKERY_SETTINGS = {
   leadTimeDays: 0,
   pickupIntervalMinutes: 30,
   pickupLocation: "Three Bears, Delta Junction, AK",
-  orderingIntro: "Fresh sourdough, made in small batches. Request a pickup below.",
+  orderingIntro: "Handcrafted bread and small-batch goods made at home. Request a pickup below.",
   weekdayWindows: [
     { start: "07:00", end: "08:30" },
     { start: "17:00", end: "20:00" },

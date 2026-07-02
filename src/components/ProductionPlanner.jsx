@@ -29,6 +29,7 @@ import {
   inventoryStatus,
   orderProductionLines,
 } from "../lib/productionPlanner";
+import { LOAFERS_BRAND } from "../lib/brand";
 
 const CLOSED_ORDER_STATUSES = new Set(["completed", "rejected", "cancelled", "canceled"]);
 const PRODUCTION_READY_STATUSES = new Set(["accepted", "paid", "deposit", "confirmed", "in progress", "ready", "picked up"]);
@@ -256,7 +257,7 @@ function qrImageUrl(value, size = 180) {
 
 function coreprintLabelText(label, storefrontUrl) {
   return [
-    "LOAFERS BAKERY",
+    LOAFERS_BRAND.businessName.toUpperCase(),
     "------------------------------",
     `CUSTOMER: ${truncateLine(label.customer, 21)}`,
     `PICKUP: ${truncateLine(label.pickup, 23)}`,
@@ -272,7 +273,7 @@ function coreprintLabelText(label, storefrontUrl) {
 
 function storefrontSlipText(storefrontUrl) {
   return [
-    "LOAFERS BAKERY",
+    LOAFERS_BRAND.businessName.toUpperCase(),
     "------------------------------",
     "SCAN QR TO ORDER",
     "Fresh bread + small batch goods",
@@ -283,7 +284,7 @@ function storefrontSlipText(storefrontUrl) {
 
 function complianceLabelText(label, storefrontUrl) {
   return [
-    "LOAFERS BAKERY",
+    LOAFERS_BRAND.businessName.toUpperCase(),
     "------------------------------",
     `ITEM: ${truncateLine(label.item, 27)}`,
     `CUSTOMER: ${truncateLine(label.customer, 22)}`,
@@ -567,7 +568,7 @@ export function ProductionPlanner({
     : [{
       id: "storefront-slip",
       customer: "Storefront QR slip",
-      item: "Scan to order from Loafers",
+      item: `Scan to order from ${LOAFERS_BRAND.shortName}`,
       pickup: "Any customer",
       payment: "",
       allergies: "",
@@ -933,7 +934,7 @@ export function ProductionPlanner({
                 {miniPrinterRows.map((label) => (
                   <article className="coreprint-label-card" key={label.id}>
                     <div className="coreprint-label-preview">
-                      <img src={storefrontQrSrc} alt="QR code for Loafers storefront" />
+                      <img src={storefrontQrSrc} alt={`QR code for ${LOAFERS_BRAND.shortName} storefront`} />
                       <span>
                         <strong>{label.heading}</strong>
                         <small>{label.subheading}</small>
@@ -950,7 +951,7 @@ export function ProductionPlanner({
             </section>
             <div id="production-label-sheet" className="production-label-sheet">
               <div className="print-sheet-heading">
-                <span>Loafers Bakery OS</span>
+                <span>{LOAFERS_BRAND.businessName}</span>
                 <strong>Order labels</strong>
                 <small>{labelRows.length} active production order{labelRows.length === 1 ? "" : "s"}</small>
               </div>
@@ -965,7 +966,7 @@ export function ProductionPlanner({
                         <p><b>Allergies:</b> {label.allergies}</p>
                         <p><b>Storage:</b> {label.storage}</p>
                       </span>
-                      <img className="production-label-qr" src={storefrontQrSrc} alt="QR code for Loafers storefront" />
+                      <img className="production-label-qr" src={storefrontQrSrc} alt={`QR code for ${LOAFERS_BRAND.shortName} storefront`} />
                     </div>
                     <small>{label.payment}{label.requestCode ? ` · ${label.requestCode}` : ""} · Scan QR to order again</small>
                   </article>
