@@ -12,7 +12,7 @@ import {
   Trash2,
   Wheat,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { PageHeading } from "../components/AppChrome";
 import { FlourBlendScience } from "../components/FlourScience";
 import { EmptyState, Modal } from "../components/Primitives";
@@ -608,7 +608,7 @@ function RecipeTypeSection({ recipes, type, onOpenRecipe }) {
   );
 }
 
-export default function RecipesPage({ bakerySettings, inventory, recipes, onDeleteRecipe, onSaveRecipe, setActive, onLogStarter }) {
+export default function RecipesPage({ bakerySettings, embeddedContext, inventory, openEditorSignal, recipes, onDeleteRecipe, onSaveRecipe, setActive, onLogStarter }) {
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState(null);
   const [loaves, setLoaves] = useState(1);
@@ -633,6 +633,10 @@ export default function RecipesPage({ bakerySettings, inventory, recipes, onDele
     setFormError("");
     setShowEditor(true);
   }
+
+  useEffect(() => {
+    if (openEditorSignal) openEditor();
+  }, [openEditorSignal]);
 
   function updateIngredient(id, changes) {
     setForm((current) => refreshRecipeTiming({
@@ -862,6 +866,7 @@ export default function RecipesPage({ bakerySettings, inventory, recipes, onDele
         )}
         {showEditor ? (
           <RecipeEditor
+            embeddedContext={embeddedContext}
             form={form}
             formError={formError}
             onClose={() => setShowEditor(false)}
@@ -876,16 +881,18 @@ export default function RecipesPage({ bakerySettings, inventory, recipes, onDele
     );
   }
 
+  const embeddedInMenu = embeddedContext === "menu";
+
   return (
-    <main className="page">
+    <main className={embeddedInMenu ? "page recipes-page menu-products-page" : "page recipes-page"} id={embeddedInMenu ? "menu-product-catalog" : undefined}>
       <PageHeading
-        title="Recipes"
-        subtitle="Bread, cakes, sauces, vinegars, oils, and any other small-batch item you want to sell."
-        action={<button className="round-action" onClick={() => openEditor()} aria-label="Add recipe"><Plus size={21} /></button>}
+        title={embeddedInMenu ? "Product catalog" : "Recipes"}
+        subtitle={embeddedInMenu ? "Build the products customers can see, price, reserve, and reorder." : "Bread, cakes, sauces, vinegars, oils, and any other small-batch item you want to sell."}
+        action={<button className="round-action" onClick={() => openEditor()} aria-label={embeddedInMenu ? "Add product" : "Add recipe"}><Plus size={21} /></button>}
       />
       <label className="search-field full">
         <Search size={17} />
-        <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search recipes" />
+        <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={embeddedInMenu ? "Search products" : "Search recipes"} />
       </label>
       <FlourDatabase />
       <section className="recipe-list">
@@ -910,6 +917,7 @@ export default function RecipesPage({ bakerySettings, inventory, recipes, onDele
       </aside>
       {showEditor ? (
         <RecipeEditor
+          embeddedContext={embeddedContext}
           form={form}
           formError={formError}
           onClose={() => setShowEditor(false)}
@@ -924,7 +932,7 @@ export default function RecipesPage({ bakerySettings, inventory, recipes, onDele
   );
 }
 
-function RecipeEditor({ bakerySettings, form, formError, onClose, onSubmit, setForm, setFormError, updateIngredient }) {
+function RecipeEditor({ bakerySettings, embeddedContext, form, formError, onClose, onSubmit, setForm, setFormError, updateIngredient }) {
   const [ingredientEntryMode, setIngredientEntryMode] = useState("grams");
   const formulaMode = formulaModeFor(form);
   const activeBaseWeight = formulaBaseFor(form);
@@ -1012,7 +1020,7 @@ function RecipeEditor({ bakerySettings, form, formError, onClose, onSubmit, setF
   }
 
   return (
-    <Modal title={form.isNew ? "Add a recipe" : `Edit ${form.name}`} onClose={onClose}>
+    <Modal title={form.isNew ? (embeddedContext === "menu" ? "Add a product" : "Add a recipe") : `Edit ${form.name}`} onClose={onClose}>
       <form className="form-stack recipe-editor-form" onSubmit={onSubmit}>
         <label>
           Recipe name

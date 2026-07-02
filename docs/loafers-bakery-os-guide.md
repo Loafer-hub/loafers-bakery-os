@@ -192,6 +192,13 @@ This area is where the app acts most like the missing production manager.
 
 Menu is the owner area for the product catalog and customer-facing shelf.
 
+The refreshed Menu desk gives the baker a quick customer-visibility view before diving into the tools. It shows saved products, visible-this-week count, ready shelf status, and customer preview status, then routes into four work areas:
+
+- Products: product catalog, formulas, photos, ingredients, pricing, badges, availability, and product details
+- Storefront: customer menu rules, product types, weekly availability, options, pickup, privacy, and ordering controls
+- Ready shelf: prebaked stock customers can reserve without using future bake capacity
+- Preview: the customer storefront rendered inside the owner app
+
 Use Menu for:
 
 - Recipes and products
@@ -202,6 +209,7 @@ Use Menu for:
 - Product availability and badges
 - Ready-now shelf items
 - Storefront preview
+- Customer-facing category tabs and item visibility
 
 The clean rule: if it changes what customers can buy or see on a product card, it belongs in Menu.
 
@@ -1345,6 +1353,8 @@ This changelog is written as a product history, not a line-by-line commit log.
 - Added scroll-position polish so switching Bread work and Liquid lab opens from the top instead of landing mid-page
 - Cleaned up product documentation naming around Today, Orders, Production, Bread work, Bake desk, Menu, Business, Settings, and Storage
 - Added a clear structure map explaining what old rough names became and where each owner workflow belongs
+- Refreshed Menu into a branded Menu desk with customer-facing status cards, Products/Storefront/Ready shelf/Preview workspace tabs, product-type snapshots, mixed product previews, weekly visibility rail, and a real Add product shortcut
+- Renamed the embedded Menu product area to Product catalog so owner language matches what customers see
 
 ## Known limitations and cautions
 
