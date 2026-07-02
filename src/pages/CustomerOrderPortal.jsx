@@ -3,6 +3,7 @@ import {
   CalendarDays,
   CheckCircle2,
   ChevronLeft,
+  ChevronRight,
   Clock3,
   ClipboardList,
   Download,
@@ -1277,11 +1278,11 @@ export default function CustomerOrderPortal({
   }
 
   return (
-    <main className="customer-portal">
+    <main className="customer-portal customer-storefront">
       <header className="customer-header">
         <div className="brand-lockup"><span className="brand-mark"><img src={LOAFERS_BRAND.badgeSrc} alt="" /></span><span><span className="brand-name">{LOAFERS_BRAND.shortName}</span><span className="brand-subname">Home Bakery</span></span></div>
         {customerAccountsEnabled ? (
-          <button type="button" onClick={() => setAccountOpen((value) => !value)}><UserRound size={17} /> {cloudAccount.session ? "My account" : "Customer account"}</button>
+          <button type="button" onClick={() => setAccountOpen((value) => !value)}><UserRound size={17} /> {cloudAccount.session ? "My account" : "Account"}</button>
         ) : null}
       </header>
 
@@ -1472,42 +1473,6 @@ export default function CustomerOrderPortal({
           <span><Clock3 size={17} /><span><small>Pickup hours</small><strong>Weekdays {pickupHoursLabel("2026-06-22", rules)} · Weekends {pickupHoursLabel("2026-06-21", rules)}</strong></span></span>
         </div>
       </section>
-
-      <CustomerWeeklyBakingBoard
-        board={weeklyBakingBoard}
-        onOpenProduct={(product) => {
-          if (product) setSelectedProduct(product);
-        }}
-        onOpenReadyShelf={() => {
-          setActiveCatalogTab("ready");
-          setCheckoutStep("browse");
-        }}
-      />
-
-      <section className="customer-menu-summary" aria-label="Menu snapshot">
-        <article><strong>{availableThisWeekCount}</strong><span>available this week</span></article>
-        <article><strong>{readyShelfItems.length}</strong><span>ready now</span></article>
-        <article><strong>{unavailableThisWeekCount}</strong><span>sold out / paused</span></article>
-        <article><strong>{enabledCustomerChoiceCount}</strong><span>optional choices</span></article>
-        {showTrackMyBake ? <a href="#track-my-bake">Track an order</a> : null}
-      </section>
-
-      {rules.reviewsVisible && (storefront.reviews || []).length ? (
-        <section className="customer-reviews" aria-label="Customer reviews">
-          <div className="customer-section-heading"><div><h2>From the bread table</h2><p>Recent reviews from verified {LOAFERS_BRAND.shortName} orders.</p></div></div>
-          <div className="customer-review-list">
-            {storefront.reviews.map((review) => (
-              <article className="customer-review-card" key={review.id}>
-                <span className="customer-review-stars" aria-label={`${review.rating} out of 5 stars`}>
-                  {Array.from({ length: 5 }, (_, index) => <Star key={index} size={14} fill={index < review.rating ? "currentColor" : "none"} />)}
-                </span>
-                <p>“{review.message}”</p>
-                <small>{review.customer_name} · {new Date(review.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" })}</small>
-              </article>
-            ))}
-          </div>
-        </section>
-      ) : null}
 
       <form className="customer-checkout-flow" onSubmit={submitOrder}>
         <CustomerCheckoutSteps
@@ -1742,6 +1707,42 @@ export default function CustomerOrderPortal({
         {error ? <p className="form-error customer-form-error" role="alert">{error}</p> : null}
       </form>
 
+      <CustomerWeeklyBakingBoard
+        board={weeklyBakingBoard}
+        onOpenProduct={(product) => {
+          if (product) setSelectedProduct(product);
+        }}
+        onOpenReadyShelf={() => {
+          setActiveCatalogTab("ready");
+          setCheckoutStep("browse");
+        }}
+      />
+
+      <section className="customer-menu-summary" aria-label="Menu snapshot">
+        <article><strong>{availableThisWeekCount}</strong><span>available this week</span></article>
+        <article><strong>{readyShelfItems.length}</strong><span>ready now</span></article>
+        <article><strong>{unavailableThisWeekCount}</strong><span>sold out / paused</span></article>
+        <article><strong>{enabledCustomerChoiceCount}</strong><span>optional choices</span></article>
+        {showTrackMyBake ? <a href="#track-my-bake">Track an order</a> : null}
+      </section>
+
+      {rules.reviewsVisible && (storefront.reviews || []).length ? (
+        <section className="customer-reviews" aria-label="Customer reviews">
+          <div className="customer-section-heading"><div><h2>From the bread table</h2><p>Recent reviews from verified {LOAFERS_BRAND.shortName} orders.</p></div></div>
+          <div className="customer-review-list">
+            {storefront.reviews.map((review) => (
+              <article className="customer-review-card" key={review.id}>
+                <span className="customer-review-stars" aria-label={`${review.rating} out of 5 stars`}>
+                  {Array.from({ length: 5 }, (_, index) => <Star key={index} size={14} fill={index < review.rating ? "currentColor" : "none"} />)}
+                </span>
+                <p>“{review.message}”</p>
+                <small>{review.customer_name} · {new Date(review.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" })}</small>
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
       {showTrackMyBake ? <CustomerOrderLookup
         configured={cloudAccount.configured}
         feedbackEnabled={rules.feedbackEnabled}
@@ -1974,6 +1975,7 @@ function CustomerAnnouncement({ announcement }) {
         <small>{announcement.title}</small>
         <p>{announcement.text}</p>
       </div>
+      <ChevronRight size={18} />
     </section>
   );
 }
@@ -1996,16 +1998,26 @@ function CustomerProductCard({
     ].filter(Boolean).join(" ")}>
       <button className="customer-product-card-button" type="button" onClick={onOpenItem} aria-label={`Open options for ${product.name}`}>
         <span className={photoUrl ? "customer-product-photo" : "customer-product-photo empty"}>
-          {photoUrl ? <img src={photoUrl} alt={product.recipe_details?.photoAlt || product.name} /> : typeSettings?.icon || productTypeIcon(product)}
+          {photoUrl ? (
+            <img src={photoUrl} alt={product.recipe_details?.photoAlt || product.name} />
+          ) : (
+            <>
+              <img className="customer-product-fallback-image" src={LOAFERS_BRAND.bannerSrc} alt="" />
+              <span className="customer-product-fallback-label">{typeSettings?.label || productTypeLabel(product)}</span>
+            </>
+          )}
+          <ProductBadgeRow product={product} />
         </span>
         <span className="customer-product-card-body">
           <span className="customer-product-card-meta"><Info size={12} /> {typeSettings?.label || productTypeLabel(product)}</span>
-          <ProductBadgeRow product={product} />
           <h3>{product.name}</h3>
           <p>{product.description}</p>
           <span className="customer-product-card-footer">
             <strong>From {dollars(productStartingPrice(product))}</strong>
-            <small>{unavailable ? "Details only" : selected ? `${selectedCount} package${selectedCount === 1 ? "" : "s"} selected` : "Tap for details"}</small>
+            <span className="customer-product-add">
+              <small>{unavailable ? "Details" : selected ? `${selectedCount} in cart` : "Add"}</small>
+              <Plus size={14} />
+            </span>
           </span>
         </span>
       </button>
@@ -2046,7 +2058,14 @@ function CustomerProductOrderModal({
     <Modal title={product.name} onClose={onClose}>
       <div className="customer-recipe-detail customer-item-window">
         <div className={photoUrl ? "customer-recipe-photo" : "customer-recipe-photo empty"}>
-          {photoUrl ? <img src={photoUrl} alt={details.photoAlt || product.name} /> : typeSettings?.icon || productTypeIcon(product)}
+          {photoUrl ? (
+            <img src={photoUrl} alt={details.photoAlt || product.name} />
+          ) : (
+            <>
+              <img className="customer-product-fallback-image" src={LOAFERS_BRAND.bannerSrc} alt="" />
+              <span className="customer-product-fallback-label large">{typeSettings?.label || productTypeLabel(product)}</span>
+            </>
+          )}
         </div>
         <div className="customer-recipe-summary">
           <span><small>Starting price</small><strong>{dollars(Math.min(...salesOptions.map((option) => option.price_cents)))}</strong></span>

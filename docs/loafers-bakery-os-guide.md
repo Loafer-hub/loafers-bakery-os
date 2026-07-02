@@ -508,13 +508,17 @@ Important: these are planning and traceability helpers, not a food-safety certif
 
 ## Customer storefront
 
-The customer storefront is designed to feel simple:
+The customer storefront is designed to feel like a polished public bakery shelf:
 
-- Bakery announcement at the top
-- “What’s baking this week” board
-- Product type tabs
-- Compact product cards
+- Loafers Home Bakery brand header with badge artwork
+- Baker announcement near the top
+- Large branded hero image using the Loafers banner mood
+- Clear pickup, payment, and pickup-hours cards
+- Product type tabs for the visible customer menu
+- Premium compact product cards with badges, price, and add action
+- Branded fallback imagery when a recipe does not yet have its own photo
 - Ready shelf items when enabled
+- “What’s baking this week” board below the main menu
 - Reviews when enabled
 - Customer account access when enabled
 - Track My Bake when enabled
@@ -1215,6 +1219,7 @@ This changelog is written as a product history, not a line-by-line commit log.
 - Added true product costing and pricing intelligence panels
 - Added batch trace records to backup/restore
 - Added Loafers Home Bakery brand-kit foundation using the supplied round badge and advertising banner
+- Redesigned the customer storefront with a polished public-shop layout, refined hero, premium menu tabs, branded product cards, and a cleaner sticky cart
 
 ## Known limitations and cautions
 
