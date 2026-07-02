@@ -36,8 +36,8 @@
   --ink: #5a3017;
   --ink-strong: #3f220f;
   --bronze-text: #704118;
-  --bronze-on-dark: #d6a15f;
-  --bronze-soft: #b7793b;
+  --bronze-on-dark: #c89558;
+  --bronze-soft: #9d6330;
   --muted: #7a5631;
   --line: #a88e68;
   --line-strong: #8e6d45;
@@ -3488,7 +3488,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   padding: 14px;
   border: 1px solid var(--line-strong);
   border-radius: 13px;
-  background: rgba(255,255,255,.46);
+  background: var(--surface-raised);
 }
 
 .kitchen-disclosure {
@@ -3549,12 +3549,25 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   padding-top: 13px;
 }
 
+@media (min-width: 980px) {
+  .kitchen-add-card .kitchen-disclosure-body {
+    grid-template-columns: minmax(360px, .92fr) minmax(360px, 1.08fr);
+    align-items: start;
+  }
+
+  .kitchen-add-card .kitchen-plan-starts {
+    grid-column: 1 / -1;
+  }
+}
+
 .kitchen-hero {
   display: grid;
   grid-template-columns: 42px minmax(0, 1fr) auto;
   align-items: center;
   gap: 11px;
-  background: linear-gradient(145deg, #fbfdf8, #efe7db);
+  background:
+    linear-gradient(145deg, rgba(215, 203, 185, .98), rgba(190, 181, 168, .94)),
+    var(--surface-raised);
 }
 
 .kitchen-hero > span,
@@ -3650,7 +3663,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   padding: 9px 10px;
   border: 1px solid var(--line);
   border-radius: 10px;
-  background: rgba(255,255,255,.62);
+  background: var(--surface-input);
   color: var(--ink);
   text-align: left;
   cursor: pointer;
@@ -3662,7 +3675,9 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 }
 
 .kitchen-suggestions {
-  background: linear-gradient(145deg, rgba(255,255,255,.52), rgba(242,239,230,.72));
+  background:
+    linear-gradient(145deg, rgba(215, 203, 185, .98), rgba(190, 181, 168, .94)),
+    var(--surface-raised);
 }
 
 .kitchen-suggestion-grid {
@@ -3678,7 +3693,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   padding: 10px;
   border: 1px solid var(--line);
   border-radius: 12px;
-  background: rgba(255,255,255,.68);
+  background: var(--surface-input);
 }
 
 .kitchen-suggestion-card span {
@@ -3714,7 +3729,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   border: 0;
   border-radius: 999px;
   padding: 8px 9px;
-  color: white;
+  color: #dfb272;
   background: var(--accent);
   font-size: 9px;
   font-weight: 800;
@@ -3757,7 +3772,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   padding: 12px;
   border: 1px solid var(--line);
   border-radius: 13px;
-  background: rgba(255,255,255,.62);
+  background: var(--surface-raised);
 }
 
 .kitchen-bake-card.selected {
@@ -3794,14 +3809,14 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   gap: 4px;
   padding: 5px 7px;
   border-radius: 999px;
-  background: #f8f5ef;
+  background: var(--surface-input);
 }
 
 .kitchen-progress-track {
   height: 7px;
   overflow: hidden;
   border-radius: 999px;
-  background: #eee3d6;
+  background: var(--surface-muted);
 }
 
 .kitchen-progress-track i {
@@ -3824,13 +3839,13 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   padding: 9px;
   border: 1px solid var(--line);
   border-radius: 10px;
-  background: #fbfaf6;
+  background: var(--surface-input);
 }
 
 .kitchen-step-row.done {
-  color: #4b6042;
-  border-color: #c7d2bf;
-  background: #eef4ea;
+  color: #3d5f37;
+  border-color: #7e986c;
+  background: #c5d2b9;
 }
 
 .kitchen-step-row input {
@@ -3856,6 +3871,208 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 
 .kitchen-card-actions button {
   flex: 1 1 auto;
+}
+
+.kitchen-recipe-details {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-input);
+}
+
+.kitchen-recipe-details > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 11px;
+  color: var(--ink-strong);
+  list-style: none;
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.kitchen-recipe-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.kitchen-recipe-details[open] > summary svg {
+  transform: rotate(180deg);
+}
+
+.kitchen-recipe-panel {
+  display: grid;
+  gap: 11px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background:
+    linear-gradient(145deg, rgba(215, 203, 185, .98), rgba(190, 181, 168, .96)),
+    var(--surface-raised);
+}
+
+.kitchen-recipe-details .kitchen-recipe-panel {
+  margin: 0 10px 10px;
+}
+
+.kitchen-recipe-panel.compact {
+  padding: 10px;
+}
+
+.kitchen-recipe-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: start;
+}
+
+.kitchen-recipe-heading span {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.kitchen-recipe-heading small {
+  color: var(--bronze-soft);
+  font-size: 8px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.kitchen-recipe-heading strong {
+  color: var(--ink-strong);
+  font-family: "Newsreader", Georgia, serif;
+  font-size: 22px;
+  font-weight: 500;
+}
+
+.kitchen-recipe-heading em {
+  color: var(--bronze-text);
+  font-size: 9px;
+  font-style: normal;
+  line-height: 1.45;
+}
+
+.kitchen-recipe-heading b {
+  flex: 0 0 auto;
+  padding: 7px 9px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--ink-strong);
+  background: var(--surface-input);
+  font-size: 9px;
+}
+
+.kitchen-recipe-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.kitchen-recipe-stats span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-input);
+}
+
+.kitchen-recipe-stats small,
+.kitchen-recipe-formula div:first-child,
+.kitchen-recipe-formula p,
+.kitchen-recipe-empty {
+  color: var(--bronze-soft);
+  font-size: 7px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+.kitchen-recipe-stats strong {
+  color: var(--ink-strong);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10px;
+}
+
+.kitchen-recipe-formula {
+  display: grid;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--surface-input);
+}
+
+.kitchen-recipe-formula div {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) .75fr .6fr;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+  color: var(--bronze-text);
+  font-size: 9px;
+}
+
+.kitchen-recipe-formula div:first-child {
+  background: var(--surface-muted);
+}
+
+.kitchen-recipe-formula div:last-of-type {
+  border-bottom: 0;
+}
+
+.kitchen-recipe-formula span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kitchen-recipe-formula span:nth-child(n + 2) {
+  text-align: right;
+}
+
+.kitchen-recipe-formula p,
+.kitchen-recipe-empty {
+  margin: 0;
+  padding: 8px 10px;
+  border-top: 1px solid var(--line);
+  text-transform: none;
+  letter-spacing: 0;
+  line-height: 1.4;
+}
+
+.kitchen-recipe-steps {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.kitchen-recipe-steps li {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 9px;
+  padding: 9px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-input);
+}
+
+.kitchen-recipe-steps b {
+  color: var(--ink-strong);
+  font-size: 10px;
+}
+
+.kitchen-recipe-steps span {
+  color: var(--bronze-text);
+  font-size: 9px;
+  line-height: 1.45;
 }
 
 .danger-text {
@@ -18723,13 +18940,13 @@ button.owner-alert-row {
 }
 
 .app-shell :is(.primary-button, .secondary-button, .settings-test-button, .round-action, .small-action-button) {
-  color: #f0ddbf !important;
+  color: #dfb272 !important;
   background: linear-gradient(135deg, #9f5a26, #6d3515) !important;
   border-color: rgba(214, 161, 95, .42) !important;
 }
 
 .app-shell :is(.owner-setup-steps button.active span, .owner-setup-steps button.complete span, .nav-badge) {
-  color: #f0ddbf !important;
+  color: #dfb272 !important;
 }
 
 .app-shell :is(.text-button, .order-history-open, .settings-preview-link) {
@@ -18795,7 +19012,7 @@ button.owner-alert-row {
   }
 
   .app-shell .modal-sheet :is(.primary-button, .secondary-button, .settings-test-button, .round-action, .small-action-button) {
-    color: #f0ddbf !important;
+    color: #dfb272 !important;
   }
 
   .app-shell :is(.nav-item, .desktop-help-link, .desktop-profile-link) :is(span, strong, small) {
@@ -18803,7 +19020,7 @@ button.owner-alert-row {
   }
 
   .app-shell :is(.nav-item.active, .desktop-help-link.active) :is(span, strong, small) {
-    color: #efc680 !important;
+    color: #d19b5f !important;
   }
 
   .app-shell :is(
@@ -18851,7 +19068,7 @@ button.owner-alert-row {
     .customer-directory-page,
     .help-page
   ) .modal-sheet :is(.primary-button, .secondary-button, .settings-test-button, .round-action, .small-action-button) {
-    color: #f0ddbf !important;
+    color: #dfb272 !important;
   }
 }
 
@@ -18968,14 +19185,14 @@ body,
 }
 
 .app-shell :is(.primary-button, .secondary-button, .settings-test-button, .round-action, .small-action-button, .customer-product-add, .settings-save-button) {
-  color: #f1c27a !important;
+  color: #dfb272 !important;
   background: linear-gradient(135deg, #9f5a26, #6b3415) !important;
   border-color: rgba(214, 161, 95, .5) !important;
 }
 
 .app-shell :is(.primary-button svg, .secondary-button svg, .settings-test-button svg, .round-action svg, .small-action-button svg, .customer-product-add svg, .settings-save-button svg) {
-  color: #f1c27a !important;
-  stroke: #f1c27a !important;
+  color: #dfb272 !important;
+  stroke: #dfb272 !important;
 }
 
 .app-shell :is(.desktop-nav-items, .desktop-help-link, .desktop-profile-link, .owner-shell-sidebar) :is(span, strong, small, button) {
@@ -19021,7 +19238,7 @@ body,
 
 .modal-sheet :is(.primary-button, .secondary-button, .settings-test-button, .round-action, .small-action-button),
 .customer-storefront .modal-sheet :is(.primary-button, .secondary-button, .settings-test-button, .round-action, .small-action-button) {
-  color: #f1c27a !important;
+  color: #dfb272 !important;
 }
 
 .modal-sheet .customer-quantity button,
@@ -19032,7 +19249,7 @@ body,
 }
 
 .app-shell :is(.owner-setup-steps button.active span, .owner-setup-steps button.complete span, .nav-badge) {
-  color: #f1c27a !important;
+  color: #dfb272 !important;
 }
 
 @media (min-width: 760px) {
@@ -19092,3 +19309,64 @@ body,
     max-height: calc(100vh - 20px) !important;
   }
 }
+
+/* kitchen-recipe-instructions-v1 */
+.app-shell .kitchen-board,
+.app-shell .kitchen-board :is(section, details, article, aside, div, form, ol) {
+  color: var(--bronze-text) !important;
+}
+
+.app-shell .kitchen-board :is(
+  .kitchen-hero,
+  .kitchen-add-card,
+  .kitchen-suggestions,
+  .kitchen-active-section,
+  .kitchen-bake-card,
+  .kitchen-recipe-panel,
+  .kitchen-recipe-details,
+  .kitchen-step-row,
+  .kitchen-bake-meta span,
+  .kitchen-suggestion-card,
+  .kitchen-plan-starts button
+) {
+  background:
+    linear-gradient(145deg, rgba(215, 203, 185, .99), rgba(191, 182, 169, .97)),
+    var(--surface-raised) !important;
+  border-color: var(--line) !important;
+}
+
+.app-shell .kitchen-board :is(input, select, .kitchen-recipe-formula, .kitchen-recipe-stats span, .kitchen-recipe-steps li, .kitchen-static-field) {
+  background: var(--surface-input) !important;
+  border-color: var(--line) !important;
+}
+
+.app-shell .kitchen-board :is(h2, h3, strong, b, .kitchen-recipe-heading strong, .kitchen-recipe-stats strong, .kitchen-step-row strong) {
+  color: var(--ink-strong) !important;
+}
+
+.app-shell .kitchen-board :is(p, small, label, span, summary, em, li, input, select, .kitchen-recipe-steps span, .kitchen-recipe-formula div, .kitchen-bake-meta) {
+  color: var(--bronze-text) !important;
+}
+
+.app-shell .kitchen-board :is(.eyebrow-label, .kitchen-recipe-heading small, .kitchen-recipe-stats small, .kitchen-suggestion-note, .kitchen-warning) {
+  color: var(--bronze-soft) !important;
+}
+
+.app-shell .kitchen-board :is(.primary-button, .secondary-button, .small-action-button, .kitchen-suggestion-card button) {
+  color: #dfb272 !important;
+}
+
+@media (max-width: 680px) {
+  .kitchen-add-card .kitchen-disclosure-body {
+    grid-template-columns: 1fr;
+  }
+
+  .kitchen-recipe-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .kitchen-recipe-steps li {
+    grid-template-columns: 1fr;
+  }
+}
+

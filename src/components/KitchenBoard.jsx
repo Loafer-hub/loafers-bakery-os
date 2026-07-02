@@ -63,6 +63,166 @@ function gapLabel(minutes) {
   return `${hours.toFixed(hours >= 2 ? 0 : 1)} hr after previous mix`;
 }
 
+function recipeProductType(recipe = {}) {
+  return String(recipe.productType || "bread").replace(/_/g, " ");
+}
+
+function formulaModeFor(recipe = {}) {
+  return recipe.formulaMode || "bakers";
+}
+
+function gramsLabel(value) {
+  const number = Number(value || 0);
+  if (!Number.isFinite(number) || number <= 0) return "—";
+  return `${Math.round(number).toLocaleString()} g`;
+}
+
+function percentLabel(recipe, ingredient) {
+  const percent = Number(ingredient.percent || 0);
+  if (!Number.isFinite(percent)) return "—";
+  return `${percent.toFixed(percent % 1 ? 1 : 0)}%`;
+}
+
+function customInstructionSteps(recipe = {}) {
+  const raw = recipe.instructions || recipe.method || recipe.productionInstructions || recipe.productionNotes;
+  if (Array.isArray(raw)) {
+    return raw
+      .map((item, index) => {
+        if (typeof item === "string") return [`Step ${index + 1}`, item];
+        return [item.title || item.label || `Step ${index + 1}`, item.note || item.body || item.detail || ""];
+      })
+      .filter(([, note]) => String(note || "").trim());
+  }
+  if (typeof raw === "string" && raw.trim()) {
+    return raw
+      .split(/\n+/)
+      .map((line, index) => {
+        const [title, ...rest] = line.split(":");
+        return rest.length
+          ? [title.trim() || `Step ${index + 1}`, rest.join(":").trim()]
+          : [`Step ${index + 1}`, line.trim()];
+      })
+      .filter(([, note]) => note);
+  }
+  return [];
+}
+
+function kitchenMethodSteps(recipe = {}, timeline = {}) {
+  const custom = customInstructionSteps(recipe);
+  if (custom.length) return custom;
+
+  const type = recipe.productType || "bread";
+  if (type === "yeast") {
+    return [
+      ["Mix", "Mix until hydrated, then knead or fold until the dough is smooth and elastic."],
+      [timeline.primaryLabel || "Rise", `Rise until puffy and expanded, about ${Number(timeline.primaryRiseHours || 1.5).toFixed(1)} hours in the current recipe model.`],
+      ["Shape", timeline.includeShape ? "Degas gently, shape, and place into the final pan or banneton." : "Shape is optional for this recipe setting."],
+      ["Final proof", timeline.includeFinalProof ? `Proof until the dough springs back slowly, about ${Number(timeline.finalProofHours || 0.75).toFixed(1)} hours.` : "Final proof is skipped by this recipe setting."],
+      ["Bake and cool", "Bake when properly proofed; cool fully before slicing, bagging, or selling."],
+    ];
+  }
+  if (type === "hot_sauce") {
+    return [
+      ["Prep", "Wash, trim, weigh, and record peppers, salt, vinegar, and aromatics."],
+      ["Ferment or cook", "Follow your chosen safety process and log pH/salt before customer sale."],
+      ["Blend", "Blend to desired texture, adjust acidity/salt, and strain if needed."],
+      ["Bottle", "Bottle cleanly, label the batch date, storage notes, and warning notes."],
+    ];
+  }
+  if (type === "vinegar") {
+    return [
+      ["Start", "Combine base and culture in a clean vessel with breathable cover."],
+      ["Ferment", "Ferment away from direct sun and track acidity, aroma, and batch date."],
+      ["Taste and test", "Check acidity before bottling; keep notes for traceability."],
+      ["Bottle", "Strain, bottle, date, and add storage instructions."],
+    ];
+  }
+  if (type === "infused_oil") {
+    return [
+      ["Prep", "Use dry aromatics when possible and avoid water-heavy inclusions."],
+      ["Infuse", "Steep gently, strain fully, and keep process notes."],
+      ["Safety log", "Record storage instructions and warning notes before sale."],
+      ["Bottle", "Bottle, date, label, and refrigerate if required by your process."],
+    ];
+  }
+  if (type === "cake") {
+    return [
+      ["Prep", "Scale ingredients, prepare pans, and bring butter or eggs to the right temperature."],
+      ["Mix", "Mix according to cake style; avoid overmixing once flour is added."],
+      ["Bake", "Bake until the center is set and a tester comes out clean."],
+      ["Cool", "Cool fully before frosting, packing, or slicing."],
+    ];
+  }
+  return [
+    ["Feed", timeline.includeStarterFeed ? "Feed starter or levain early enough to peak near mix time." : "Starter feed is skipped by this recipe setting."],
+    ["Mix", "Mix flour and most water first if you use an autolyse, then add remaining ingredients."],
+    ["Develop", timeline.includeStretchFolds ? `${timeline.stretchFoldCount || 0} stretch/fold sets about ${timeline.foldIntervalMinutes || 30} minutes apart.` : "Stretch and folds are skipped by this recipe setting."],
+    [timeline.primaryLabel || "Bulk ferment", `Use dough strength and rise as the final call. Model target is about ${Number(timeline.primaryRiseHours || 0).toFixed(1)} hours.`],
+    ["Shape / proof / bake", `${timeline.includeShape ? "Shape when ready. " : ""}${timeline.includeColdProof ? `Cold proof about ${Number(timeline.defaultColdProofHours || 0).toFixed(1)} hours. ` : ""}Bake and cool before bagging.`],
+  ];
+}
+
+function KitchenRecipePanel({ compact = false, loaves, recipe, timeline }) {
+  if (!recipe) {
+    return (
+      <aside className="kitchen-recipe-panel">
+        <strong>No recipe selected</strong>
+        <p>Choose a saved recipe to see its formula and kitchen instructions here.</p>
+      </aside>
+    );
+  }
+
+  const ingredients = Array.isArray(recipe.ingredients) ? recipe.ingredients : [];
+  const steps = kitchenMethodSteps(recipe, timeline);
+  const visibleIngredients = compact ? ingredients.slice(0, 5) : ingredients;
+  const hiddenCount = Math.max(0, ingredients.length - visibleIngredients.length);
+
+  return (
+    <aside className={compact ? "kitchen-recipe-panel compact" : "kitchen-recipe-panel"}>
+      <div className="kitchen-recipe-heading">
+        <span>
+          <small>Recipe + instructions</small>
+          <strong>{recipe.name || "Untitled recipe"}</strong>
+          {recipe.note ? <em>{recipe.note}</em> : null}
+        </span>
+        <b>{loaves || recipe.yield || 1} {pluralUnit(recipeUnit(recipe), loaves || recipe.yield || 1)}</b>
+      </div>
+
+      <div className="kitchen-recipe-stats">
+        <span><small>Type</small><strong>{recipeProductType(recipe)}</strong></span>
+        <span><small>Formula</small><strong>{formulaModeFor(recipe) === "batch" ? "Batch %" : "Baker’s %"}</strong></span>
+        <span><small>Hydration</small><strong>{Number(recipe.hydration || 0) ? `${Number(recipe.hydration).toFixed(0)}%` : "—"}</strong></span>
+        <span><small>Primary</small><strong>{timeline.primaryLabel || "Rise"}</strong></span>
+      </div>
+
+      {visibleIngredients.length ? (
+        <div className="kitchen-recipe-formula">
+          <div><span>Ingredient</span><span>Weight</span><span>{formulaModeFor(recipe) === "batch" ? "Batch %" : "Baker’s %"}</span></div>
+          {visibleIngredients.map((ingredient, index) => (
+            <div key={`${ingredient.name}-${index}`}>
+              <span>{ingredient.name || "Ingredient"}</span>
+              <span>{gramsLabel(ingredient.weight)}</span>
+              <span>{percentLabel(recipe, ingredient)}</span>
+            </div>
+          ))}
+          {hiddenCount ? <p>+ {hiddenCount} more ingredient{hiddenCount === 1 ? "" : "s"} in the saved recipe.</p> : null}
+        </div>
+      ) : (
+        <p className="kitchen-recipe-empty">No saved ingredients yet. Add ingredients in Menu → Products / Recipes.</p>
+      )}
+
+      <ol className="kitchen-recipe-steps">
+        {steps.map(([label, detail]) => (
+          <li key={label}>
+            <b>{label}</b>
+            <span>{detail}</span>
+          </li>
+        ))}
+      </ol>
+    </aside>
+  );
+}
+
 function BakeNameInput({ bake, onSaveKitchenBake }) {
   return (
     <input
@@ -156,6 +316,14 @@ function KitchenBakeCard({
       <div className="kitchen-progress-track" aria-label={`${progress.percent}% kitchen checklist complete`}>
         <i style={{ width: `${progress.percent}%` }} />
       </div>
+
+      <details className="kitchen-recipe-details" open={selectedKitchenBakeId === bake.id}>
+        <summary>
+          <span>Recipe and instructions</span>
+          <ChevronDown size={16} />
+        </summary>
+        <KitchenRecipePanel compact recipe={recipe} timeline={timeline} loaves={bake.loaves} />
+      </details>
 
       <div className="kitchen-step-list">
         {steps.map((step) => (
@@ -378,6 +546,8 @@ export function KitchenBoard({
           )}
           <button className="primary-button" type="submit" disabled={!recipe || (usesStarter && !starter)}>Add to Kitchen</button>
         </form>
+
+        <KitchenRecipePanel recipe={recipe} timeline={timeline} loaves={form.loaves} />
 
         {upcomingPlans.length ? (
           <div className="kitchen-plan-starts">
