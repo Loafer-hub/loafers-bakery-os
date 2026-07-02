@@ -156,6 +156,63 @@ function MenuModeBoard({ activeView, bakerySettings, onAddProduct, productTypes,
   );
 }
 
+function MenuEmbeddedWorkspace({
+  bakerySettings,
+  cloudAccount,
+  previewUrl,
+  recipes,
+  setReadyShelfItems,
+  view,
+  ...props
+}) {
+  if (view === "storefront") {
+    return (
+      <div className="menu-embedded-workspace">
+        <SettingsPage
+          {...props}
+          bakerySettings={bakerySettings}
+          cloudAccount={cloudAccount}
+          embeddedContext="menu"
+          recipes={recipes}
+        />
+      </div>
+    );
+  }
+
+  if (view === "shelf") {
+    return (
+      <div className="menu-embedded-workspace">
+        <ReadyShelf
+          cloudAccount={cloudAccount}
+          enabled={bakerySettings?.readyShelfEnabled !== false}
+          onShelfChange={setReadyShelfItems}
+          recipes={recipes}
+        />
+      </div>
+    );
+  }
+
+  if (view === "preview") {
+    return (
+      <div className="menu-embedded-workspace">
+        <section className="owner-preview-card">
+          <div className="section-title-line">
+            <div>
+              <span className="eyebrow-label dark">Owner preview</span>
+              <h2>Customer storefront</h2>
+              <small>This uses the same public order flow customers see, tucked inside your owner menu.</small>
+            </div>
+            <Globe2 size={21} />
+          </div>
+          <iframe title="Customer storefront preview" src={previewUrl} className="owner-preview-frame" />
+        </section>
+      </div>
+    );
+  }
+
+  return null;
+}
+
 export default function MenuPage(props) {
   const [view, setView] = useState(props.menuView || "recipes");
   const [readyShelfItems, setReadyShelfItems] = useState([]);
@@ -255,7 +312,7 @@ export default function MenuPage(props) {
           </div>
         </section>
 
-        <section className="menu-workspace">
+        <section className={`menu-workspace ${view === "recipes" ? "" : "menu-workspace-wide"}`}>
           <div className="menu-main-column">
             <section className="menu-workbench-card">
               <div className="menu-workbench-head">
@@ -289,71 +346,56 @@ export default function MenuPage(props) {
                 recipes={recipes}
               />
             </section>
+            <MenuEmbeddedWorkspace
+              {...props}
+              bakerySettings={props.bakerySettings}
+              cloudAccount={props.cloudAccount}
+              previewUrl={previewUrl}
+              recipes={props.recipes}
+              setReadyShelfItems={setReadyShelfItems}
+              view={view}
+            />
           </div>
-          <aside className="menu-side-panel" aria-label="Menu customer visibility summary">
-            <section className="menu-side-card menu-side-card-dark">
-              <span><Globe2 size={20} /></span>
-              <div>
-                <small>Storefront status</small>
-                <strong>{props.bakerySettings?.onlineOrdering === false ? "Ordering paused" : "Ordering open"}</strong>
-                <p>{props.bakerySettings?.announcementEnabled ? "Announcement is visible to customers." : "No public announcement showing."}</p>
-              </div>
-              <button type="button" onClick={() => changeView("preview")}>View storefront</button>
-            </section>
-            <section className="menu-side-card">
-              <div className="section-title-line compact">
-                <h3>Weekly visibility</h3>
-                <button type="button" onClick={() => changeView("storefront")}>Edit</button>
-              </div>
-              <div className="menu-visibility-list">
-                <span><strong>{visibleRecipes.length}</strong><small>Visible</small></span>
-                <span><strong>{recipes.filter((recipe) => recipe.hiddenThisWeek).length}</strong><small>Hidden</small></span>
-                <span><strong>{recipes.filter((recipe) => recipe.soldOut).length}</strong><small>Sold out</small></span>
-              </div>
-            </section>
-            <section className="menu-side-card">
-              <div className="section-title-line compact">
-                <h3>Category tabs</h3>
-                <button type="button" onClick={() => changeView("storefront")}>Rules</button>
-              </div>
-              {productTypes.slice(0, 5).map((type) => (
-                <span className="menu-side-row" key={type.value}>
-                  <span>{type.icon} {type.label}</span>
-                  <small>{type.enabled === false ? "Hidden" : "Shown"}</small>
-                </span>
-              ))}
-            </section>
-          </aside>
+          {view === "recipes" ? (
+            <aside className="menu-side-panel" aria-label="Menu customer visibility summary">
+              <section className="menu-side-card menu-side-card-dark">
+                <span><Globe2 size={20} /></span>
+                <div>
+                  <small>Storefront status</small>
+                  <strong>{props.bakerySettings?.onlineOrdering === false ? "Ordering paused" : "Ordering open"}</strong>
+                  <p>{props.bakerySettings?.announcementEnabled ? "Announcement is visible to customers." : "No public announcement showing."}</p>
+                </div>
+                <button type="button" onClick={() => changeView("preview")}>View storefront</button>
+              </section>
+              <section className="menu-side-card">
+                <div className="section-title-line compact">
+                  <h3>Weekly visibility</h3>
+                  <button type="button" onClick={() => changeView("storefront")}>Edit</button>
+                </div>
+                <div className="menu-visibility-list">
+                  <span><strong>{visibleRecipes.length}</strong><small>Visible</small></span>
+                  <span><strong>{recipes.filter((recipe) => recipe.hiddenThisWeek).length}</strong><small>Hidden</small></span>
+                  <span><strong>{recipes.filter((recipe) => recipe.soldOut).length}</strong><small>Sold out</small></span>
+                </div>
+              </section>
+              <section className="menu-side-card">
+                <div className="section-title-line compact">
+                  <h3>Category tabs</h3>
+                  <button type="button" onClick={() => changeView("storefront")}>Rules</button>
+                </div>
+                {productTypes.slice(0, 5).map((type) => (
+                  <span className="menu-side-row" key={type.value}>
+                    <span>{type.icon} {type.label}</span>
+                    <small>{type.enabled === false ? "Hidden" : "Shown"}</small>
+                  </span>
+                ))}
+              </section>
+            </aside>
+          ) : null}
         </section>
       </section>
 
       {view === "recipes" ? <RecipesPage {...props} embeddedContext="menu" openEditorSignal={addProductSignal} /> : null}
-      {view === "storefront" ? <SettingsPage {...props} embeddedContext="menu" /> : null}
-      {view === "shelf" ? (
-        <main className="page menu-ready-shelf-page">
-          <ReadyShelf
-            cloudAccount={props.cloudAccount}
-            enabled={props.bakerySettings?.readyShelfEnabled !== false}
-            onShelfChange={setReadyShelfItems}
-            recipes={props.recipes}
-          />
-        </main>
-      ) : null}
-      {view === "preview" ? (
-        <main className="page menu-preview-page">
-          <section className="owner-preview-card">
-            <div className="section-title-line">
-              <div>
-                <span className="eyebrow-label dark">Owner preview</span>
-                <h2>Customer storefront</h2>
-                <small>This uses the same public order flow customers see, tucked inside your owner menu.</small>
-              </div>
-              <Globe2 size={21} />
-            </div>
-            <iframe title="Customer storefront preview" src={previewUrl} className="owner-preview-frame" />
-          </section>
-        </main>
-      ) : null}
     </>
   );
 }

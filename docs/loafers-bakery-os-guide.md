@@ -1396,6 +1396,7 @@ This changelog is written as a product history, not a line-by-line commit log.
 - Removed the top Bake desk / Production shortcut hub so the left owner menu is the source of truth for those workspaces
 - Removed the Professional flow link grid from Management
 - Improved the customer menu flow by showing weekly baking and menu snapshot context before checkout, then opening customer account and Contact + payment as focused popups
+- Fixed the Menu desk Storefront / Ready shelf / Preview panels so they open inside the main Menu workspace and use the full available width instead of dropping underneath the right summary cards
 
 ## Known limitations and cautions
 
