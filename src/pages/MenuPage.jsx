@@ -160,6 +160,15 @@ export default function MenuPage(props) {
   const [view, setView] = useState(props.menuView || "recipes");
   const [readyShelfItems, setReadyShelfItems] = useState([]);
   const [addProductSignal, setAddProductSignal] = useState(0);
+  const heroBannerStyle = useMemo(() => {
+    let bannerUrl = LOAFERS_BRAND.bannerSrc;
+    try {
+      bannerUrl = new URL(LOAFERS_BRAND.bannerSrc, window.location.href).href;
+    } catch {
+      bannerUrl = LOAFERS_BRAND.bannerSrc;
+    }
+    return { "--menu-hero-image": `url("${bannerUrl}")` };
+  }, []);
   const previewUrl = useMemo(() => {
     const slug = props.cloudAccount?.workspace?.bakery?.slug || "loafers";
     return `?order=${encodeURIComponent(slug)}&preview=owner&release=menu-desk-v1`;
@@ -221,7 +230,7 @@ export default function MenuPage(props) {
       <section className="page menu-page menu-command-page">
         <section
           className="menu-command-hero"
-          style={{ "--menu-hero-image": `url(${LOAFERS_BRAND.bannerSrc})` }}
+          style={heroBannerStyle}
         >
           <div className="menu-command-copy">
             <span className="eyebrow-label dark">Owner workspace</span>
