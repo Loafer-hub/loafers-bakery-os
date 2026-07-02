@@ -194,6 +194,8 @@ Menu is the owner area for the product catalog and customer-facing shelf.
 
 The refreshed Menu desk gives the baker a quick customer-visibility view before diving into the tools. It shows saved products, visible-this-week count, ready shelf status, and customer preview status, then routes into four work areas:
 
+On desktop, the Menu desk now uses the dark Loafers Home Bakery owner shell: a wide browser-filling canvas, gold/cream typography, the aurora bakery banner as the workspace hero, and a full left rail for Today, Orders, Bake desk, Production, Menu, Logbook, Customers, Reports, and Settings.
+
 - Products: product catalog, formulas, photos, ingredients, pricing, badges, availability, and product details
 - Storefront: customer menu rules, product types, weekly availability, options, pickup, privacy, and ordering controls
 - Ready shelf: prebaked stock customers can reserve without using future bake capacity
@@ -1355,6 +1357,7 @@ This changelog is written as a product history, not a line-by-line commit log.
 - Added a clear structure map explaining what old rough names became and where each owner workflow belongs
 - Refreshed Menu into a branded Menu desk with customer-facing status cards, Products/Storefront/Ready shelf/Preview workspace tabs, product-type snapshots, mixed product previews, weekly visibility rail, and a real Add product shortcut
 - Renamed the embedded Menu product area to Product catalog so owner language matches what customers see
+- Matched the desktop Menu desk more closely to the dark Loafers reference: wider near-edge app shell, owner-style left navigation, aurora/banner hero, dark product panels, gold/cream text, and orange-brown action buttons
 
 ## Known limitations and cautions
 

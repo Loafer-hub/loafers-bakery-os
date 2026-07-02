@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { ReadyShelf } from "../components/ReadyShelf";
+import { LOAFERS_BRAND } from "../lib/brand";
 import { normalizeProductTypeSettings, productTypeFor } from "../lib/productTypes";
 import { lowestSalesPrice, normalizedSalesOptions } from "../lib/salesOptions";
 import RecipesPage from "./RecipesPage";
@@ -176,7 +177,7 @@ export default function MenuPage(props) {
     {
       label: "Products",
       value: recipes.length,
-      detail: "Saved recipes and sellable goods",
+      detail: `${visibleRecipes.length} active`,
       icon: Tags,
     },
     {
@@ -187,14 +188,16 @@ export default function MenuPage(props) {
     },
     {
       label: "Ready shelf",
-      value: props.bakerySettings?.readyShelfEnabled === false ? "Off" : "On",
-      detail: readyShelfItems.length ? `${readyShelfItems.length} cloud item${readyShelfItems.length === 1 ? "" : "s"}` : "Recipe or custom stock",
+      value: props.bakerySettings?.readyShelfEnabled === false ? "Off" : readyShelfItems.length,
+      detail: props.bakerySettings?.readyShelfEnabled === false
+        ? "Hidden from customers"
+        : `${readyShelfItems.length} in stock`,
       icon: PackageCheck,
     },
     {
       label: "Customer preview",
-      value: "Ready",
-      detail: "Check the public storefront",
+      value: "Owner preview",
+      detail: "See what they see",
       icon: Eye,
     },
   ];
@@ -216,9 +219,12 @@ export default function MenuPage(props) {
   return (
     <>
       <section className="page menu-page menu-command-page">
-        <section className="menu-command-hero">
+        <section
+          className="menu-command-hero"
+          style={{ "--menu-hero-image": `url(${LOAFERS_BRAND.bannerSrc})` }}
+        >
           <div className="menu-command-copy">
-            <span className="eyebrow-label dark">Customer shelf control</span>
+            <span className="eyebrow-label dark">Owner workspace</span>
             <h1>Menu desk</h1>
             <p>Control what customers can buy, see, and reserve.</p>
           </div>
@@ -283,7 +289,7 @@ export default function MenuPage(props) {
                 <strong>{props.bakerySettings?.onlineOrdering === false ? "Ordering paused" : "Ordering open"}</strong>
                 <p>{props.bakerySettings?.announcementEnabled ? "Announcement is visible to customers." : "No public announcement showing."}</p>
               </div>
-              <button type="button" onClick={() => changeView("preview")}>Preview storefront</button>
+              <button type="button" onClick={() => changeView("preview")}>View storefront</button>
             </section>
             <section className="menu-side-card">
               <div className="section-title-line compact">

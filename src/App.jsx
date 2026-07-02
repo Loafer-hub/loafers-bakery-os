@@ -334,6 +334,10 @@ export default function App() {
   });
   const Page = pages[canonicalPage(active)] || TodayPage;
   const cloudAccount = useCloudAccount();
+  const openOrderCount = useMemo(() => orders.filter((order) => {
+    const status = String(order.status || "").toLowerCase();
+    return status !== "completed" && status !== "rejected" && status !== "cancelled";
+  }).length, [orders]);
   const productionAutomation = {
     ...DEFAULT_PRODUCTION_AUTOMATION,
     ...(storedProductionAutomation || {}),
@@ -982,7 +986,11 @@ export default function App() {
           <Page {...sharedProps} />
           <InstallAppPrompt context="owner" />
         </div>
-        <BottomNav active={active === "settings" ? "business" : canonicalPage(active)} onChange={navigate} />
+        <BottomNav
+          active={canonicalPage(active)}
+          onChange={navigate}
+          orderBadgeCount={openOrderCount}
+        />
         <GlobalQuickAction
           actions={quickActions}
           isOpen={quickActionsOpen}

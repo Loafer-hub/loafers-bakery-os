@@ -1,6 +1,7 @@
 import {
   BookOpen,
   CalendarDays,
+  ChevronRight,
   ClipboardList,
   Croissant,
   House,
@@ -19,6 +20,18 @@ const navItems = [
   { id: "production", label: "Production", icon: Croissant },
   { id: "menu", label: "Menu", icon: Store },
   { id: "business", label: "Business", icon: LineChart },
+];
+
+const desktopNavItems = [
+  { id: "today", label: "Today", icon: House, page: "today" },
+  { id: "orders", label: "Orders", icon: ClipboardList, page: "orders", showBadge: true },
+  { id: "bake-desk", label: "Bake desk", icon: Croissant, page: "production", activeWhen: "bake-desk" },
+  { id: "production", label: "Production", icon: ClipboardList, page: "production" },
+  { id: "menu", label: "Menu", icon: Store, page: "menu" },
+  { id: "logbook", label: "Logbook", icon: BookOpen, page: "business", activeWhen: "logbook" },
+  { id: "customers", label: "Customers", icon: UserRound, page: "business", activeWhen: "customers" },
+  { id: "reports", label: "Reports", icon: LineChart, page: "business", activeWhen: "business" },
+  { id: "settings", label: "Settings", icon: Settings2, page: "settings" },
 ];
 
 export function BrandHeader({ compact = false, onOpenSettings, onOpenStorage }) {
@@ -64,20 +77,64 @@ export function BrandHeader({ compact = false, onOpenSettings, onOpenStorage }) 
   );
 }
 
-export function BottomNav({ active, onChange }) {
+export function BottomNav({ active, onChange, orderBadgeCount = 0 }) {
+  const badgeLabel = orderBadgeCount > 99 ? "99+" : String(orderBadgeCount || "");
+
   return (
     <nav className="bottom-nav" aria-label="Main navigation">
-      {navItems.map(({ id, label, icon: Icon }) => (
-        <button
-          key={id}
-          className={active === id ? "nav-item active" : "nav-item"}
-          onClick={() => onChange(id)}
-          aria-current={active === id ? "page" : undefined}
-        >
-          <Icon size={22} strokeWidth={active === id ? 2.2 : 1.65} />
-          <span>{label}</span>
+      <div className="desktop-nav-brand" aria-hidden="true">
+        <img src={LOAFERS_BRAND.badgeSrc} alt="" />
+      </div>
+
+      <div className="mobile-nav-items">
+        {navItems.map(({ id, label, icon: Icon }) => {
+          const isActive = active === id || (active === "settings" && id === "business");
+          return (
+            <button
+              key={id}
+              className={isActive ? "nav-item active" : "nav-item"}
+              onClick={() => onChange(id)}
+              aria-current={isActive ? "page" : undefined}
+            >
+              <Icon size={22} strokeWidth={isActive ? 2.2 : 1.65} />
+              <span>{label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="desktop-nav-items">
+        {desktopNavItems.map(({ id, label, icon: Icon, page, activeWhen, showBadge }) => {
+          const isActive = active === (activeWhen || page);
+          return (
+            <button
+              key={id}
+              className={isActive ? "nav-item active" : "nav-item"}
+              onClick={() => onChange(page)}
+              aria-current={isActive ? "page" : undefined}
+            >
+              <Icon size={20} strokeWidth={isActive ? 2.2 : 1.75} />
+              <span>{label}</span>
+              {showBadge && badgeLabel ? <b className="nav-badge">{badgeLabel}</b> : null}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="desktop-nav-footer">
+        <button className="desktop-help-link" type="button" onClick={() => onChange("settings")}>
+          <BookOpen size={18} />
+          <span>Need help?</span>
         </button>
-      ))}
+        <button className="desktop-profile-link" type="button" onClick={() => onChange("settings")}>
+          <span className="desktop-profile-avatar">LB</span>
+          <span>
+            <strong>Loafers Bakery</strong>
+            <small>Owner</small>
+          </span>
+          <ChevronRight size={17} />
+        </button>
+      </div>
     </nav>
   );
 }
