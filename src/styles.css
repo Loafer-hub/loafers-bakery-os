@@ -19320,7 +19320,7 @@ body,
   color: var(--bronze-text) !important;
 }
 
-.app-shell .kitchen-board :is(
+html body .app-shell .kitchen-board :is(
   .kitchen-hero,
   .kitchen-add-card,
   .kitchen-suggestions,
@@ -19372,5 +19372,345 @@ body,
   .kitchen-recipe-steps li {
     grid-template-columns: 1fr;
   }
+}
+
+/* owner-readability-v2 */
+:root {
+  --paper: #a79e91;
+  --paper-deep: #8f877c;
+  --surface: #9f968a;
+  --surface-raised: #91897e;
+  --surface-muted: #7b746a;
+  --surface-input: #bdb2a2;
+  --ink: #4a250d;
+  --ink-strong: #2f1607;
+  --bronze-text: #563014;
+  --bronze-on-dark: #d19b5f;
+  --bronze-soft: #8a4d1f;
+  --muted: #65451f;
+  --line: #8d704c;
+  --line-strong: #a77b49;
+}
+
+.app-shell {
+  font-size: 17px;
+}
+
+.app-shell :is(input, select, textarea, button) {
+  font-size: 13px !important;
+}
+
+.app-shell :is(label, summary, p, li, td, th) {
+  font-size: max(12px, .82rem) !important;
+  line-height: 1.5 !important;
+}
+
+.app-shell small,
+.app-shell .eyebrow-label {
+  font-size: 10px !important;
+  line-height: 1.35 !important;
+}
+
+@media (min-width: 760px) {
+  .app-shell :is(
+    .kitchen-hero,
+    .kitchen-add-card,
+    .kitchen-suggestions,
+    .kitchen-active-section,
+    .kitchen-bake-card,
+    .kitchen-recipe-panel,
+    .kitchen-recipe-details,
+    .settings-card,
+    .settings-hero-card,
+    .business-subpage-card,
+    .management-logbook-section,
+    .owner-reports-card,
+    .trend-card,
+    .spending-card,
+    .inventory-section,
+    .help-hero-card,
+    .help-workflow-card,
+    .help-safety-card,
+    .help-changelog-card,
+    .help-note-card
+  ) {
+    background:
+      linear-gradient(145deg, rgba(62, 58, 51, .98), rgba(42, 39, 34, .98)) !important;
+    border-color: rgba(209, 155, 95, .42) !important;
+    color: var(--bronze-on-dark) !important;
+  }
+
+  .app-shell :is(
+    .kitchen-hero,
+    .kitchen-add-card,
+    .kitchen-suggestions,
+    .kitchen-active-section,
+    .kitchen-bake-card,
+    .kitchen-recipe-panel,
+    .kitchen-recipe-details,
+    .settings-card,
+    .settings-hero-card,
+    .business-subpage-card,
+    .management-logbook-section,
+    .owner-reports-card,
+    .trend-card,
+    .spending-card,
+    .inventory-section,
+    .help-hero-card,
+    .help-workflow-card,
+    .help-safety-card,
+    .help-changelog-card,
+    .help-note-card
+  ) :is(h1, h2, h3, h4, strong, b, summary) {
+    color: #d9a566 !important;
+  }
+
+  .app-shell :is(
+    .kitchen-hero,
+    .kitchen-add-card,
+    .kitchen-suggestions,
+    .kitchen-active-section,
+    .kitchen-bake-card,
+    .kitchen-recipe-panel,
+    .kitchen-recipe-details,
+    .settings-card,
+    .settings-hero-card,
+    .business-subpage-card,
+    .management-logbook-section,
+    .owner-reports-card,
+    .trend-card,
+    .spending-card,
+    .inventory-section,
+    .help-hero-card,
+    .help-workflow-card,
+    .help-safety-card,
+    .help-changelog-card,
+    .help-note-card
+  ) :is(p, small, label, span, em, li) {
+    color: rgba(209, 155, 95, .9) !important;
+  }
+}
+
+.app-shell .kitchen-board {
+  font-size: 17px !important;
+}
+
+.app-shell .kitchen-board :is(.kitchen-hero h2, .kitchen-disclosure-summary h2) {
+  font-size: clamp(28px, 3.1vw, 36px) !important;
+}
+
+.app-shell .kitchen-board .kitchen-recipe-heading strong {
+  font-size: 27px !important;
+}
+
+.app-shell .kitchen-board :is(
+  input,
+  select,
+  textarea,
+  .kitchen-recipe-formula,
+  .kitchen-recipe-stats span,
+  .kitchen-recipe-steps li,
+  .kitchen-static-field,
+  .kitchen-plan-starts button,
+  .kitchen-bake-meta span,
+  .kitchen-step-row,
+  .kitchen-suggestion-card
+) {
+  background:
+    linear-gradient(145deg, rgba(191, 181, 166, .98), rgba(160, 151, 138, .98)) !important;
+  border-color: rgba(109, 76, 43, .72) !important;
+  color: var(--ink-strong) !important;
+}
+
+.app-shell .kitchen-board :is(
+  input,
+  select,
+  textarea,
+  .kitchen-recipe-formula *,
+  .kitchen-recipe-stats span *,
+  .kitchen-recipe-steps li *,
+  .kitchen-plan-starts button *,
+  .kitchen-bake-meta span *,
+  .kitchen-step-row *,
+  .kitchen-suggestion-card *
+) {
+  color: var(--ink-strong) !important;
+}
+
+.app-shell .kitchen-board :is(.kitchen-add-form label, .kitchen-recipe-heading small, .kitchen-recipe-heading em) {
+  color: rgba(209, 155, 95, .92) !important;
+  font-size: 12px !important;
+}
+
+.app-shell .kitchen-board :is(.kitchen-recipe-formula div, .kitchen-recipe-steps span, .kitchen-bake-meta, .kitchen-step-row small) {
+  font-size: 12px !important;
+  line-height: 1.5 !important;
+}
+
+.app-shell .kitchen-board :is(.kitchen-recipe-stats strong, .kitchen-recipe-steps b, .kitchen-step-row strong) {
+  font-size: 13px !important;
+}
+
+.app-shell .kitchen-board :is(.primary-button, .secondary-button, .small-action-button, .kitchen-suggestion-card button) {
+  color: #f0c680 !important;
+}
+
+/* kitchen-contrast-priority-v1 */
+html body .app-shell .kitchen-board :is(
+  .kitchen-hero,
+  .kitchen-add-card,
+  .kitchen-suggestions,
+  .kitchen-active-section,
+  .kitchen-bake-card,
+  .kitchen-recipe-panel,
+  .kitchen-recipe-details
+) {
+  background:
+    linear-gradient(145deg, rgba(48, 43, 35, .99), rgba(29, 27, 23, .99)) !important;
+  border-color: rgba(209, 155, 95, .5) !important;
+  color: var(--bronze-on-dark) !important;
+}
+
+html body .app-shell .kitchen-board :is(
+  .kitchen-hero,
+  .kitchen-add-card,
+  .kitchen-suggestions,
+  .kitchen-active-section,
+  .kitchen-bake-card,
+  .kitchen-recipe-panel,
+  .kitchen-recipe-details
+) :is(h1, h2, h3, h4, strong, b, summary) {
+  color: #e0ad74 !important;
+}
+
+.app-shell .kitchen-board :is(
+  .kitchen-hero,
+  .kitchen-add-card,
+  .kitchen-suggestions,
+  .kitchen-active-section,
+  .kitchen-bake-card,
+  .kitchen-recipe-panel,
+  .kitchen-recipe-details
+) :is(p, small, label, span, em, li) {
+  color: rgba(224, 173, 116, .88) !important;
+}
+
+html body .app-shell .kitchen-board :is(
+  input,
+  select,
+  textarea,
+  .kitchen-recipe-formula,
+  .kitchen-recipe-stats span,
+  .kitchen-recipe-steps li,
+  .kitchen-static-field,
+  .kitchen-plan-starts button,
+  .kitchen-bake-meta span,
+  .kitchen-step-row,
+  .kitchen-suggestion-card
+) {
+  background:
+    linear-gradient(145deg, rgba(195, 184, 168, .99), rgba(164, 154, 139, .99)) !important;
+  border-color: rgba(109, 76, 43, .78) !important;
+  color: var(--ink-strong) !important;
+}
+
+html body .app-shell .kitchen-board :is(
+  input,
+  select,
+  textarea,
+  .kitchen-recipe-formula *,
+  .kitchen-recipe-stats span *,
+  .kitchen-recipe-steps li *,
+  .kitchen-static-field *,
+  .kitchen-plan-starts button *,
+  .kitchen-bake-meta span *,
+  .kitchen-step-row *,
+  .kitchen-suggestion-card *
+) {
+  color: var(--ink-strong) !important;
+}
+
+html body .app-shell .kitchen-board .kitchen-recipe-panel.kitchen-recipe-panel :is(
+  input,
+  select,
+  textarea,
+  .kitchen-recipe-formula *,
+  .kitchen-recipe-stats span *,
+  .kitchen-recipe-steps li *,
+  .kitchen-static-field *,
+  .kitchen-plan-starts button *,
+  .kitchen-bake-meta span *,
+  .kitchen-step-row *,
+  .kitchen-suggestion-card *
+),
+html body .app-shell .kitchen-board .kitchen-add-card.kitchen-add-card :is(input, select, textarea) {
+  color: var(--ink-strong) !important;
+}
+
+/* kitchen-final-readable-surfaces-v1 */
+html body .app-shell .kitchen-board .kitchen-hero.kitchen-hero,
+html body .app-shell .kitchen-board .kitchen-add-card.kitchen-add-card,
+html body .app-shell .kitchen-board .kitchen-suggestions.kitchen-suggestions,
+html body .app-shell .kitchen-board .kitchen-active-section.kitchen-active-section,
+html body .app-shell .kitchen-board .kitchen-bake-card.kitchen-bake-card,
+html body .app-shell .kitchen-board .kitchen-recipe-panel.kitchen-recipe-panel,
+html body .app-shell .kitchen-board .kitchen-recipe-details.kitchen-recipe-details {
+  background:
+    linear-gradient(145deg, rgba(48, 43, 35, .99), rgba(29, 27, 23, .99)) !important;
+  border-color: rgba(209, 155, 95, .52) !important;
+  color: var(--bronze-on-dark) !important;
+}
+
+html body .app-shell .kitchen-board .kitchen-hero.kitchen-hero :is(h1, h2, h3, h4, strong, b, summary),
+html body .app-shell .kitchen-board .kitchen-add-card.kitchen-add-card :is(h1, h2, h3, h4, strong, b, summary),
+html body .app-shell .kitchen-board .kitchen-suggestions.kitchen-suggestions :is(h1, h2, h3, h4, strong, b, summary),
+html body .app-shell .kitchen-board .kitchen-active-section.kitchen-active-section :is(h1, h2, h3, h4, strong, b, summary),
+html body .app-shell .kitchen-board .kitchen-bake-card.kitchen-bake-card :is(h1, h2, h3, h4, strong, b, summary),
+html body .app-shell .kitchen-board .kitchen-recipe-panel.kitchen-recipe-panel :is(h1, h2, h3, h4, strong, b, summary),
+html body .app-shell .kitchen-board .kitchen-recipe-details.kitchen-recipe-details :is(h1, h2, h3, h4, strong, b, summary) {
+  color: #e0ad74 !important;
+}
+
+html body .app-shell .kitchen-board .kitchen-hero.kitchen-hero :is(p, small, label, span, em, li),
+html body .app-shell .kitchen-board .kitchen-add-card.kitchen-add-card :is(p, small, label, span, em, li),
+html body .app-shell .kitchen-board .kitchen-suggestions.kitchen-suggestions :is(p, small, label, span, em, li),
+html body .app-shell .kitchen-board .kitchen-active-section.kitchen-active-section :is(p, small, label, span, em, li),
+html body .app-shell .kitchen-board .kitchen-bake-card.kitchen-bake-card :is(p, small, label, span, em, li),
+html body .app-shell .kitchen-board .kitchen-recipe-panel.kitchen-recipe-panel :is(p, small, label, span, em, li),
+html body .app-shell .kitchen-board .kitchen-recipe-details.kitchen-recipe-details :is(p, small, label, span, em, li) {
+  color: rgba(224, 173, 116, .9) !important;
+}
+
+html body .app-shell .kitchen-board input,
+html body .app-shell .kitchen-board select,
+html body .app-shell .kitchen-board textarea,
+html body .app-shell .kitchen-board .kitchen-recipe-formula.kitchen-recipe-formula,
+html body .app-shell .kitchen-board .kitchen-recipe-stats span,
+html body .app-shell .kitchen-board .kitchen-recipe-steps li,
+html body .app-shell .kitchen-board .kitchen-static-field.kitchen-static-field,
+html body .app-shell .kitchen-board .kitchen-plan-starts button,
+html body .app-shell .kitchen-board .kitchen-bake-meta span,
+html body .app-shell .kitchen-board .kitchen-step-row.kitchen-step-row,
+html body .app-shell .kitchen-board .kitchen-suggestion-card.kitchen-suggestion-card {
+  background:
+    linear-gradient(145deg, rgba(195, 184, 168, .99), rgba(164, 154, 139, .99)) !important;
+  border-color: rgba(109, 76, 43, .78) !important;
+  color: var(--ink-strong) !important;
+}
+
+html body .app-shell .kitchen-board :is(
+  input,
+  select,
+  textarea,
+  .kitchen-recipe-formula *,
+  .kitchen-recipe-stats span *,
+  .kitchen-recipe-steps li *,
+  .kitchen-static-field *,
+  .kitchen-plan-starts button *,
+  .kitchen-bake-meta span *,
+  .kitchen-step-row *,
+  .kitchen-suggestion-card *
+) {
+  color: var(--ink-strong) !important;
 }
 
