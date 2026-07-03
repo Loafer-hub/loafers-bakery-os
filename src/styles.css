@@ -19630,6 +19630,346 @@ html body .app-shell .kitchen-board :is(
   color: var(--ink-strong) !important;
 }
 
+/* app-readable-contrast-true-end-v6 */
+html body .app-shell:not(.customer-storefront) .page.page.today-page .production-dashboard,
+html body .app-shell:not(.customer-storefront) .page.page.today-page .production-dashboard * {
+  color: #dedede !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page.today-page .production-dashboard :is(h2, h3, strong, b) {
+  color: #f4f4f4 !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .quick-metrics.quick-metrics,
+html body .app-shell:not(.customer-storefront) .page.page .quick-metrics.quick-metrics > div,
+html body .app-shell:not(.customer-storefront) .page.page .quick-metrics.quick-metrics .metric-button.metric-button,
+html body .app-shell:not(.customer-storefront) .page.page .pricing-product-row.pricing-product-row,
+html body .app-shell:not(.customer-storefront) .page.page .batch-trace-row.batch-trace-row {
+  background: linear-gradient(145deg, #c8bfb2, #b6ad9f) !important;
+  border-color: rgba(83, 58, 34, .6) !important;
+  color: #101010 !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .quick-metrics.quick-metrics *,
+html body .app-shell:not(.customer-storefront) .page.page .quick-metrics.quick-metrics .metric-button.metric-button *,
+html body .app-shell:not(.customer-storefront) .page.page .pricing-product-row.pricing-product-row :not(button):not(svg):not(path),
+html body .app-shell:not(.customer-storefront) .page.page .batch-trace-row.batch-trace-row :not(button):not(svg):not(path) {
+  color: #101010 !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .owner-product-rank.owner-product-rank small {
+  background: #5f2a10 !important;
+  color: #ffffff !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .pricing-product-row.pricing-product-row .text-button,
+html body .app-shell:not(.customer-storefront) .page.page .batch-trace-row.batch-trace-row .text-button,
+html body .app-shell:not(.customer-storefront) .page.page .settings-command-hero.settings-command-hero button,
+html body .app-shell:not(.customer-storefront) .page.page .small-action-button.small-action-button:not(.subtle),
+html body .app-shell:not(.customer-storefront) .page.page .round-action.round-action,
+html body .app-shell:not(.customer-storefront) .page.page .primary-button.primary-button,
+html body .app-shell:not(.customer-storefront) .page.page .secondary-button.secondary-button,
+html body .app-shell:not(.customer-storefront) .page.page .settings-save-button.settings-save-button,
+html body .app-shell:not(.customer-storefront) .page.page .settings-test-button.settings-test-button,
+html body .app-shell:not(.customer-storefront) .page.page .global-quick-action.global-quick-action {
+  background: linear-gradient(135deg, #9a4b1f, #5f2a10) !important;
+  border-color: rgba(229, 173, 101, .55) !important;
+  color: #ffffff !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .pricing-product-row.pricing-product-row .text-button *,
+html body .app-shell:not(.customer-storefront) .page.page .batch-trace-row.batch-trace-row .text-button *,
+html body .app-shell:not(.customer-storefront) .page.page .settings-command-hero.settings-command-hero button *,
+html body .app-shell:not(.customer-storefront) .page.page .small-action-button.small-action-button:not(.subtle) *,
+html body .app-shell:not(.customer-storefront) .page.page .round-action.round-action *,
+html body .app-shell:not(.customer-storefront) .page.page .primary-button.primary-button *,
+html body .app-shell:not(.customer-storefront) .page.page .secondary-button.secondary-button *,
+html body .app-shell:not(.customer-storefront) .page.page .settings-save-button.settings-save-button *,
+html body .app-shell:not(.customer-storefront) .page.page .settings-test-button.settings-test-button *,
+html body .app-shell:not(.customer-storefront) .page.page .global-quick-action.global-quick-action * {
+  color: #ffffff !important;
+  stroke: currentColor !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .bake-side-card-dark.bake-side-card-dark button,
+html body .app-shell:not(.customer-storefront) .page.page .availability-toolbar.availability-toolbar button {
+  background: #c8bfb2 !important;
+  border-color: rgba(83, 58, 34, .6) !important;
+  color: #101010 !important;
+}
+
+/* app-readable-contrast-final-v4 */
+html body .app-shell:not(.customer-storefront) {
+  color: #d9d9d9 !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page :is(
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6
+) {
+  color: #f2f2f2 !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page :is(
+  p,
+  small,
+  label,
+  li,
+  span,
+  em,
+  strong,
+  b,
+  summary,
+  th,
+  td
+) {
+  color: #d9d9d9 !important;
+}
+
+html body .app-shell:not(.customer-storefront) :is(
+  .section-title-line,
+  .section-title-line *,
+  .owner-product-rank,
+  .owner-product-rank *,
+  .pricing-product-row,
+  .pricing-product-row *,
+  .batch-trace-row,
+  .batch-trace-row *,
+  .quick-metrics,
+  .quick-metrics *,
+  .metric-button,
+  .metric-button *,
+  .quality-check-row:not(.complete),
+  .quality-check-row:not(.complete) *,
+  .owner-traceability-strip,
+  .owner-traceability-strip *
+) {
+  color: #e0e0e0 !important;
+}
+
+html body .app-shell:not(.customer-storefront) :is(
+  .section-title-line h1,
+  .section-title-line h2,
+  .section-title-line h3,
+  .owner-product-rank strong,
+  .owner-product-rank b,
+  .pricing-product-row strong,
+  .pricing-product-row b,
+  .batch-trace-row strong,
+  .batch-trace-row b,
+  .metric-button strong,
+  .quality-check-row:not(.complete) strong
+) {
+  color: #f4f4f4 !important;
+}
+
+html body .app-shell:not(.customer-storefront) :is(
+  input,
+  select,
+  textarea,
+  .settings-hero-card,
+  .settings-hero-card *,
+  .settings-command-hero,
+  .settings-command-hero :not(button):not(svg):not(path),
+  .settings-command-grid article,
+  .settings-command-grid article *,
+  .settings-accordion,
+  .settings-accordion :not(button):not(svg):not(path),
+  .settings-card,
+  .settings-card :not(button):not(svg):not(path),
+  .settings-time-window,
+  .settings-time-window *,
+  .pickup-location-card,
+  .pickup-location-card *,
+  .product-type-card,
+  .product-type-card *,
+  .product-type-settings-card,
+  .product-type-settings-card *,
+  .product-availability-card,
+  .product-availability-card *,
+  .product-package-settings,
+  .product-package-settings *,
+  .recipe-type-section,
+  .recipe-type-section *,
+  .recipe-type-header,
+  .recipe-type-header *,
+  .recipe-type-body,
+  .recipe-type-body *,
+  .view-switch,
+  .view-switch *,
+  .segmented-control,
+  .segmented-control *,
+  .anchor-switch,
+  .anchor-switch *,
+  .anchor-time-field,
+  .anchor-time-field *,
+  .planner-input-grid label,
+  .planner-input-grid label *,
+  .starter-profile-switcher,
+  .starter-profile-switcher *,
+  .availability-toolbar,
+  .availability-toolbar *,
+  .calendar-day,
+  .calendar-day *,
+  .calendar-blank,
+  .order-calendar-day,
+  .order-calendar-day *,
+  .orders-calendar-shell .calendar-blank,
+  .production-dashboard,
+  .production-dashboard *,
+  .production-card,
+  .production-card *,
+  .owner-report-grid article,
+  .owner-report-grid article *,
+  .pricing-intelligence-summary article,
+  .pricing-intelligence-summary article *,
+  .modal-sheet,
+  .modal-sheet :not(button):not(svg):not(path),
+  .customer-directory-panel,
+  .customer-directory-panel :not(button):not(svg):not(path),
+  .customer-directory-toolbar,
+  .customer-directory-toolbar :not(button):not(svg):not(path),
+  .customer-directory-row,
+  .customer-directory-row *,
+  .customer-directory-meta-card,
+  .customer-directory-meta-card *,
+  .customer-directory-form-card,
+  .customer-directory-form-card *,
+  .customer-directory-field,
+  .customer-directory-field *,
+  .order-history-facts span,
+  .order-history-detail-grid span,
+  .order-history-notes,
+  .email-delivery-history,
+  .email-delivery-history *,
+  .ready-shelf-panel,
+  .ready-shelf-panel *,
+  .ready-shelf-row,
+  .ready-shelf-row *,
+  .settings-sync-pill,
+  .settings-sync-pill *,
+  .settings-success,
+  .settings-success *
+) {
+  color: #101010 !important;
+}
+
+html body .app-shell:not(.customer-storefront) :is(
+  .pricing-product-row,
+  .batch-trace-row,
+  .owner-traceability-strip,
+  .quick-metrics,
+  .metric-button,
+  .quality-check-row:not(.complete)
+) {
+  background-color: rgba(31, 34, 31, .96) !important;
+}
+
+html body .app-shell:not(.customer-storefront) :is(
+  .primary-button,
+  .secondary-button,
+  .settings-save-button,
+  .settings-test-button,
+  .orders-add-button,
+  .customer-product-add,
+  .round-action,
+  .small-action-button:not(.subtle),
+  .global-quick-action,
+  .settings-command-hero button,
+  .success-track-link,
+  .availability-toolbar button,
+  .pricing-product-row .text-button,
+  .batch-trace-row .text-button
+) {
+  color: #ffffff !important;
+  background: linear-gradient(135deg, #9a4b1f, #5f2a10) !important;
+  border-color: rgba(229, 173, 101, .55) !important;
+}
+
+html body .app-shell:not(.customer-storefront) :is(
+  .primary-button,
+  .secondary-button,
+  .settings-save-button,
+  .settings-test-button,
+  .orders-add-button,
+  .customer-product-add,
+  .round-action,
+  .small-action-button:not(.subtle),
+  .global-quick-action,
+  .settings-command-hero button,
+  .success-track-link,
+  .availability-toolbar button,
+  .pricing-product-row .text-button,
+  .batch-trace-row .text-button
+) :is(span, strong, small, b, em, svg, path) {
+  color: #ffffff !important;
+  stroke: currentColor !important;
+}
+
+html body .app-shell:not(.customer-storefront) .nav-badge.nav-badge,
+html body .app-shell:not(.customer-storefront) .nav-badge.nav-badge * {
+  color: #ffffff !important;
+}
+
+/* app-readable-contrast-final-v5 */
+html body .app-shell:not(.customer-storefront) .page.page.today-page .production-dashboard,
+html body .app-shell:not(.customer-storefront) .page.page.today-page .production-dashboard * {
+  color: #dedede !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page.today-page .production-dashboard :is(h2, h3, strong, b) {
+  color: #f4f4f4 !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .quick-metrics.quick-metrics,
+html body .app-shell:not(.customer-storefront) .page.page .quick-metrics.quick-metrics > div,
+html body .app-shell:not(.customer-storefront) .page.page .quick-metrics.quick-metrics .metric-button.metric-button,
+html body .app-shell:not(.customer-storefront) .page.page .pricing-product-row.pricing-product-row,
+html body .app-shell:not(.customer-storefront) .page.page .batch-trace-row.batch-trace-row {
+  background: linear-gradient(145deg, #c8bfb2, #b6ad9f) !important;
+  border-color: rgba(83, 58, 34, .6) !important;
+  color: #101010 !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .quick-metrics.quick-metrics *,
+html body .app-shell:not(.customer-storefront) .page.page .quick-metrics.quick-metrics .metric-button.metric-button *,
+html body .app-shell:not(.customer-storefront) .page.page .pricing-product-row.pricing-product-row :not(button):not(svg):not(path),
+html body .app-shell:not(.customer-storefront) .page.page .batch-trace-row.batch-trace-row :not(button):not(svg):not(path) {
+  color: #101010 !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .owner-product-rank.owner-product-rank small {
+  background: #5f2a10 !important;
+  color: #ffffff !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .pricing-product-row.pricing-product-row .text-button,
+html body .app-shell:not(.customer-storefront) .page.page .batch-trace-row.batch-trace-row .text-button {
+  background: linear-gradient(135deg, #9a4b1f, #5f2a10) !important;
+  color: #ffffff !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .pricing-product-row.pricing-product-row .text-button *,
+html body .app-shell:not(.customer-storefront) .page.page .batch-trace-row.batch-trace-row .text-button * {
+  color: #ffffff !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .bake-side-card-dark.bake-side-card-dark button {
+  background: #c8bfb2 !important;
+  border-color: rgba(83, 58, 34, .6) !important;
+  color: #101010 !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .availability-toolbar.availability-toolbar button {
+  background: #c8bfb2 !important;
+  border-color: rgba(83, 58, 34, .6) !important;
+  color: #101010 !important;
+}
+
 html body .app-shell .kitchen-board .kitchen-recipe-panel.kitchen-recipe-panel :is(
   input,
   select,
@@ -19645,6 +19985,675 @@ html body .app-shell .kitchen-board .kitchen-recipe-panel.kitchen-recipe-panel :
 ),
 html body .app-shell .kitchen-board .kitchen-add-card.kitchen-add-card :is(input, select, textarea) {
   color: var(--ink-strong) !important;
+}
+
+/* app-readable-contrast-v1 */
+:root {
+  --readable-on-dark: #d8d8d8;
+  --readable-on-dark-strong: #f1f1f1;
+  --readable-on-light: #111111;
+  --readable-on-light-muted: #242424;
+}
+
+html body .app-shell,
+html body .app-shell :is(
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  p,
+  small,
+  label,
+  legend,
+  summary,
+  li,
+  td,
+  th,
+  a,
+  button,
+  span,
+  em,
+  strong,
+  b
+) {
+  color: var(--readable-on-dark) !important;
+}
+
+html body .app-shell :is(h1, h2, h3, h4, h5, h6, strong, b, .display-title, .page-heading h1, .greeting h1) {
+  color: var(--readable-on-dark-strong) !important;
+}
+
+html body .app-shell :is(
+  input,
+  select,
+  textarea,
+  .search-field,
+  .cloud-inbox-banner,
+  .sample-record-banner,
+  .production-card,
+  .settings-hero-card,
+  .settings-card,
+  .settings-command-hero,
+  .settings-command-grid article,
+  .settings-provider-note,
+  .settings-number-grid label,
+  .settings-hours-grid label,
+  .settings-test-grid label,
+  .settings-event-list,
+  .settings-announcement-fields,
+  .owner-setup-wizard,
+  .owner-setup-panel,
+  .owner-setup-steps,
+  .owner-setup-product-grid label,
+  .product-type-card,
+  .product-package-settings,
+  .product-availability-card,
+  .product-type-settings-card,
+  .email-delivery-history,
+  .ready-shelf-panel,
+  .ready-shelf-row,
+  .modal-sheet,
+  .customer-storefront .modal-sheet,
+  .customer-directory-panel,
+  .customer-directory-toolbar,
+  .customer-directory-layout,
+  .customer-directory-list,
+  .customer-directory-row,
+  .customer-directory-meta-card,
+  .customer-directory-form-card,
+  .customer-directory-field,
+  .owner-report-grid article,
+  .quick-metrics div,
+  .quick-metrics button,
+  .quality-progress,
+  .quality-check-row,
+  .owner-traceability-strip,
+  .pricing-product-row,
+  .batch-trace-row,
+  .compact-logbook-list .expense-row,
+  .compact-logbook-list .batch-trace-row,
+  .logbook-liquid-card,
+  .order-history-facts span,
+  .order-history-detail-grid span,
+  .order-history-notes,
+  .settings-sync-pill,
+  .settings-success,
+  .settings-time-window,
+  .pickup-location-card,
+  .customer-product,
+  .customer-product-detail-card,
+  .customer-cart-panel,
+  .customer-checkout-panel,
+  .customer-lookup-card,
+  .customer-review-card,
+  .customer-ready-card
+) {
+  color: var(--readable-on-light) !important;
+}
+
+html body .app-shell :is(
+  input,
+  select,
+  textarea,
+  .search-field,
+  .cloud-inbox-banner,
+  .sample-record-banner,
+  .production-card,
+  .settings-hero-card,
+  .settings-card,
+  .settings-command-hero,
+  .settings-command-grid article,
+  .settings-provider-note,
+  .settings-number-grid label,
+  .settings-hours-grid label,
+  .settings-test-grid label,
+  .settings-event-list,
+  .settings-announcement-fields,
+  .owner-setup-wizard,
+  .owner-setup-panel,
+  .owner-setup-steps,
+  .owner-setup-product-grid label,
+  .product-type-card,
+  .product-package-settings,
+  .product-availability-card,
+  .product-type-settings-card,
+  .email-delivery-history,
+  .ready-shelf-panel,
+  .ready-shelf-row,
+  .modal-sheet,
+  .customer-storefront .modal-sheet,
+  .customer-directory-panel,
+  .customer-directory-toolbar,
+  .customer-directory-layout,
+  .customer-directory-list,
+  .customer-directory-row,
+  .customer-directory-meta-card,
+  .customer-directory-form-card,
+  .customer-directory-field,
+  .owner-report-grid article,
+  .quick-metrics div,
+  .quick-metrics button,
+  .quality-progress,
+  .quality-check-row,
+  .owner-traceability-strip,
+  .pricing-product-row,
+  .batch-trace-row,
+  .compact-logbook-list .expense-row,
+  .compact-logbook-list .batch-trace-row,
+  .logbook-liquid-card,
+  .order-history-facts span,
+  .order-history-detail-grid span,
+  .order-history-notes,
+  .settings-sync-pill,
+  .settings-success,
+  .settings-time-window,
+  .pickup-location-card,
+  .customer-product,
+  .customer-product-detail-card,
+  .customer-cart-panel,
+  .customer-checkout-panel,
+  .customer-lookup-card,
+  .customer-review-card,
+  .customer-ready-card
+) :is(
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  p,
+  small,
+  label,
+  legend,
+  summary,
+  li,
+  td,
+  th,
+  a,
+  button,
+  span,
+  em,
+  strong,
+  b
+) {
+  color: var(--readable-on-light) !important;
+}
+
+html body .app-shell :is(input, select, textarea)::placeholder {
+  color: #555555 !important;
+}
+
+html body .app-shell :is(
+  .primary-button,
+  .settings-save-button,
+  .settings-test-button,
+  .orders-add-button,
+  .customer-product-add,
+  .round-action,
+  .small-action-button,
+  .global-quick-action,
+  .settings-command-hero button,
+  .success-track-link
+) {
+  color: #ffffff !important;
+  background-color: #5f2a10 !important;
+}
+
+html body .app-shell :is(
+  .primary-button,
+  .settings-save-button,
+  .settings-test-button,
+  .orders-add-button,
+  .customer-product-add,
+  .round-action,
+  .small-action-button,
+  .global-quick-action,
+  .settings-command-hero button,
+  .success-track-link
+) :is(span, strong, small, svg) {
+  color: var(--readable-on-dark-strong) !important;
+}
+
+html body .app-shell :is(.secondary-button, .settings-preview-link),
+html body .app-shell :is(.secondary-button, .settings-preview-link) :is(span, strong, small, svg) {
+  color: var(--readable-on-light) !important;
+}
+
+html body .app-shell :is(.nav-badge, .nav-badge *) {
+  color: #ffffff !important;
+}
+
+/* app-readable-contrast-priority-v2 */
+html body .app-shell :is(
+  .today-page,
+  .orders-page,
+  .bake-page,
+  .production-hub-page,
+  .business-page,
+  .settings-page,
+  .menu-command-page,
+  .reports-page,
+  .logbook-page,
+  .customer-directory-page,
+  .help-page
+) :is(
+  .page-heading h1,
+  .page-heading h2,
+  .page-heading h3,
+  .page-heading p,
+  .page-heading small,
+  .display-title,
+  .greeting h1,
+  .greeting p,
+  .section-title-line h2,
+  .section-title-line h3,
+  .section-title-line small,
+  .section-title-line strong
+) {
+  color: var(--readable-on-dark-strong) !important;
+}
+
+html body .app-shell :is(
+  .starter-panel,
+  .order-panel,
+  .today-bake-selector,
+  .visual-fermentation-card,
+  .today-accept-orders-card,
+  .orders-command-grid article,
+  .orders-intake-card,
+  .orders-toolbar,
+  .order-command-card,
+  .orders-side-panel > section,
+  .orders-calendar-shell,
+  .calendar-panel,
+  .flour-database-panel,
+  .collapsible-section-header,
+  .production-ops-hero,
+  .production-ops-metrics article,
+  .production-inventory-summary article,
+  .production-inventory-row,
+  .production-inventory-empty,
+  .production-ops-note,
+  .production-batches,
+  .production-inventory-check,
+  .weekly-production-panel,
+  .production-day-mode,
+  .production-print-center,
+  .smart-prep-panel,
+  .label-compliance-center,
+  .inventory-forecast-panel,
+  .owner-alerts-card,
+  .owner-quality-card,
+  .owner-reports-card,
+  .trend-card,
+  .spending-card,
+  .inventory-section,
+  .business-subpage-card,
+  .management-logbook-section,
+  .help-hero-card,
+  .help-workflow-card,
+  .help-safety-card,
+  .help-changelog-card,
+  .help-note-card,
+  .menu-side-card,
+  .menu-status-card,
+  .menu-command-card,
+  .menu-products-panel,
+  .owner-preview-card
+) :is(h1, h2, h3, h4, h5, h6, p, small, label, legend, summary, li, td, th, a, button, span, em, strong, b) {
+  color: var(--readable-on-dark) !important;
+}
+
+html body .app-shell :is(
+  .starter-panel,
+  .order-panel,
+  .today-bake-selector,
+  .visual-fermentation-card,
+  .today-accept-orders-card,
+  .orders-command-grid article,
+  .orders-intake-card,
+  .orders-toolbar,
+  .order-command-card,
+  .orders-side-panel > section,
+  .orders-calendar-shell,
+  .calendar-panel,
+  .flour-database-panel,
+  .collapsible-section-header,
+  .production-ops-hero,
+  .production-ops-metrics article,
+  .production-inventory-summary article,
+  .production-inventory-row,
+  .production-inventory-empty,
+  .production-ops-note,
+  .production-batches,
+  .production-inventory-check,
+  .weekly-production-panel,
+  .production-day-mode,
+  .production-print-center,
+  .smart-prep-panel,
+  .label-compliance-center,
+  .inventory-forecast-panel,
+  .owner-alerts-card,
+  .owner-quality-card,
+  .owner-reports-card,
+  .trend-card,
+  .spending-card,
+  .inventory-section,
+  .business-subpage-card,
+  .management-logbook-section,
+  .help-hero-card,
+  .help-workflow-card,
+  .help-safety-card,
+  .help-changelog-card,
+  .help-note-card,
+  .menu-side-card,
+  .menu-status-card,
+  .menu-command-card,
+  .menu-products-panel,
+  .owner-preview-card
+) :is(h1, h2, h3, h4, h5, h6, strong, b) {
+  color: var(--readable-on-dark-strong) !important;
+}
+
+html body .app-shell :is(
+  .production-dashboard,
+  .production-dashboard > header,
+  .production-dashboard > header > div,
+  .production-dashboard > header > span,
+  .production-card,
+  .production-card *,
+  .quick-metrics div,
+  .quick-metrics div *,
+  .quick-metrics button,
+  .quick-metrics button *,
+  .owner-report-grid article,
+  .owner-report-grid article *,
+  .settings-command-grid article,
+  .settings-command-grid article *,
+  .settings-card,
+  .settings-card *,
+  .settings-hero-card,
+  .settings-hero-card *,
+  .settings-command-hero,
+  .settings-command-hero *,
+  .customer-directory-panel,
+  .customer-directory-panel *,
+  .quality-progress,
+  .quality-progress *,
+  .quality-check-row.complete,
+  .quality-check-row.complete *,
+  .view-switch,
+  .view-switch *,
+  .segmented-control,
+  .segmented-control *
+) {
+  color: var(--readable-on-light) !important;
+}
+
+html body .app-shell :is(.quality-check-row:not(.complete), .quality-check-row:not(.complete) *) {
+  color: var(--readable-on-dark) !important;
+}
+
+html body .app-shell :is(.quality-check-row:not(.complete) strong, .quality-check-row:not(.complete) b) {
+  color: var(--readable-on-dark-strong) !important;
+}
+
+html body .app-shell :is(.nav-badge, .nav-badge *, .orders-add-button, .orders-add-button *) {
+  color: #ffffff !important;
+}
+
+/* app-readable-contrast-priority-v3 */
+html body .app-shell .page.page :is(
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  p,
+  small,
+  label,
+  legend,
+  summary,
+  li,
+  td,
+  th,
+  a,
+  button,
+  span,
+  em,
+  strong,
+  b
+),
+html body .app-shell .desktop-nav-footer.desktop-nav-footer :is(button, span, small, strong, b),
+html body .app-shell .desktop-profile-link.desktop-profile-link :is(button, span, small, strong, b),
+html body .app-shell .desktop-help-link.desktop-help-link :is(button, span, small, strong, b) {
+  color: var(--readable-on-dark) !important;
+}
+
+html body .app-shell .page.page :is(h1, h2, h3, h4, h5, h6, strong, b),
+html body .app-shell .desktop-profile-link.desktop-profile-link strong,
+html body .app-shell .desktop-help-link.desktop-help-link strong {
+  color: var(--readable-on-dark-strong) !important;
+}
+
+html body .app-shell .page.page :is(
+  input,
+  select,
+  textarea,
+  .search-field,
+  .cloud-inbox-banner,
+  .sample-record-banner,
+  .production-dashboard,
+  .production-dashboard > header,
+  .production-dashboard > header > div,
+  .production-dashboard > header > span,
+  .production-card,
+  .quick-metrics div,
+  .quick-metrics button,
+  .owner-report-grid article,
+  .settings-hero-card,
+  .settings-card,
+  .settings-accordion,
+  .settings-accordion-summary,
+  .settings-command-hero,
+  .settings-command-grid article,
+  .settings-provider-note,
+  .settings-number-grid label,
+  .settings-hours-grid label,
+  .settings-test-grid label,
+  .settings-event-list,
+  .settings-announcement-fields,
+  .owner-setup-wizard,
+  .owner-setup-panel,
+  .owner-setup-steps,
+  .owner-setup-product-grid label,
+  .product-type-card,
+  .product-package-settings,
+  .product-availability-card,
+  .product-type-settings-card,
+  .email-delivery-history,
+  .ready-shelf-panel,
+  .ready-shelf-row,
+  .modal-sheet,
+  .customer-storefront .modal-sheet,
+  .customer-directory-panel,
+  .customer-directory-toolbar,
+  .customer-directory-layout,
+  .customer-directory-list,
+  .customer-directory-row,
+  .customer-directory-meta-card,
+  .customer-directory-form-card,
+  .customer-directory-field,
+  .quality-progress,
+  .quality-check-row.complete,
+  .owner-traceability-strip,
+  .pricing-product-row,
+  .batch-trace-row,
+  .compact-logbook-list .expense-row,
+  .compact-logbook-list .batch-trace-row,
+  .logbook-liquid-card,
+  .order-history-facts span,
+  .order-history-detail-grid span,
+  .order-history-notes,
+  .settings-sync-pill,
+  .settings-success,
+  .settings-time-window,
+  .pickup-location-card,
+  .view-switch,
+  .segmented-control,
+  .recipe-type-section,
+  .recipe-type-header,
+  .recipe-type-body,
+  .customer-product,
+  .customer-product-detail-card,
+  .customer-cart-panel,
+  .customer-checkout-panel,
+  .customer-lookup-card,
+  .customer-review-card,
+  .customer-ready-card
+) :is(
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  p,
+  small,
+  label,
+  legend,
+  summary,
+  li,
+  td,
+  th,
+  a,
+  button,
+  span,
+  em,
+  strong,
+  b
+),
+html body .app-shell .page.page :is(
+  input,
+  select,
+  textarea,
+  .search-field,
+  .cloud-inbox-banner,
+  .sample-record-banner,
+  .production-dashboard,
+  .production-dashboard > header,
+  .production-dashboard > header > div,
+  .production-dashboard > header > span,
+  .production-card,
+  .quick-metrics div,
+  .quick-metrics button,
+  .owner-report-grid article,
+  .settings-hero-card,
+  .settings-card,
+  .settings-accordion,
+  .settings-accordion-summary,
+  .settings-command-hero,
+  .settings-command-grid article,
+  .settings-provider-note,
+  .settings-number-grid label,
+  .settings-hours-grid label,
+  .settings-test-grid label,
+  .settings-event-list,
+  .settings-announcement-fields,
+  .owner-setup-wizard,
+  .owner-setup-panel,
+  .owner-setup-steps,
+  .owner-setup-product-grid label,
+  .product-type-card,
+  .product-package-settings,
+  .product-availability-card,
+  .product-type-settings-card,
+  .email-delivery-history,
+  .ready-shelf-panel,
+  .ready-shelf-row,
+  .modal-sheet,
+  .customer-storefront .modal-sheet,
+  .customer-directory-panel,
+  .customer-directory-toolbar,
+  .customer-directory-layout,
+  .customer-directory-list,
+  .customer-directory-row,
+  .customer-directory-meta-card,
+  .customer-directory-form-card,
+  .customer-directory-field,
+  .quality-progress,
+  .quality-check-row.complete,
+  .owner-traceability-strip,
+  .pricing-product-row,
+  .batch-trace-row,
+  .compact-logbook-list .expense-row,
+  .compact-logbook-list .batch-trace-row,
+  .logbook-liquid-card,
+  .order-history-facts span,
+  .order-history-detail-grid span,
+  .order-history-notes,
+  .settings-sync-pill,
+  .settings-success,
+  .settings-time-window,
+  .pickup-location-card,
+  .view-switch,
+  .segmented-control,
+  .recipe-type-section,
+  .recipe-type-header,
+  .recipe-type-body,
+  .customer-product,
+  .customer-product-detail-card,
+  .customer-cart-panel,
+  .customer-checkout-panel,
+  .customer-lookup-card,
+  .customer-review-card,
+  .customer-ready-card
+) {
+  color: var(--readable-on-light) !important;
+}
+
+html body .app-shell .page.page :is(.quality-check-row:not(.complete), .quality-check-row:not(.complete) *) {
+  color: var(--readable-on-dark) !important;
+}
+
+html body .app-shell .page.page :is(.quality-check-row:not(.complete) strong, .quality-check-row:not(.complete) b) {
+  color: var(--readable-on-dark-strong) !important;
+}
+
+html body .app-shell :is(
+  .primary-button,
+  .settings-save-button,
+  .settings-test-button,
+  .orders-add-button,
+  .customer-product-add,
+  .round-action,
+  .small-action-button,
+  .global-quick-action,
+  .settings-command-hero button,
+  .success-track-link
+),
+html body .app-shell :is(
+  .primary-button,
+  .settings-save-button,
+  .settings-test-button,
+  .orders-add-button,
+  .customer-product-add,
+  .round-action,
+  .small-action-button,
+  .global-quick-action,
+  .settings-command-hero button,
+  .success-track-link
+) :is(span, strong, small, svg) {
+  color: #ffffff !important;
+}
+
+html body .app-shell .nav-badge.nav-badge,
+html body .app-shell .nav-badge.nav-badge * {
+  color: #ffffff !important;
 }
 
 /* kitchen-final-readable-surfaces-v1 */
@@ -19712,5 +20721,73 @@ html body .app-shell .kitchen-board :is(
   .kitchen-suggestion-card *
 ) {
   color: var(--ink-strong) !important;
+}
+
+/* app-readable-contrast-after-final-kitchen-v7 */
+html body .app-shell:not(.customer-storefront) .page.page.today-page .production-dashboard,
+html body .app-shell:not(.customer-storefront) .page.page.today-page .production-dashboard * {
+  color: #dedede !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page.today-page .production-dashboard :is(h2, h3, strong, b) {
+  color: #f4f4f4 !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .quick-metrics.quick-metrics,
+html body .app-shell:not(.customer-storefront) .page.page .quick-metrics.quick-metrics > div,
+html body .app-shell:not(.customer-storefront) .page.page .quick-metrics.quick-metrics .metric-button.metric-button,
+html body .app-shell:not(.customer-storefront) .page.page .pricing-product-row.pricing-product-row,
+html body .app-shell:not(.customer-storefront) .page.page .batch-trace-row.batch-trace-row {
+  background: linear-gradient(145deg, #c8bfb2, #b6ad9f) !important;
+  border-color: rgba(83, 58, 34, .6) !important;
+  color: #101010 !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .quick-metrics.quick-metrics *,
+html body .app-shell:not(.customer-storefront) .page.page .quick-metrics.quick-metrics .metric-button.metric-button *,
+html body .app-shell:not(.customer-storefront) .page.page .pricing-product-row.pricing-product-row :not(button):not(svg):not(path),
+html body .app-shell:not(.customer-storefront) .page.page .batch-trace-row.batch-trace-row :not(button):not(svg):not(path) {
+  color: #101010 !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .owner-product-rank.owner-product-rank small {
+  background: #5f2a10 !important;
+  color: #ffffff !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .pricing-product-row.pricing-product-row .text-button,
+html body .app-shell:not(.customer-storefront) .page.page .batch-trace-row.batch-trace-row .text-button,
+html body .app-shell:not(.customer-storefront) .page.page .settings-command-hero.settings-command-hero button,
+html body .app-shell:not(.customer-storefront) .page.page .small-action-button.small-action-button:not(.subtle),
+html body .app-shell:not(.customer-storefront) .page.page .round-action.round-action,
+html body .app-shell:not(.customer-storefront) .page.page .primary-button.primary-button,
+html body .app-shell:not(.customer-storefront) .page.page .secondary-button.secondary-button,
+html body .app-shell:not(.customer-storefront) .page.page .settings-save-button.settings-save-button,
+html body .app-shell:not(.customer-storefront) .page.page .settings-test-button.settings-test-button,
+html body .app-shell:not(.customer-storefront) .page.page .global-quick-action.global-quick-action {
+  background: linear-gradient(135deg, #9a4b1f, #5f2a10) !important;
+  border-color: rgba(229, 173, 101, .55) !important;
+  color: #ffffff !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .pricing-product-row.pricing-product-row .text-button *,
+html body .app-shell:not(.customer-storefront) .page.page .batch-trace-row.batch-trace-row .text-button *,
+html body .app-shell:not(.customer-storefront) .page.page .settings-command-hero.settings-command-hero button *,
+html body .app-shell:not(.customer-storefront) .page.page .small-action-button.small-action-button:not(.subtle) *,
+html body .app-shell:not(.customer-storefront) .page.page .round-action.round-action *,
+html body .app-shell:not(.customer-storefront) .page.page .primary-button.primary-button *,
+html body .app-shell:not(.customer-storefront) .page.page .secondary-button.secondary-button *,
+html body .app-shell:not(.customer-storefront) .page.page .settings-save-button.settings-save-button *,
+html body .app-shell:not(.customer-storefront) .page.page .settings-test-button.settings-test-button *,
+html body .app-shell:not(.customer-storefront) .page.page .global-quick-action.global-quick-action * {
+  color: #ffffff !important;
+  stroke: currentColor !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .bake-side-card-dark.bake-side-card-dark button,
+html body .app-shell:not(.customer-storefront) .page.page .availability-toolbar.availability-toolbar button {
+  background: #c8bfb2 !important;
+  border-color: rgba(83, 58, 34, .6) !important;
+  color: #101010 !important;
 }
 
