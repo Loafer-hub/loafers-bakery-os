@@ -6,11 +6,13 @@ import {
   Search,
   Settings2,
   ShoppingBag,
+  Sparkles,
   Store,
   Tags,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { ReadyShelf } from "../components/ReadyShelf";
+import { RecipeImportWorkspace } from "../components/RecipeImportWorkspace";
 import { LOAFERS_BRAND } from "../lib/brand";
 import { normalizeProductTypeSettings, productTypeFor } from "../lib/productTypes";
 import { lowestSalesPrice, normalizedSalesOptions } from "../lib/salesOptions";
@@ -31,6 +33,13 @@ const menuViews = [
     title: "Storefront controls",
     note: "Product types, availability, badges, options, pickup, and customer rules.",
     icon: Settings2,
+  },
+  {
+    id: "import",
+    label: "Import",
+    title: "Recipe import",
+    note: "Use the AI recipe reader to turn pasted or web recipes into saved product cards.",
+    icon: Sparkles,
   },
   {
     id: "shelf",
@@ -145,6 +154,17 @@ function MenuModeBoard({ activeView, bakerySettings, onAddProduct, productTypes,
       </section>
     );
   }
+  if (activeView === "import") {
+    return (
+      <section className="menu-mode-board">
+        <Sparkles size={22} />
+        <span>
+          <strong>Import recipes without doing the math first</strong>
+          <small>Paste a recipe or try a web link, review the parsed product card, then save it into Products for pricing, scheduling, and customer display.</small>
+        </span>
+      </section>
+    );
+  }
   return (
     <section className="menu-mode-board">
       <Eye size={22} />
@@ -189,6 +209,16 @@ function MenuEmbeddedWorkspace({
           recipes={recipes}
         />
       </div>
+    );
+  }
+
+  if (view === "import") {
+    return (
+      <RecipeImportWorkspace
+        bakerySettings={bakerySettings}
+        onSaveRecipe={props.onSaveRecipe}
+        recipes={recipes}
+      />
     );
   }
 

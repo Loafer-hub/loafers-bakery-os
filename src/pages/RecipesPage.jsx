@@ -312,6 +312,35 @@ function defaultMethodNotes(recipe) {
   ];
 }
 
+function customMethodNotes(recipe = {}) {
+  const raw = recipe.instructions || recipe.method || recipe.productionInstructions || recipe.productionNotes;
+  if (Array.isArray(raw)) {
+    return raw
+      .map((item, index) => {
+        if (typeof item === "string") return [`Step ${index + 1}`, item];
+        return [item.title || item.label || `Step ${index + 1}`, item.body || item.note || item.detail || ""];
+      })
+      .filter(([, note]) => String(note || "").trim());
+  }
+  if (typeof raw === "string" && raw.trim()) {
+    return raw
+      .split(/\n+/)
+      .map((line, index) => {
+        const [title, ...rest] = line.split(":");
+        return rest.length
+          ? [title.trim() || `Step ${index + 1}`, rest.join(":").trim()]
+          : [`Step ${index + 1}`, line.trim()];
+      })
+      .filter(([, note]) => String(note || "").trim());
+  }
+  return [];
+}
+
+function methodNotesForRecipe(recipe) {
+  const custom = customMethodNotes(recipe);
+  return custom.length ? custom : defaultMethodNotes(recipe);
+}
+
 function resizeImageFile(file) {
   return new Promise((resolve, reject) => {
     if (!file?.type?.startsWith("image/")) {
@@ -730,7 +759,7 @@ export default function RecipesPage({ bakerySettings, embeddedContext, inventory
     const price = lowestSalesPrice(selected);
     const ingredientCostPerLoaf = batchCost / Math.max(1, loaves);
     const selectedFlours = selected.ingredients.filter((ingredient) => ingredientCategory(ingredient) === "flour");
-    const methodNotes = defaultMethodNotes(selected);
+    const methodNotes = methodNotesForRecipe(selected);
     return (
       <main className="page recipe-detail">
         <button className="text-back" onClick={() => setSelectedId(null)}>← Recipes</button>
