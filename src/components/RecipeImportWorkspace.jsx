@@ -3,8 +3,10 @@ import {
   ClipboardPaste,
   FileText,
   Globe2,
+  Plus,
   Save,
   Sparkles,
+  Trash2,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { parseImportedRecipe, textFromHtml } from "../lib/recipeImport";
@@ -29,6 +31,50 @@ function normalizeUrl(value = "") {
   if (!trimmed) return "";
   if (/^https?:\/\//i.test(trimmed)) return trimmed;
   return `https://${trimmed}`;
+}
+
+const INGREDIENT_CATEGORIES = ["flour", "liquid", "starter", "yeast", "salt", "sweetener", "fat", "acid", "spice", "produce", "culture", "inclusion", "other"];
+
+function recalculateDraftFormula(recipe, ingredients) {
+  const safeIngredients = Array.isArray(ingredients) ? ingredients : [];
+  const formulaMode = recipe?.formulaMode || productTypeFor(recipe?.productType).formulaMode || "bakers";
+  const flourWeight = safeIngredients.reduce((sum, ingredient) => (
+    ingredient.category === "flour" ? sum + Number(ingredient.weight || 0) : sum
+  ), 0);
+  const totalWeight = safeIngredients.reduce((sum, ingredient) => sum + Number(ingredient.weight || 0), 0);
+  const baseWeight = Math.max(1, formulaMode === "batch" ? totalWeight : flourWeight || Number(recipe?.baseWeight || recipe?.flourWeight || 1));
+  const nextIngredients = safeIngredients.map((ingredient) => ({
+    ...ingredient,
+    weight: Math.max(0, Number(ingredient.weight || 0)),
+    percent: Number((Math.max(0, Number(ingredient.weight || 0)) / baseWeight * 100).toFixed(3)),
+  }));
+  const hydration = nextIngredients.reduce((sum, ingredient) => (
+    ingredient.category === "liquid" ? sum + Number(ingredient.percent || 0) : sum
+  ), 0);
+  return {
+    ...recipe,
+    ingredients: nextIngredients,
+    baseWeight,
+    flourWeight: baseWeight,
+    hydration,
+  };
+}
+
+function newIngredient() {
+  return {
+    id: `ingredient-import-manual-${Date.now()}`,
+    name: "New ingredient",
+    category: "other",
+    weight: 0,
+    percent: 0,
+  };
+}
+
+function newInstruction(index = 0) {
+  return {
+    title: `Step ${index + 1}`,
+    body: "",
+  };
 }
 
 export function RecipeImportWorkspace({ bakerySettings, onSaveRecipe, recipes = [] }) {
@@ -101,20 +147,31 @@ export function RecipeImportWorkspace({ bakerySettings, onSaveRecipe, recipes = 
   function updateIngredient(index, changes) {
     setDraft((current) => {
       if (!current) return current;
-      const baseWeight = Math.max(1, Number(current.baseWeight || current.flourWeight || 1));
       const nextIngredients = current.ingredients.map((ingredient, ingredientIndex) => {
         if (ingredientIndex !== index) return ingredient;
-        const next = { ...ingredient, ...changes };
-        if (Object.prototype.hasOwnProperty.call(changes, "weight")) {
-          next.weight = Math.max(0, Number(changes.weight || 0));
-          next.percent = Number((next.weight / baseWeight * 100).toFixed(3));
-        }
-        return next;
+        return {
+          ...ingredient,
+          ...changes,
+          weight: Object.prototype.hasOwnProperty.call(changes, "weight")
+            ? Math.max(0, Number(changes.weight || 0))
+            : Number(ingredient.weight || 0),
+        };
       });
-      const hydration = nextIngredients.reduce((sum, ingredient) => (
-        ingredient.category === "liquid" ? sum + Number(ingredient.percent || 0) : sum
-      ), 0);
-      return { ...current, ingredients: nextIngredients, hydration };
+      return recalculateDraftFormula(current, nextIngredients);
+    });
+  }
+
+  function addIngredient() {
+    setDraft((current) => {
+      if (!current) return current;
+      return recalculateDraftFormula(current, [...current.ingredients, newIngredient()]);
+    });
+  }
+
+  function removeIngredient(index) {
+    setDraft((current) => {
+      if (!current) return current;
+      return recalculateDraftFormula(current, current.ingredients.filter((_, ingredientIndex) => ingredientIndex !== index));
     });
   }
 
@@ -124,6 +181,30 @@ export function RecipeImportWorkspace({ bakerySettings, onSaveRecipe, recipes = 
       const instructions = (current.instructions || []).map((step, stepIndex) => (
         stepIndex === index ? { ...step, ...changes } : step
       ));
+      return {
+        ...current,
+        instructions,
+        productionInstructions: instructions,
+      };
+    });
+  }
+
+  function addInstruction() {
+    setDraft((current) => {
+      if (!current) return current;
+      const instructions = [...(current.instructions || []), newInstruction((current.instructions || []).length)];
+      return {
+        ...current,
+        instructions,
+        productionInstructions: instructions,
+      };
+    });
+  }
+
+  function removeInstruction(index) {
+    setDraft((current) => {
+      if (!current) return current;
+      const instructions = (current.instructions || []).filter((_, stepIndex) => stepIndex !== index);
       return {
         ...current,
         instructions,
@@ -255,33 +336,57 @@ export function RecipeImportWorkspace({ bakerySettings, onSaveRecipe, recipes = 
                 </label>
               </div>
 
+              <div className="recipe-import-section-head">
+                <h4>Ingredients</h4>
+                <button type="button" onClick={addIngredient}><Plus size={15} /> Add ingredient</button>
+              </div>
               <div className="recipe-import-table">
-                <div><span>Ingredient</span><span>Category</span><span>Grams</span><span>%</span></div>
+                <div><span>Ingredient</span><span>Category</span><span>Grams</span><span>%</span><span>Actions</span></div>
                 {draft.ingredients.map((ingredient, index) => (
                   <div key={ingredient.id || `${ingredient.name}-${index}`}>
                     <input value={ingredient.name} onChange={(event) => updateIngredient(index, { name: event.target.value })} />
                     <select value={ingredient.category} onChange={(event) => updateIngredient(index, { category: event.target.value })}>
-                      {["flour", "liquid", "starter", "yeast", "salt", "sweetener", "fat", "acid", "spice", "produce", "culture", "inclusion", "other"].map((category) => (
+                      {INGREDIENT_CATEGORIES.map((category) => (
                         <option value={category} key={category}>{category}</option>
                       ))}
                     </select>
                     <input type="number" min="0" value={Math.round(Number(ingredient.weight || 0))} onChange={(event) => updateIngredient(index, { weight: event.target.value })} />
                     <span>{Number(ingredient.percent || 0).toFixed(1)}%</span>
+                    <button className="recipe-import-remove" type="button" onClick={() => removeIngredient(index)} aria-label={`Remove ${ingredient.name || "ingredient"}`}>
+                      <Trash2 size={15} />
+                      Remove
+                    </button>
                   </div>
                 ))}
               </div>
 
               <div className="recipe-import-steps">
-                <h4>Production steps</h4>
+                <div className="recipe-import-section-head">
+                  <h4>Production steps</h4>
+                  <button type="button" onClick={addInstruction}><Plus size={15} /> Add step</button>
+                </div>
                 {draft.instructions?.length ? draft.instructions.map((step, index) => (
-                  <label key={`${stepTitle(step, index)}-${index}`}>
-                    <span>{stepTitle(step, index)}</span>
+                  <article className="recipe-import-step-card" key={`${stepTitle(step, index)}-${index}`}>
+                    <label>
+                      Step title
+                      <input
+                        value={stepTitle(step, index)}
+                        onChange={(event) => updateInstruction(index, { title: event.target.value })}
+                      />
+                    </label>
+                    <label>
+                      Instructions
                     <textarea
                       rows={2}
                       value={stepBody(step)}
                       onChange={(event) => updateInstruction(index, { body: event.target.value })}
                     />
-                  </label>
+                    </label>
+                    <button className="recipe-import-remove" type="button" onClick={() => removeInstruction(index)}>
+                      <Trash2 size={15} />
+                      Remove step
+                    </button>
+                  </article>
                 )) : <p>No clear steps found. The app will use default production notes for this product type.</p>}
               </div>
 

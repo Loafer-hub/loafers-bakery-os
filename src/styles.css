@@ -19928,7 +19928,7 @@ html body .app-shell:not(.customer-storefront) .page.page .availability-toolbar.
 
 .recipe-import-table > div {
   display: grid;
-  grid-template-columns: minmax(150px, 1.4fr) minmax(120px, .8fr) 90px 74px;
+  grid-template-columns: minmax(150px, 1.35fr) minmax(120px, .8fr) 90px 74px minmax(96px, auto);
   gap: 8px;
   align-items: center;
   padding: 9px;
@@ -19951,24 +19951,69 @@ html body .app-shell:not(.customer-storefront) .page.page .availability-toolbar.
   border-radius: 11px;
 }
 
+.recipe-import-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.recipe-import-section-head h4 {
+  margin: 0;
+  font-family: "Newsreader", serif;
+  font-size: 1.45rem;
+}
+
+.recipe-import-section-head button {
+  width: auto;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 12px;
+}
+
+.recipe-import-remove {
+  min-height: 40px !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 10px;
+  border-color: rgba(95, 42, 16, .28) !important;
+  background: rgba(95, 42, 16, .14) !important;
+  color: #4d210c !important;
+}
+
+.recipe-import-remove svg {
+  stroke: currentColor;
+}
+
 .recipe-import-steps {
   display: grid;
   gap: 10px;
   margin-top: 18px;
 }
 
-.recipe-import-steps h4 {
-  margin: 0;
-  font-family: "Newsreader", serif;
-  font-size: 1.45rem;
-}
-
-.recipe-import-steps label {
+.recipe-import-step-card {
+  display: grid;
+  gap: 10px;
   margin: 0;
   padding: 12px;
   border: 1px solid rgba(63, 34, 15, .16);
   border-radius: 16px;
   background: rgba(215, 209, 200, .58);
+}
+
+.recipe-import-step-card label {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
 }
 
 .recipe-import-empty {
@@ -20039,8 +20084,56 @@ html body .app-shell:not(.customer-storefront) .recipe-import-workspace.recipe-i
   }
 
   .recipe-import-table > div {
-    min-width: 640px;
+    min-width: 760px;
   }
+}
+
+/* recipe-detail-dark-cards-v1 */
+html body .app-shell:not(.customer-storefront) .recipe-detail.recipe-detail .recipe-cost-card.recipe-cost-card,
+html body .app-shell:not(.customer-storefront) .recipe-detail.recipe-detail .recipe-flour-science.recipe-flour-science {
+  border: 1px solid rgba(168, 142, 104, .56) !important;
+  background:
+    radial-gradient(circle at 92% 12%, rgba(88, 196, 110, .11), transparent 30%),
+    linear-gradient(145deg, #252520, #171b19) !important;
+  color: #dedede !important;
+  box-shadow: 0 18px 46px rgba(0, 0, 0, .24) !important;
+}
+
+html body .app-shell:not(.customer-storefront) .recipe-detail.recipe-detail .recipe-flour-science.recipe-flour-science {
+  padding: 16px !important;
+  border-radius: 18px !important;
+}
+
+html body .app-shell:not(.customer-storefront) .recipe-detail.recipe-detail .recipe-cost-card.recipe-cost-card :is(h1, h2, h3, h4, strong, b),
+html body .app-shell:not(.customer-storefront) .recipe-detail.recipe-detail .recipe-flour-science.recipe-flour-science :is(h1, h2, h3, h4, strong, b) {
+  color: #f1f1f1 !important;
+}
+
+html body .app-shell:not(.customer-storefront) .recipe-detail.recipe-detail .recipe-cost-card.recipe-cost-card :is(p, small, span, em),
+html body .app-shell:not(.customer-storefront) .recipe-detail.recipe-detail .recipe-flour-science.recipe-flour-science :is(p, small, span, em, li) {
+  color: #d7d7d7 !important;
+}
+
+html body .app-shell:not(.customer-storefront) .recipe-detail.recipe-detail .recipe-cost-card.recipe-cost-card svg,
+html body .app-shell:not(.customer-storefront) .recipe-detail.recipe-detail .recipe-flour-science.recipe-flour-science svg {
+  color: #d6a15f !important;
+  stroke: currentColor !important;
+}
+
+html body .app-shell:not(.customer-storefront) .recipe-detail.recipe-detail .recipe-flour-science .flour-science-card.flour-science-card,
+html body .app-shell:not(.customer-storefront) .recipe-detail.recipe-detail .recipe-flour-science .flour-science-metrics span {
+  border-color: rgba(168, 142, 104, .48) !important;
+  background: rgba(8, 12, 11, .52) !important;
+  color: #dedede !important;
+}
+
+html body .app-shell:not(.customer-storefront) .recipe-detail.recipe-detail .recipe-flour-science .flour-science-heading > span {
+  background: rgba(154, 85, 36, .28) !important;
+  color: #f0c88c !important;
+}
+
+html body .app-shell:not(.customer-storefront) .recipe-detail.recipe-detail .recipe-flour-science .model-note {
+  color: #c8c8c8 !important;
 }
 
 /* app-readable-contrast-final-v4 */
