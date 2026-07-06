@@ -674,3 +674,79 @@ html body .app-shell:not(.customer-storefront) .page.page .sample-record-banner 
   border-color: rgba(229, 173, 101, .58) !important;
   color: #ffffff !important;
 }
+
+/* owner-search-field-bronze-grey-final-v1 */
+html body .app-shell:not(.customer-storefront) .page.page .orders-search-row .search-field,
+html body .app-shell:not(.customer-storefront) .page.page .search-row .search-field,
+html body .app-shell:not(.customer-storefront) .page.page .search-field {
+  background: #8f8d86 !important;
+  border: 2px solid #8b552d !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(229, 173, 101, .22),
+    0 0 0 1px rgba(55, 33, 18, .36) !important;
+  color: #101010 !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .orders-search-row .search-field svg,
+html body .app-shell:not(.customer-storefront) .page.page .search-row .search-field svg,
+html body .app-shell:not(.customer-storefront) .page.page .search-field svg {
+  color: #4b2a17 !important;
+  stroke: currentColor !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .orders-search-row .search-field input,
+html body .app-shell:not(.customer-storefront) .page.page .search-row .search-field input,
+html body .app-shell:not(.customer-storefront) .page.page .search-field input {
+  color: #101010 !important;
+  caret-color: #4b2a17 !important;
+  font-weight: 800;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .orders-search-row .search-field input::placeholder,
+html body .app-shell:not(.customer-storefront) .page.page .search-row .search-field input::placeholder,
+html body .app-shell:not(.customer-storefront) .page.page .search-field input::placeholder {
+  color: #1d1a16 !important;
+  opacity: .72 !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .orders-search-row .search-field:focus-within,
+html body .app-shell:not(.customer-storefront) .page.page .search-row .search-field:focus-within,
+html body .app-shell:not(.customer-storefront) .page.page .search-field:focus-within {
+  background: #9b9991 !important;
+  border-color: #b56b31 !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(229, 173, 101, .34),
+    0 0 0 3px rgba(181, 107, 49, .28) !important;
+}
+
+/* owner-search-field-bronze-grey-specific-v1 */
+html body .app-shell:not(.customer-storefront) .page.page .search-row.search-row .search-field.search-field.search-field,
+html body .app-shell:not(.customer-storefront) .page.page .search-field.search-field.search-field.search-field {
+  background: #8f8d86 !important;
+  background-image: none !important;
+  border: 2px solid #8b552d !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(229, 173, 101, .22),
+    0 0 0 1px rgba(55, 33, 18, .36) !important;
+  color: #101010 !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .search-row.search-row .search-field.search-field.search-field svg,
+html body .app-shell:not(.customer-storefront) .page.page .search-field.search-field.search-field.search-field svg {
+  color: #4b2a17 !important;
+  stroke: currentColor !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .search-row.search-row .search-field.search-field.search-field input,
+html body .app-shell:not(.customer-storefront) .page.page .search-field.search-field.search-field.search-field input {
+  background: transparent !important;
+  color: #101010 !important;
+  caret-color: #4b2a17 !important;
+  font-weight: 800;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .search-row.search-row .search-field.search-field.search-field input::placeholder,
+html body .app-shell:not(.customer-storefront) .page.page .search-field.search-field.search-field.search-field input::placeholder {
+  color: #1d1a16 !important;
+  opacity: .72 !important;
+}
