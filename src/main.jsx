@@ -5,6 +5,7 @@ import { SplashScreen } from "@capacitor/splash-screen";
 import { StatusBar, Style } from "@capacitor/status-bar";
 import App from "./App";
 import "./styles.css";
+import "./owner-card-contrast.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>

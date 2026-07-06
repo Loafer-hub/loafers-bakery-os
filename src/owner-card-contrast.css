@@ -1,0 +1,212 @@
+/* Owner dark-card contrast layer.
+   Imported after styles.css so legacy light-card compatibility rules cannot
+   wash out the owner cards. Scope stays out of the customer storefront. */
+
+html body .app-shell:not(.customer-storefront) .page.page :is(
+  .flour-database-panel,
+  .recipe-type-section,
+  .recipe-builder-science,
+  .starter-flour-science,
+  .starter-profile-science,
+  .science-curves,
+  .calendar-panel,
+  .feed-calendar,
+  .availability-toolbar,
+  .planned-bake-row,
+  .accepted-order-bake
+) {
+  background:
+    linear-gradient(145deg, rgba(48, 47, 41, .98), rgba(25, 29, 25, .98)) !important;
+  border-color: rgba(209, 155, 95, .58) !important;
+  color: #dcdcdc !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page :is(
+  .flour-database-panel,
+  .recipe-type-section,
+  .recipe-builder-science,
+  .starter-flour-science,
+  .starter-profile-science,
+  .science-curves,
+  .calendar-panel,
+  .feed-calendar,
+  .availability-toolbar,
+  .planned-bake-row,
+  .accepted-order-bake
+) :is(h1, h2, h3, h4, h5, h6, strong, b, summary) {
+  color: #f2f2f2 !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page :is(
+  .flour-database-panel,
+  .recipe-type-section,
+  .recipe-builder-science,
+  .starter-flour-science,
+  .starter-profile-science,
+  .science-curves,
+  .calendar-panel,
+  .feed-calendar,
+  .availability-toolbar,
+  .planned-bake-row,
+  .accepted-order-bake
+) :is(p, small, label, span, em, li, td, th) {
+  color: #d6d6d6 !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page :is(
+  .flour-database-panel,
+  .recipe-type-section,
+  .recipe-builder-science,
+  .starter-flour-science,
+  .starter-profile-science,
+  .science-curves,
+  .calendar-panel,
+  .feed-calendar,
+  .availability-toolbar,
+  .planned-bake-row,
+  .accepted-order-bake
+) :is(svg, svg *, path) {
+  color: #d8a15e !important;
+  stroke: currentColor !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page :is(
+  .flour-database-panel .collapsible-section-header,
+  .recipe-type-header,
+  .recipe-type-body,
+  .recipe-type-symbol,
+  .recipe-visual.empty,
+  .flour-category-summary,
+  .flour-type-tabs button,
+  .flour-brand-tabs button,
+  .flour-science-card,
+  .flour-science-metrics span,
+  .flour-watch,
+  .starter-flour-signals span,
+  .science-curve-card,
+  .factor-grid span,
+  .model-note,
+  .calendar-grid,
+  .feed-calendar-grid,
+  .calendar-day,
+  .calendar-blank,
+  .feed-day,
+  .planned-bake-date
+) {
+  background:
+    linear-gradient(145deg, rgba(31, 35, 31, .98), rgba(13, 17, 15, .98)) !important;
+  border-color: rgba(168, 142, 104, .55) !important;
+  color: #dedede !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page :is(
+  .flour-database-panel .collapsible-section-header,
+  .recipe-type-header,
+  .recipe-type-body,
+  .recipe-type-symbol,
+  .recipe-visual.empty,
+  .flour-category-summary,
+  .flour-type-tabs button,
+  .flour-brand-tabs button,
+  .flour-science-card,
+  .flour-science-metrics span,
+  .flour-watch,
+  .starter-flour-signals span,
+  .science-curve-card,
+  .factor-grid span,
+  .model-note,
+  .calendar-grid,
+  .feed-calendar-grid,
+  .calendar-day,
+  .calendar-blank,
+  .feed-day,
+  .planned-bake-date
+) :is(h1, h2, h3, h4, h5, h6, strong, b) {
+  color: #f4f4f4 !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page :is(
+  .flour-database-panel .collapsible-section-header,
+  .recipe-type-header,
+  .recipe-type-body,
+  .recipe-type-symbol,
+  .recipe-visual.empty,
+  .flour-category-summary,
+  .flour-type-tabs button,
+  .flour-brand-tabs button,
+  .flour-science-card,
+  .flour-science-metrics span,
+  .flour-watch,
+  .starter-flour-signals span,
+  .science-curve-card,
+  .factor-grid span,
+  .model-note,
+  .calendar-grid,
+  .feed-calendar-grid,
+  .calendar-day,
+  .calendar-blank,
+  .feed-day,
+  .planned-bake-date
+) :is(p, small, label, span, em, li, td, th) {
+  color: #d8d8d8 !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .calendar-day.has-bake {
+  background:
+    linear-gradient(145deg, rgba(116, 82, 45, .96), rgba(55, 42, 31, .98)) !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .calendar-day.has-bake :is(span, small, strong, b, em, i) {
+  color: #fff3df !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .calendar-day.has-accepted-order {
+  box-shadow: inset 0 -3px 0 rgba(82, 149, 80, .78) !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .calendar-day.unavailable-bake-day {
+  background:
+    repeating-linear-gradient(
+      135deg,
+      rgba(91, 42, 31, .96) 0,
+      rgba(91, 42, 31, .96) 7px,
+      rgba(32, 28, 24, .98) 7px,
+      rgba(32, 28, 24, .98) 14px
+    ) !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .calendar-day.unavailable-bake-day :is(span, small, strong, b, em, i) {
+  color: #ffe7dd !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .planned-bake-row.accepted-order-bake,
+html body .app-shell:not(.customer-storefront) .page.page .accepted-order-bake.accepted-order-bake {
+  background:
+    linear-gradient(145deg, rgba(28, 55, 38, .98), rgba(14, 24, 19, .98)) !important;
+  border-color: rgba(107, 164, 91, .62) !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .accepted-order-badge {
+  background: rgba(42, 98, 49, .82) !important;
+  border-color: rgba(142, 204, 119, .55) !important;
+  color: #eaffdf !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .availability-toolbar button {
+  background: rgba(17, 21, 18, .92) !important;
+  border-color: rgba(168, 142, 104, .6) !important;
+  color: #ececec !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .availability-toolbar button.selected,
+html body .app-shell:not(.customer-storefront) .page.page .flour-type-tabs button.active,
+html body .app-shell:not(.customer-storefront) .page.page .flour-brand-tabs button.active {
+  background: linear-gradient(135deg, #a75b24, #5f2a10) !important;
+  border-color: rgba(229, 173, 101, .7) !important;
+  color: #ffffff !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page :is(.calendar-day.today, .feed-day.today) {
+  outline: 2px solid rgba(216, 161, 94, .8) !important;
+  outline-offset: -2px !important;
+}
