@@ -210,3 +210,233 @@ html body .app-shell:not(.customer-storefront) .page.page :is(.calendar-day.toda
   outline: 2px solid rgba(216, 161, 94, .8) !important;
   outline-offset: -2px !important;
 }
+
+/* Bake desk grey-card pass.
+   These areas were still using white/cream cards inside the new owner shell. */
+html body .app-shell:not(.customer-storefront) .page.page :is(
+  .bake-workbench-card,
+  .model-controls,
+  .dynamic-schedule,
+  .formula-panel,
+  .compact-formula,
+  .bake-side-card,
+  .production-automation-hero,
+  .production-automation-hero.enabled,
+  .production-settings-button,
+  .automation-settings,
+  .automation-toggle-row,
+  .production-paused,
+  .production-warning,
+  .weekly-production-panel,
+  .weekly-production-summary,
+  .weekly-production-summary span,
+  .weekly-production-day,
+  .production-day-mode,
+  .production-day-stats,
+  .production-day-stats span,
+  .production-day-event,
+  .production-summary-grid div,
+  .production-batches,
+  .production-batch-card,
+  .production-batch-facts > span,
+  .label-compliance-center,
+  .inventory-forecast-panel,
+  .compliance-summary-grid span,
+  .compliance-reference-cards article,
+  .compliance-label-row,
+  .coreprint-label-card,
+  .coreprint-label-preview,
+  .production-label-card,
+  .inventory-forecast-toolbar,
+  .inventory-forecast-toolbar label,
+  .inventory-forecast-toolbar > strong,
+  .inventory-forecast-row,
+  .inventory-forecast-row > span,
+  .shopping-list-summary,
+  .shopping-list-summary span
+) {
+  background:
+    linear-gradient(145deg, rgba(93, 96, 91, .98), rgba(70, 73, 69, .98)) !important;
+  border-color: rgba(209, 155, 95, .5) !important;
+  color: #f1f1f1 !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page :is(
+  .bake-workbench-card,
+  .model-controls,
+  .dynamic-schedule,
+  .formula-panel,
+  .compact-formula,
+  .bake-side-card,
+  .production-automation-hero,
+  .production-settings-button,
+  .automation-settings,
+  .automation-toggle-row,
+  .production-paused,
+  .production-warning,
+  .weekly-production-panel,
+  .weekly-production-summary,
+  .weekly-production-day,
+  .production-day-mode,
+  .production-day-stats,
+  .production-day-event,
+  .production-summary-grid div,
+  .production-batches,
+  .production-batch-card,
+  .production-batch-facts > span,
+  .label-compliance-center,
+  .inventory-forecast-panel,
+  .compliance-summary-grid span,
+  .compliance-reference-cards article,
+  .compliance-label-row,
+  .coreprint-label-card,
+  .coreprint-label-preview,
+  .production-label-card,
+  .inventory-forecast-toolbar,
+  .inventory-forecast-toolbar label,
+  .inventory-forecast-toolbar > strong,
+  .inventory-forecast-row,
+  .inventory-forecast-row > span,
+  .shopping-list-summary,
+  .shopping-list-summary span
+) :is(h1, h2, h3, h4, h5, h6, strong, b, summary, time) {
+  color: #ffffff !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page :is(
+  .bake-workbench-card,
+  .model-controls,
+  .dynamic-schedule,
+  .formula-panel,
+  .compact-formula,
+  .bake-side-card,
+  .production-automation-hero,
+  .production-settings-button,
+  .automation-settings,
+  .automation-toggle-row,
+  .production-paused,
+  .production-warning,
+  .weekly-production-panel,
+  .weekly-production-summary,
+  .weekly-production-day,
+  .production-day-mode,
+  .production-day-stats,
+  .production-day-event,
+  .production-summary-grid div,
+  .production-batches,
+  .production-batch-card,
+  .production-batch-facts > span,
+  .label-compliance-center,
+  .inventory-forecast-panel,
+  .compliance-summary-grid span,
+  .compliance-reference-cards article,
+  .compliance-label-row,
+  .coreprint-label-card,
+  .coreprint-label-preview,
+  .production-label-card,
+  .inventory-forecast-toolbar,
+  .inventory-forecast-toolbar label,
+  .inventory-forecast-toolbar > strong,
+  .inventory-forecast-row,
+  .inventory-forecast-row > span,
+  .shopping-list-summary,
+  .shopping-list-summary span
+) :is(p, small, label, span, em, i, li, td, th) {
+  color: #ececec !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page :is(
+  .bake-workbench-card .bake-view-switch,
+  .bake-workbench-card .bake-view-switch button,
+  .anchor-switch,
+  .anchor-switch button,
+  .planner-input-grid label,
+  .anchor-time-field,
+  .planner-static-value,
+  .inline-stepper,
+  .bake-side-row,
+  .bake-side-empty,
+  .master-automation-toggle,
+  .automation-toggle-row > i,
+  .automation-number-grid label,
+  .automation-number-grid input,
+  .weekly-production-toolbar button,
+  .weekly-day-events i,
+  .weekly-day-events .feed,
+  .weekly-day-events .mix,
+  .weekly-day-events .fold,
+  .weekly-day-events .bake,
+  .weekly-day-events .pickup,
+  .weekly-shortage-note,
+  .production-day-toolbar label,
+  .production-day-toolbar select,
+  .compliance-label-row .text-button,
+  .coreprint-label-card textarea,
+  .inventory-forecast-toolbar label > span,
+  .inventory-forecast-toolbar input
+) {
+  background:
+    linear-gradient(145deg, rgba(118, 119, 113, .98), rgba(96, 98, 93, .98)) !important;
+  border-color: rgba(209, 155, 95, .48) !important;
+  color: #f7f7f7 !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page :is(
+  .anchor-time-field input,
+  .planner-input-grid input,
+  .planner-input-grid select,
+  .production-day-toolbar select,
+  .automation-number-grid input,
+  .inventory-forecast-toolbar input,
+  .coreprint-label-card textarea
+) {
+  background:
+    linear-gradient(145deg, rgba(153, 151, 143, .98), rgba(128, 127, 120, .98)) !important;
+  border-color: rgba(209, 155, 95, .48) !important;
+  color: #111111 !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page :is(
+  .anchor-time-field input,
+  .planner-input-grid input,
+  .planner-input-grid select,
+  .production-day-toolbar select,
+  .automation-number-grid input,
+  .inventory-forecast-toolbar input,
+  .coreprint-label-card textarea
+) :is(span, strong, b, small) {
+  color: #111111 !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page :is(
+  .bake-workbench-card .bake-view-switch button.selected,
+  .anchor-switch button.selected,
+  .weekly-production-toolbar button,
+  .production-settings-button,
+  .bake-side-card button
+) {
+  background: linear-gradient(135deg, #9a4b1f, #5f2a10) !important;
+  border-color: rgba(229, 173, 101, .6) !important;
+  color: #ffffff !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page :is(
+  .bake-workbench-card .bake-view-switch button.selected,
+  .anchor-switch button.selected,
+  .weekly-production-toolbar button,
+  .production-settings-button,
+  .bake-side-card button
+) :is(span, strong, small, svg, path) {
+  color: #ffffff !important;
+  stroke: currentColor !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .weekly-production-day.selected {
+  background:
+    linear-gradient(145deg, rgba(119, 106, 89, .98), rgba(83, 80, 73, .98)) !important;
+  box-shadow: 0 0 0 2px rgba(209, 155, 95, .28) !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .weekly-production-day.has-shortage {
+  border-color: rgba(224, 126, 82, .72) !important;
+}

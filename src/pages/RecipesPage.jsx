@@ -937,13 +937,6 @@ export default function RecipesPage({ bakerySettings, embeddedContext, inventory
           />
         )) : <EmptyState title={recipes.length ? "No matching recipes" : "No recipes yet"} body={recipes.length ? "Try another recipe name." : "Use the plus button to add your first formula."} />}
       </section>
-      <aside className="bakers-percent-note">
-        <Droplets size={21} />
-        <div>
-          <h3>Baker’s percentage, without the math headache</h3>
-          <p>Add flours, liquids, yeast, starters, inclusions, salt, cultures, oils, produce, and spices. Bread and yeast breads can stay in baker’s %, while non-bread items can use batch %.</p>
-        </div>
-      </aside>
       {showEditor ? (
         <RecipeEditor
           embeddedContext={embeddedContext}
