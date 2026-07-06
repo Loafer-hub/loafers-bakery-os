@@ -74,6 +74,47 @@ function statusForRecipe(recipe = {}) {
   return "Visible";
 }
 
+const PRODUCT_STATUS_OPTIONS = [
+  { value: "visible", label: "Visible" },
+  { value: "preorder", label: "Preorder" },
+  { value: "ready_now", label: "Ready now" },
+  { value: "paused", label: "Paused" },
+  { value: "unavailable", label: "Unavailable" },
+  { value: "sold_out", label: "Sold out" },
+  { value: "hidden", label: "Hidden this week" },
+];
+
+function productStatusValue(recipe = {}) {
+  if (recipe.hiddenThisWeek) return "hidden";
+  if (recipe.soldOut) return "sold_out";
+  if (recipe.unavailableThisWeek) return "unavailable";
+  if (recipe.available === false) return "paused";
+  if ((recipe.badges || []).includes("ready_now")) return "ready_now";
+  if ((recipe.badges || []).includes("preorder")) return "preorder";
+  return "visible";
+}
+
+function productStatusPatch(recipe = {}, status = "visible") {
+  const badges = Array.isArray(recipe.badges) ? recipe.badges : [];
+  const baseBadges = badges.filter((badge) => !["preorder", "ready_now"].includes(badge));
+  const withBadge = (badge) => [...new Set([...baseBadges, badge])];
+  const base = {
+    available: true,
+    soldOut: false,
+    unavailableThisWeek: false,
+    hiddenThisWeek: false,
+    badges: baseBadges,
+  };
+
+  if (status === "preorder") return { ...base, badges: withBadge("preorder") };
+  if (status === "ready_now") return { ...base, badges: withBadge("ready_now") };
+  if (status === "paused") return { ...base, available: false };
+  if (status === "unavailable") return { ...base, unavailableThisWeek: true };
+  if (status === "sold_out") return { ...base, soldOut: true };
+  if (status === "hidden") return { ...base, hiddenThisWeek: true };
+  return base;
+}
+
 function priceLabel(recipe = {}) {
   const options = normalizedSalesOptions(recipe);
   const lowest = lowestSalesPrice(recipe);
@@ -156,6 +197,7 @@ function fallbackStepsFor(recipe = {}, timeline = {}) {
 function ProductInfoSheet({
   onAddToCalendar,
   onAddToKitchen,
+  onChangeStatus,
   onClose,
   onOpenBakeDesk,
   productTypes,
@@ -169,6 +211,7 @@ function ProductInfoSheet({
   const steps = instructionStepsFor(recipe);
   const displayedSteps = steps.length ? steps : fallbackStepsFor(recipe, timeline);
   const enabledType = productTypes.find((item) => item.value === (recipe.productType || "bread"))?.enabled !== false;
+  const statusValue = productStatusValue(recipe);
 
   return (
     <Modal title="Product details" onClose={onClose}>
@@ -188,6 +231,22 @@ function ProductInfoSheet({
             </div>
           </div>
         </section>
+
+        <label className="owner-product-status-control">
+          <span>
+            <strong>Menu status</strong>
+            <small>Change how this item appears on the customer storefront.</small>
+          </span>
+          <select
+            value={statusValue}
+            onChange={(event) => onChangeStatus?.(recipe, event.target.value)}
+            disabled={!onChangeStatus}
+          >
+            {PRODUCT_STATUS_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+        </label>
 
         <div className="owner-product-action-grid">
           <button type="button" className="primary-button" onClick={() => onAddToKitchen?.(recipe)}>
@@ -519,6 +578,14 @@ export default function MenuPage(props) {
     closeProductSheet();
   }
 
+  function updateProductStatus(recipe, status) {
+    if (!recipe || !props.onSaveRecipe) return;
+    props.onSaveRecipe({
+      ...recipe,
+      ...productStatusPatch(recipe, status),
+    });
+  }
+
   return (
     <>
       <section className="page menu-page menu-command-page">
@@ -640,6 +707,7 @@ export default function MenuPage(props) {
           productTypes={productTypes}
           onAddToCalendar={(recipe) => runProductAction(props.onAddRecipeToCalendar, recipe)}
           onAddToKitchen={(recipe) => runProductAction(props.onAddRecipeToKitchen, recipe)}
+          onChangeStatus={props.onSaveRecipe ? updateProductStatus : null}
           onClose={closeProductSheet}
           onOpenBakeDesk={(recipe) => runProductAction(props.onOpenRecipeInBakeDesk, recipe)}
         />
