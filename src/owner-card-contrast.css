@@ -750,3 +750,158 @@ html body .app-shell:not(.customer-storefront) .page.page .search-field.search-f
   color: #1d1a16 !important;
   opacity: .72 !important;
 }
+
+/* owner-ops-frames-contrast-v1 */
+html body .app-shell:not(.customer-storefront) .page.page .owner-quality-card .quality-progress,
+html body .app-shell:not(.customer-storefront) .page.page .owner-quality-card .quality-check-row {
+  background:
+    linear-gradient(145deg, rgba(68, 70, 66, .98), rgba(37, 41, 38, .98)) !important;
+  border: 1.5px solid rgba(139, 85, 45, .95) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(229, 173, 101, .12),
+    0 10px 22px rgba(0, 0, 0, .18) !important;
+  color: #ffffff !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .owner-quality-card .quality-check-row.complete {
+  background:
+    linear-gradient(145deg, rgba(70, 73, 68, .98), rgba(42, 47, 42, .98)) !important;
+  border-color: rgba(155, 107, 55, .88) !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .owner-quality-card :is(
+  .quality-progress strong,
+  .quality-progress span,
+  .quality-check-row span,
+  .quality-check-row strong,
+  .quality-check-row small,
+  .quality-check-row em
+) {
+  color: #ffffff !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .owner-quality-card .quality-check-row input[type="checkbox"] {
+  accent-color: #d6a15f !important;
+  background: #f1eee8 !important;
+  border-color: rgba(139, 85, 45, .9) !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page :is(
+  .management-logbook-section .expense-row,
+  .management-logbook-section .batch-trace-row,
+  .management-logbook-section .logbook-liquid-card,
+  .compact-logbook-list .expense-row,
+  .compact-logbook-list .batch-trace-row,
+  .batch-trace-card .batch-trace-row
+) {
+  background:
+    linear-gradient(145deg, rgba(63, 55, 45, .98), rgba(42, 37, 31, .98)) !important;
+  border: 1.5px solid rgba(139, 85, 45, .98) !important;
+  border-radius: 12px !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(229, 173, 101, .14),
+    0 12px 24px rgba(0, 0, 0, .16) !important;
+  color: #d6a15f !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page :is(
+  .management-logbook-section .expense-row,
+  .management-logbook-section .batch-trace-row,
+  .management-logbook-section .logbook-liquid-card,
+  .compact-logbook-list .expense-row,
+  .compact-logbook-list .batch-trace-row,
+  .batch-trace-card .batch-trace-row
+) :is(strong, b, span, small, em, h3, p, svg, path) {
+  color: #d6a15f !important;
+  stroke: currentColor !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page :is(
+  .management-logbook-section .expense-row button,
+  .management-logbook-section .batch-trace-row button,
+  .compact-logbook-list .expense-row button,
+  .compact-logbook-list .batch-trace-row button,
+  .batch-trace-card .batch-trace-row button
+) {
+  background:
+    linear-gradient(135deg, #a65a27, #713514) !important;
+  border: 1px solid rgba(229, 173, 101, .52) !important;
+  color: #ffffff !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page :is(
+  .production-batches,
+  .production-batch-card,
+  .production-inventory-check,
+  .production-inventory-row,
+  .production-stock-list,
+  .inventory-forecast-panel,
+  .smart-prep-panel
+) {
+  border: 2px solid rgba(139, 85, 45, .92) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(229, 173, 101, .14),
+    0 14px 30px rgba(0, 0, 0, .18) !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page :is(
+  .production-batch-heading,
+  .production-batch-facts > span,
+  .production-formula span,
+  .production-inventory-row,
+  .production-stock-list > div,
+  .inventory-forecast-row,
+  .smart-prep-grid article,
+  .prep-warning-strip span
+) {
+  background:
+    linear-gradient(145deg, rgba(70, 69, 62, .98), rgba(50, 48, 43, .98)) !important;
+  border: 1.5px solid rgba(139, 85, 45, .82) !important;
+  color: #f4eee8 !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page :is(
+  .production-batch-heading,
+  .production-batch-facts > span,
+  .production-formula span,
+  .production-inventory-row,
+  .production-stock-list > div,
+  .inventory-forecast-row,
+  .smart-prep-grid article,
+  .prep-warning-strip span
+) :is(strong, b, small, span, em, svg, path) {
+  color: #f4eee8 !important;
+  stroke: currentColor !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .inventory-section .inventory-list {
+  display: grid;
+  gap: 8px;
+  border-top: 0 !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .inventory-section .inventory-row {
+  padding: 12px 14px !important;
+  background:
+    linear-gradient(145deg, rgba(61, 54, 45, .98), rgba(42, 38, 32, .98)) !important;
+  border: 1.5px solid rgba(139, 85, 45, .94) !important;
+  border-radius: 12px !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(229, 173, 101, .12),
+    0 10px 22px rgba(0, 0, 0, .14) !important;
+  color: #d6a15f !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .inventory-section .inventory-row :is(strong, small, span, svg, path) {
+  color: #d6a15f !important;
+  stroke: currentColor !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .inventory-section .inventory-row:hover,
+html body .app-shell:not(.customer-storefront) .page.page .inventory-section .inventory-row:focus-visible {
+  border-color: #d6a15f !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(229, 173, 101, .22),
+    0 0 0 3px rgba(181, 107, 49, .18),
+    0 14px 26px rgba(0, 0, 0, .18) !important;
+}
