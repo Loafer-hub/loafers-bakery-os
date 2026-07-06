@@ -1,26 +1,148 @@
 import {
+  ArrowLeft,
+  BarChart3,
   BookOpen,
   ClipboardList,
   Download,
   ExternalLink,
+  FileText,
   FolderKanban,
   Globe2,
+  Image,
+  Info,
+  Link2,
   PackagePlus,
+  Plus,
   Share2,
   Store,
+  Trash2,
+  Video,
   Wrench,
 } from "lucide-react";
+import { useMemo, useState } from "react";
 import { PageHeading } from "../components/AppChrome";
+import { usePersistentState } from "../hooks/usePersistentState";
+
+const resourceTypeOptions = [
+  {
+    value: "article",
+    label: "Article",
+    icon: FileText,
+    help: "Longer writeups, customer education, recipes, SOPs, or notes.",
+    urlLabel: "Article or source link",
+  },
+  {
+    value: "poll",
+    label: "Poll",
+    icon: BarChart3,
+    help: "Question cards for future customer voting or flavor feedback.",
+    urlLabel: "Optional result or form link",
+  },
+  {
+    value: "information",
+    label: "Information",
+    icon: Info,
+    help: "Reusable customer instructions, product care notes, or FAQs.",
+    urlLabel: "Optional supporting link",
+  },
+  {
+    value: "link",
+    label: "Link",
+    icon: Link2,
+    help: "Quick links to order forms, documents, videos, folders, or resources.",
+    urlLabel: "URL",
+  },
+  {
+    value: "photo",
+    label: "Photo",
+    icon: Image,
+    help: "Photo references, menu images, label art, or product shots.",
+    urlLabel: "Photo URL",
+  },
+  {
+    value: "video",
+    label: "Video",
+    icon: Video,
+    help: "Technique clips, walkthroughs, announcements, or hosted videos.",
+    urlLabel: "Video URL",
+  },
+];
+
+const seedResourceBenchItems = [
+  {
+    id: "bench-printable-recipe-cards",
+    type: "article",
+    title: "Printable recipe cards",
+    summary: "Share polished recipes, ingredient notes, and customer-friendly instructions.",
+    url: "",
+    details: "Good first resource for customer handouts and downloadable product guides.",
+    options: [],
+    createdAt: "2026-07-06T12:00:00.000Z",
+  },
+  {
+    id: "bench-product-launch-sheets",
+    type: "information",
+    title: "Product launch sheets",
+    summary: "Bundle pricing, labels, photos, preorder windows, and batch notes for each new item.",
+    url: "",
+    details: "Use for weekly drops, seasonal products, or new menu categories.",
+    options: [],
+    createdAt: "2026-07-06T12:05:00.000Z",
+  },
+  {
+    id: "bench-customer-education-library",
+    type: "article",
+    title: "Customer education library",
+    summary: "Explain pickup, storage, reheating, fermentation, allergens, and specialty products.",
+    url: "",
+    details: "A customer-facing library can reduce repeated questions and make the storefront feel more professional.",
+    options: [],
+    createdAt: "2026-07-06T12:10:00.000Z",
+  },
+];
+
+const emptyResourceDraft = {
+  type: "article",
+  title: "",
+  summary: "",
+  url: "",
+  details: "",
+  pollOptions: "",
+};
 
 function ownerBaseUrl() {
   if (typeof window === "undefined") return "";
   return `${window.location.origin}${window.location.pathname}`;
 }
 
+function resourceTypeMeta(type) {
+  return resourceTypeOptions.find((option) => option.value === type) ?? resourceTypeOptions[0];
+}
+
+function makeResourceId() {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return `resource-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function formatResourceDate(value) {
+  if (!value) return "Just now";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Saved resource";
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+
 export default function ResourceHubPage({ setActive, onOpenStorage }) {
   const baseUrl = ownerBaseUrl();
   const storefrontUrl = baseUrl ? `${baseUrl}?order=loafers` : "?order=loafers";
   const ownerUrl = baseUrl || "/";
+  const [resourceView, setResourceView] = useState("hub");
+  const [benchItems, setBenchItems] = usePersistentState("loafers-resource-bench-v1", seedResourceBenchItems);
+  const [draft, setDraft] = useState(emptyResourceDraft);
+  const safeBenchItems = useMemo(() => (Array.isArray(benchItems) ? benchItems : []), [benchItems]);
+  const currentType = resourceTypeMeta(draft.type);
+  const CurrentTypeIcon = currentType.icon;
 
   const linkCards = [
     {
@@ -62,6 +184,190 @@ export default function ResourceHubPage({ setActive, onOpenStorage }) {
       action: "Open Storage",
     },
   ];
+
+  function updateDraft(field, value) {
+    setDraft((current) => ({ ...current, [field]: value }));
+  }
+
+  function addBenchItem(event) {
+    event.preventDefault();
+    const title = draft.title.trim();
+    if (!title) return;
+
+    const options = draft.pollOptions
+      .split(/\r?\n|,/)
+      .map((option) => option.trim())
+      .filter(Boolean);
+
+    const nextItem = {
+      id: makeResourceId(),
+      type: draft.type,
+      title,
+      summary: draft.summary.trim(),
+      url: draft.url.trim(),
+      details: draft.details.trim(),
+      options: draft.type === "poll" ? options : [],
+      createdAt: new Date().toISOString(),
+    };
+
+    setBenchItems((current) => [nextItem, ...(Array.isArray(current) ? current : [])]);
+    setDraft({ ...emptyResourceDraft, type: draft.type });
+  }
+
+  function removeBenchItem(itemId) {
+    setBenchItems((current) => (Array.isArray(current) ? current.filter((item) => item.id !== itemId) : []));
+  }
+
+  if (resourceView === "bench") {
+    return (
+      <main className="page resource-hub-page resource-bench-page">
+        <PageHeading
+          title="Resource bench"
+          subtitle="Add, organize, and remove shareable bakery resources before they become public systems."
+          action={
+            <button className="resource-back-button" type="button" onClick={() => setResourceView("hub")}>
+              <ArrowLeft size={18} />
+              Back to hub
+            </button>
+          }
+        />
+
+        <section className="resource-bench-layout">
+          <form className="resource-bench-form" onSubmit={addBenchItem}>
+            <div className="section-title-line">
+              <div>
+                <span className="eyebrow-label dark">Add resource</span>
+                <h2>Build the next shareable thing.</h2>
+              </div>
+              <Plus size={22} />
+            </div>
+
+            <label>
+              Resource type
+              <select value={draft.type} onChange={(event) => updateDraft("type", event.target.value)}>
+                {resourceTypeOptions.map(({ value, label }) => (
+                  <option value={value} key={value}>{label}</option>
+                ))}
+              </select>
+            </label>
+
+            <div className="resource-type-help">
+              <CurrentTypeIcon size={18} />
+              <span>{currentType.help}</span>
+            </div>
+
+            <label>
+              Title
+              <input
+                type="text"
+                value={draft.title}
+                onChange={(event) => updateDraft("title", event.target.value)}
+                placeholder="Customer education library"
+                required
+              />
+            </label>
+
+            <label>
+              Short description
+              <textarea
+                value={draft.summary}
+                onChange={(event) => updateDraft("summary", event.target.value)}
+                placeholder="What this resource is for and who should use it."
+                rows={3}
+              />
+            </label>
+
+            <label>
+              {currentType.urlLabel}
+              <input
+                type="url"
+                value={draft.url}
+                onChange={(event) => updateDraft("url", event.target.value)}
+                placeholder="https://..."
+              />
+            </label>
+
+            {draft.type === "poll" ? (
+              <label>
+                Poll options
+                <textarea
+                  value={draft.pollOptions}
+                  onChange={(event) => updateDraft("pollOptions", event.target.value)}
+                  placeholder={"Cinnamon raisin\nJalapeño cheddar\nEverything bagel"}
+                  rows={4}
+                />
+              </label>
+            ) : null}
+
+            <label>
+              Notes / body
+              <textarea
+                value={draft.details}
+                onChange={(event) => updateDraft("details", event.target.value)}
+                placeholder="Longer instructions, ideas, SOP notes, or publishing plan."
+                rows={5}
+              />
+            </label>
+
+            <button className="primary-button" type="submit">
+              <Plus size={17} />
+              Add to Resource bench
+            </button>
+          </form>
+
+          <section className="resource-bench-library">
+            <div className="section-title-line">
+              <div>
+                <span className="eyebrow-label dark">Saved shelf</span>
+                <h2>{safeBenchItems.length} resources ready to shape.</h2>
+              </div>
+              <FolderKanban size={22} />
+            </div>
+
+            <div className="resource-bench-list">
+              {safeBenchItems.length ? safeBenchItems.map((item) => {
+                const meta = resourceTypeMeta(item.type);
+                const Icon = meta.icon;
+                return (
+                  <article className="resource-bench-item" key={item.id}>
+                    <div className="resource-bench-item-top">
+                      <span className="resource-bench-kind"><Icon size={15} />{meta.label}</span>
+                      <button type="button" onClick={() => removeBenchItem(item.id)} aria-label={`Remove ${item.title}`}>
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                    <strong>{item.title}</strong>
+                    {item.summary ? <p>{item.summary}</p> : null}
+                    {item.details ? <small>{item.details}</small> : null}
+                    {item.options?.length ? (
+                      <ul>
+                        {item.options.map((option) => <li key={option}>{option}</li>)}
+                      </ul>
+                    ) : null}
+                    <div className="resource-bench-item-footer">
+                      <span>{formatResourceDate(item.createdAt)}</span>
+                      {item.url ? (
+                        <a href={item.url} target="_blank" rel="noreferrer">
+                          Open link
+                          <ExternalLink size={13} />
+                        </a>
+                      ) : <em>No link yet</em>}
+                    </div>
+                  </article>
+                );
+              }) : (
+                <article className="resource-bench-empty">
+                  <BookOpen size={24} />
+                  <strong>No resources saved yet.</strong>
+                  <p>Add articles, polls, info cards, links, photos, and videos from the form.</p>
+                </article>
+              )}
+            </div>
+          </section>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main className="page resource-hub-page">
@@ -113,13 +419,19 @@ export default function ResourceHubPage({ setActive, onOpenStorage }) {
       <section className="resource-roadmap-card">
         <div className="section-title-line">
           <div><span className="eyebrow-label dark">Next systems to host</span><h2>Ideas shelf</h2></div>
-          <Wrench size={22} />
+          <button className="resource-small-action" type="button" onClick={() => setResourceView("bench")}>
+            Open Resource bench
+          </button>
         </div>
         <div className="resource-roadmap-list">
           <article><ClipboardList size={17} /><span><strong>Printable recipe cards</strong><small>Share polished recipes, ingredient notes, and customer-friendly instructions.</small></span></article>
           <article><PackagePlus size={17} /><span><strong>Product launch sheets</strong><small>Bundle pricing, labels, photos, preorder windows, and batch notes for each new item.</small></span></article>
           <article><BookOpen size={17} /><span><strong>Customer education library</strong><small>Explain pickup, storage, reheating, fermentation, allergens, and specialty products.</small></span></article>
         </div>
+        <button className="resource-bench-wide-link" type="button" onClick={() => setResourceView("bench")}>
+          <Wrench size={18} />
+          Manage articles, polls, information, links, photos, and videos
+        </button>
       </section>
     </main>
   );

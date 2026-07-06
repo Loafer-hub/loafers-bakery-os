@@ -378,6 +378,11 @@
     .resource-hero-card,
     .resource-roadmap-card,
     .resource-link-card,
+    .resource-bench-form,
+    .resource-bench-library,
+    .resource-bench-item,
+    .resource-bench-empty,
+    .resource-type-help,
     .help-doc-card,
     .help-workflow-card,
     .help-step-list li,
@@ -497,11 +502,16 @@
     .business-dashboard-grid,
     .management-grid,
     .resource-card-grid,
+    .resource-bench-layout,
     .recipe-import-grid,
     .owner-product-grid,
     .form-grid
   ) {
     grid-template-columns: 1fr !important;
+  }
+
+  html body .app-shell:not(.customer-storefront) .resource-bench-form {
+    position: static !important;
   }
 
   html body .app-shell:not(.customer-storefront) :is(
