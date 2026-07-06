@@ -1,4 +1,7 @@
 import {
+  CalendarPlus,
+  ChefHat,
+  ClipboardList,
   Eye,
   Globe2,
   Image as ImageIcon,
@@ -11,10 +14,12 @@ import {
   Tags,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { Modal } from "../components/Primitives";
 import { ReadyShelf } from "../components/ReadyShelf";
 import { RecipeImportWorkspace } from "../components/RecipeImportWorkspace";
 import { LOAFERS_BRAND } from "../lib/brand";
 import { normalizeProductTypeSettings, productTypeFor } from "../lib/productTypes";
+import { normalizeTimelineSettings, recipeUsesStarter } from "../lib/recipeTimeline";
 import { lowestSalesPrice, normalizedSalesOptions } from "../lib/salesOptions";
 import RecipesPage from "./RecipesPage";
 import SettingsPage from "./SettingsPage";
@@ -76,7 +81,192 @@ function priceLabel(recipe = {}) {
   return `$${Number(lowest || 0).toFixed(2)} · ${unit}`;
 }
 
-function MenuProductBoard({ onAddProduct, productTypes, recipes }) {
+function formatPercent(value) {
+  const number = Number(value || 0);
+  if (!Number.isFinite(number)) return "—";
+  return `${number.toFixed(number % 1 ? 1 : 0)}%`;
+}
+
+function formatWeight(value) {
+  const number = Number(value || 0);
+  if (!Number.isFinite(number) || number <= 0) return "—";
+  return `${Math.round(number).toLocaleString()} g`;
+}
+
+function instructionStepsFor(recipe = {}) {
+  const raw = recipe.instructions || recipe.method || recipe.productionInstructions || recipe.productionNotes;
+  if (Array.isArray(raw)) {
+    return raw
+      .map((item, index) => {
+        if (typeof item === "string") {
+          return { title: `Step ${index + 1}`, detail: item };
+        }
+        return {
+          title: item.title || item.label || `Step ${index + 1}`,
+          detail: item.note || item.body || item.detail || "",
+        };
+      })
+      .filter((step) => String(step.detail || "").trim());
+  }
+  if (typeof raw === "string" && raw.trim()) {
+    return raw
+      .split(/\n+/)
+      .map((line, index) => {
+        const [title, ...rest] = line.split(":");
+        return rest.length
+          ? { title: title.trim() || `Step ${index + 1}`, detail: rest.join(":").trim() }
+          : { title: `Step ${index + 1}`, detail: line.trim() };
+      })
+      .filter((step) => step.detail);
+  }
+  return [];
+}
+
+function fallbackStepsFor(recipe = {}, timeline = {}) {
+  const type = recipe.productType || "bread";
+  if (type === "yeast") {
+    return [
+      { title: "Mix", detail: "Mix and knead until the dough is smooth and elastic." },
+      { title: timeline.primaryLabel || "Rise", detail: `Rise about ${Number(timeline.primaryRiseHours || 1.5).toFixed(1)} hours, then judge by puffiness and spring-back.` },
+      { title: "Bake", detail: "Bake when proofed, then cool fully before slicing, bagging, or selling." },
+    ];
+  }
+  if (["hot_sauce", "vinegar", "infused_oil"].includes(type)) {
+    return [
+      { title: "Prep", detail: "Weigh ingredients, record batch date, and keep safety notes with the batch." },
+      { title: "Process", detail: "Follow the product’s pH, salt, storage, and warning-note requirements before sale." },
+      { title: "Pack", detail: "Bottle, label, date, and add customer storage instructions." },
+    ];
+  }
+  if (type === "cake") {
+    return [
+      { title: "Prep", detail: "Scale ingredients, prepare pans, and bring cold ingredients to recipe temperature." },
+      { title: "Mix", detail: "Mix according to cake style and avoid overworking once flour is added." },
+      { title: "Bake", detail: "Bake until set, cool, then finish or pack." },
+    ];
+  }
+  return [
+    { title: "Feed", detail: timeline.useStarter && timeline.includeStarterFeed ? "Feed starter early enough to peak near mix time." : "Starter feed is skipped for this product setup." },
+    { title: "Mix", detail: "Mix, hydrate, and build strength based on the saved formula." },
+    { title: timeline.primaryLabel || "Bulk ferment", detail: `Model target is about ${Number(timeline.primaryRiseHours || 0).toFixed(1)} hours, but dough strength and rise get final say.` },
+    { title: "Bake", detail: "Bake and cool before packing, pickup, or ready-shelf sale." },
+  ];
+}
+
+function ProductInfoSheet({
+  onAddToCalendar,
+  onAddToKitchen,
+  onClose,
+  onOpenBakeDesk,
+  productTypes,
+  recipe,
+}) {
+  if (!recipe) return null;
+  const type = productTypeFor(recipe.productType || "bread");
+  const timeline = normalizeTimelineSettings(recipe);
+  const ingredients = Array.isArray(recipe.ingredients) ? recipe.ingredients : [];
+  const salesOptions = normalizedSalesOptions(recipe);
+  const steps = instructionStepsFor(recipe);
+  const displayedSteps = steps.length ? steps : fallbackStepsFor(recipe, timeline);
+  const enabledType = productTypes.find((item) => item.value === (recipe.productType || "bread"))?.enabled !== false;
+
+  return (
+    <Modal title="Product details" onClose={onClose}>
+      <div className="owner-product-sheet">
+        <section className="owner-product-hero">
+          <span className={recipe.photoUrl ? "owner-product-photo" : "owner-product-photo empty"}>
+            {recipe.photoUrl ? <img src={recipe.photoUrl} alt={recipe.photoAlt || recipe.name} /> : <ImageIcon size={28} />}
+          </span>
+          <div>
+            <span className="eyebrow-label dark">Read-only product card</span>
+            <h3>{recipe.name}</h3>
+            <p>{recipe.description || recipe.note || "Saved product details, formula, instructions, and scheduling shortcuts."}</p>
+            <div className="owner-product-badges">
+              <span>{type.icon} {type.label}</span>
+              <span>{statusForRecipe(recipe)}</span>
+              <span>{enabledType ? "Customer tab shown" : "Customer tab hidden"}</span>
+            </div>
+          </div>
+        </section>
+
+        <div className="owner-product-action-grid">
+          <button type="button" className="primary-button" onClick={() => onAddToKitchen?.(recipe)}>
+            <ChefHat size={17} /> Add to Kitchen
+          </button>
+          <button type="button" className="secondary-button" onClick={() => onAddToCalendar?.(recipe)}>
+            <CalendarPlus size={17} /> Add to calendar
+          </button>
+          <button type="button" className="secondary-button" onClick={() => onOpenBakeDesk?.(recipe)}>
+            <ClipboardList size={17} /> Open in Bake desk
+          </button>
+        </div>
+
+        <section className="owner-product-grid">
+          <article>
+            <small>Price + packages</small>
+            <strong>{priceLabel(recipe)}</strong>
+            <div className="owner-product-option-list">
+              {salesOptions.map((option) => (
+                <span key={option.id || option.label}>
+                  <b>{option.label}</b>
+                  <em>${Number(option.price || 0).toFixed(2)} · {option.units || 1} {recipe.unitName || "item"}{Number(option.units || 1) === 1 ? "" : "s"}</em>
+                </span>
+              ))}
+            </div>
+          </article>
+          <article>
+            <small>Timeline setup</small>
+            <strong>{timeline.primaryLabel || "Production"} · {Number(timeline.primaryRiseHours || 0).toFixed(1)}h</strong>
+            <div className="owner-product-timeline-list">
+              <span>Starter: {recipeUsesStarter(recipe) ? "Used" : "Not used"}</span>
+              <span>Folds: {timeline.includeStretchFolds ? `${timeline.stretchFoldCount} sets` : "Skipped"}</span>
+              <span>Cold proof: {timeline.includeColdProof ? `${timeline.defaultColdProofHours}h` : "Skipped"}</span>
+              <span>Preheat: {timeline.includePreheat ? `${timeline.preheatMinutes} min` : "Skipped"}</span>
+            </div>
+          </article>
+        </section>
+
+        <section className="owner-product-detail-columns">
+          <article className="owner-product-detail-card">
+            <div className="section-title-line compact">
+              <h3>Formula</h3>
+              <small>{recipe.formulaMode === "batch" ? "Batch %" : "Baker’s %"}</small>
+            </div>
+            {ingredients.length ? (
+              <div className="owner-product-ingredient-table">
+                <div><b>Ingredient</b><b>Weight</b><b>%</b></div>
+                {ingredients.map((ingredient, index) => (
+                  <div key={`${ingredient.name}-${index}`}>
+                    <span>{ingredient.name || "Ingredient"}{ingredient.category ? <em>{ingredient.category}</em> : null}</span>
+                    <span>{formatWeight(ingredient.weight)}</span>
+                    <span>{formatPercent(ingredient.percent)}</span>
+                  </div>
+                ))}
+              </div>
+            ) : <p>No saved ingredients yet.</p>}
+          </article>
+
+          <article className="owner-product-detail-card">
+            <div className="section-title-line compact">
+              <h3>Instructions</h3>
+              <small>{steps.length ? "Saved recipe steps" : "Default production guide"}</small>
+            </div>
+            <ol className="owner-product-step-list">
+              {displayedSteps.map((step, index) => (
+                <li key={`${step.title}-${index}`}>
+                  <b>{step.title}</b>
+                  <span>{step.detail}</span>
+                </li>
+              ))}
+            </ol>
+          </article>
+        </section>
+      </div>
+    </Modal>
+  );
+}
+
+function MenuProductBoard({ onAddProduct, onSelectRecipe, productTypes, recipes }) {
   const typeLeaders = productTypes
     .map((type) => recipes.find((recipe) => (recipe.productType || "bread") === type.value))
     .filter(Boolean);
@@ -85,7 +275,7 @@ function MenuProductBoard({ onAddProduct, productTypes, recipes }) {
     ...recipes.filter((recipe) => !typeLeaders.some((leader) => leader.id === recipe.id)),
   ]
     .sort((a, b) => Number(a.hiddenThisWeek === true) - Number(b.hiddenThisWeek === true))
-    .slice(0, 4);
+    .slice(0, 8);
   return (
     <section className="menu-product-board">
       <div className="menu-product-toolbar">
@@ -112,7 +302,13 @@ function MenuProductBoard({ onAddProduct, productTypes, recipes }) {
         {featuredRecipes.map((recipe) => {
           const type = productTypeFor(recipe.productType || "bread");
           return (
-            <article className={recipe.hiddenThisWeek ? "menu-product-card hidden" : "menu-product-card"} key={recipe.id}>
+            <button
+              type="button"
+              className={recipe.hiddenThisWeek ? "menu-product-card hidden" : "menu-product-card"}
+              key={recipe.id}
+              onClick={() => onSelectRecipe?.(recipe)}
+              aria-label={`Open ${recipe.name} product details`}
+            >
               <span className={recipe.photoUrl ? "menu-product-photo" : "menu-product-photo empty"}>
                 {recipe.photoUrl ? <img src={recipe.photoUrl} alt={recipe.photoAlt || recipe.name} /> : <ImageIcon size={17} />}
               </span>
@@ -122,7 +318,7 @@ function MenuProductBoard({ onAddProduct, productTypes, recipes }) {
                 <em>{priceLabel(recipe)}</em>
               </span>
               <b>{statusForRecipe(recipe)}</b>
-            </article>
+            </button>
           );
         })}
       </div>
@@ -130,8 +326,8 @@ function MenuProductBoard({ onAddProduct, productTypes, recipes }) {
   );
 }
 
-function MenuModeBoard({ activeView, bakerySettings, onAddProduct, productTypes, recipes, readyShelfItems }) {
-  if (activeView === "recipes") return <MenuProductBoard onAddProduct={onAddProduct} productTypes={productTypes} recipes={recipes} />;
+function MenuModeBoard({ activeView, bakerySettings, onAddProduct, onSelectRecipe, productTypes, recipes, readyShelfItems }) {
+  if (activeView === "recipes") return <MenuProductBoard onAddProduct={onAddProduct} onSelectRecipe={onSelectRecipe} productTypes={productTypes} recipes={recipes} />;
   if (activeView === "storefront") {
     return (
       <section className="menu-mode-board">
@@ -247,6 +443,7 @@ export default function MenuPage(props) {
   const [view, setView] = useState(props.menuView || "recipes");
   const [readyShelfItems, setReadyShelfItems] = useState([]);
   const [addProductSignal, setAddProductSignal] = useState(0);
+  const [selectedProductId, setSelectedProductId] = useState("");
   const heroBannerStyle = useMemo(() => {
     let bannerUrl = LOAFERS_BRAND.bannerSrc;
     try {
@@ -262,6 +459,7 @@ export default function MenuPage(props) {
   }, [props.cloudAccount?.workspace?.bakery?.slug]);
   const productTypes = useMemo(() => normalizeProductTypeSettings(props.bakerySettings), [props.bakerySettings]);
   const recipes = props.recipes || [];
+  const selectedProduct = recipes.find((recipe) => recipe.id === selectedProductId);
   const visibleRecipes = recipes.filter((recipe) => (
     recipe.available !== false
     && recipe.soldOut !== true
@@ -310,6 +508,15 @@ export default function MenuPage(props) {
   function requestAddProduct() {
     changeView("recipes");
     setAddProductSignal((current) => current + 1);
+  }
+
+  function closeProductSheet() {
+    setSelectedProductId("");
+  }
+
+  function runProductAction(action, recipe) {
+    action?.(recipe);
+    closeProductSheet();
   }
 
   return (
@@ -371,6 +578,7 @@ export default function MenuPage(props) {
                 activeView={view}
                 bakerySettings={props.bakerySettings}
                 onAddProduct={requestAddProduct}
+                onSelectRecipe={(recipe) => setSelectedProductId(recipe.id)}
                 productTypes={productTypes}
                 readyShelfItems={readyShelfItems}
                 recipes={recipes}
@@ -426,6 +634,16 @@ export default function MenuPage(props) {
       </section>
 
       {view === "recipes" ? <RecipesPage {...props} embeddedContext="menu" openEditorSignal={addProductSignal} /> : null}
+      {selectedProduct ? (
+        <ProductInfoSheet
+          recipe={selectedProduct}
+          productTypes={productTypes}
+          onAddToCalendar={(recipe) => runProductAction(props.onAddRecipeToCalendar, recipe)}
+          onAddToKitchen={(recipe) => runProductAction(props.onAddRecipeToKitchen, recipe)}
+          onClose={closeProductSheet}
+          onOpenBakeDesk={(recipe) => runProductAction(props.onOpenRecipeInBakeDesk, recipe)}
+        />
+      ) : null}
     </>
   );
 }

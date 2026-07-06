@@ -36,6 +36,8 @@ import {
   DEFAULT_PRODUCTION_AUTOMATION,
   orderProductionLines,
 } from "./lib/productionPlanner";
+import { buildBakeSchedule } from "./lib/fermentationModel";
+import { normalizeTimelineSettings, recipeUsesStarter } from "./lib/recipeTimeline";
 import {
   batchCodeFor,
   recipeVersionLabel,
@@ -93,6 +95,25 @@ function cleanEmail(value) {
 
 function cleanPhone(value) {
   return String(value || "").replace(/\D/g, "");
+}
+
+function localDateTimeValue(date = new Date()) {
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+}
+
+function localDateKey(date) {
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, "0"),
+    String(date.getDate()).padStart(2, "0"),
+  ].join("-");
+}
+
+function defaultMenuBakeStart() {
+  const date = new Date();
+  date.setDate(date.getDate() + 1);
+  date.setHours(6, 30, 0, 0);
+  return date;
 }
 
 function appendUniqueNote(existing, note) {
@@ -330,6 +351,7 @@ export default function App() {
   const [menuView, setMenuView] = useState("recipes");
   const [productionView, setProductionView] = useState("operations");
   const [productionArea, setProductionArea] = useState("calendar");
+  const [bakeDeskRecipeSignal, setBakeDeskRecipeSignal] = useState(null);
   const [businessFocus, setBusinessFocus] = useState(null);
   const [quickFeed, setQuickFeed] = useState({
     starterId: "mabel",
@@ -810,6 +832,99 @@ export default function App() {
     if (!options.silent) setToast(options.message || "Kitchen bake saved");
   }
 
+  function openRecipeInBakeDesk(recipe) {
+    if (!recipe?.id) return;
+    setBakeDeskRecipeSignal({ recipeId: recipe.id, view: "plan", nonce: Date.now() });
+    navigate("production", { productionView: "bake", navKey: "bake" });
+    setToast(`${recipe.name} loaded in Bake desk`);
+  }
+
+  function addRecipeToKitchen(recipe) {
+    if (!recipe?.id) return;
+    const timeline = normalizeTimelineSettings(recipe);
+    const usesStarter = recipeUsesStarter(recipe);
+    const starter = usesStarter ? starters[0] : null;
+    if (usesStarter && !starter) {
+      setToast("Add a starter before starting this bake in Kitchen");
+      navigate("production", { productionView: "operations", productionArea: "starters", navKey: "production" });
+      return;
+    }
+    const id = `kitchen-menu-${Date.now()}`;
+    const anchorDateTime = localDateTimeValue(new Date());
+    saveKitchenBake({
+      id,
+      name: `${recipe.name} · ${new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`,
+      recipeId: recipe.id,
+      recipeName: recipe.name,
+      loaves: Number(recipe.yield || 1),
+      starterId: usesStarter ? starter?.id : "",
+      starterName: usesStarter ? starter?.name : "",
+      ratio: usesStarter ? "1:2:2" : "",
+      doughTemperature: 76,
+      coldProofHours: timeline.includeColdProof ? Number(timeline.defaultColdProofHours || 0) : 0,
+      anchorMode: "start",
+      anchorDateTime,
+      checks: {},
+      status: "active",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      source: "menu-product-card",
+    }, { message: `${recipe.name} added to Kitchen` });
+    setSelectedKitchenBakeId(id);
+    setBakeDeskRecipeSignal({ recipeId: recipe.id, view: "kitchen", nonce: Date.now() });
+    navigate("production", { productionView: "bake", navKey: "bake" });
+  }
+
+  function addRecipeToCalendar(recipe) {
+    if (!recipe?.id) return;
+    const timeline = normalizeTimelineSettings(recipe);
+    const usesStarter = recipeUsesStarter(recipe);
+    const starter = usesStarter ? starters[0] : null;
+    if (usesStarter && !starter) {
+      setToast("Add a starter before scheduling this bake");
+      navigate("production", { productionView: "operations", productionArea: "starters", navKey: "production" });
+      return;
+    }
+    const start = defaultMenuBakeStart();
+    const anchorDateTime = localDateTimeValue(start);
+    let model = null;
+    try {
+      model = buildBakeSchedule({
+        recipe,
+        loaves: Number(recipe.yield || 1),
+        doughTemperature: 76,
+        coldProofHours: timeline.includeColdProof ? Number(timeline.defaultColdProofHours || 0) : 0,
+        anchorMode: "start",
+        anchorDateTime,
+        starter,
+        ratio: usesStarter ? "1:2:2" : "",
+        starterLogs,
+      });
+    } catch {
+      model = null;
+    }
+    const bakeEnd = model?.bakeEnd || new Date(start.getTime() + Math.max(1, Number(timeline.primaryRiseHours || 1)) * 60 * 60 * 1000);
+    saveBakePlan({
+      id: `menu-plan-${Date.now()}`,
+      date: localDateKey(bakeEnd),
+      recipeId: recipe.id,
+      recipeName: recipe.name,
+      loaves: Number(recipe.yield || 1),
+      starterId: usesStarter ? starter?.id : "",
+      starterName: usesStarter ? starter?.name : "",
+      ratio: usesStarter ? "1:2:2" : "",
+      doughTemperature: 76,
+      coldProofHours: timeline.includeColdProof ? Number(timeline.defaultColdProofHours || 0) : 0,
+      anchorMode: "start",
+      anchorDateTime,
+      bulkHours: Number((model?.dough?.bulkHours || timeline.primaryRiseHours || 1).toFixed(2)),
+      bakeEnd: bakeEnd.toISOString(),
+      source: "menu-product-card",
+      isNew: true,
+    });
+    navigate("production", { productionView: "operations", productionArea: "calendar", navKey: "production" });
+  }
+
   function deleteKitchenBake(id) {
     setKitchenBakes((current) => current.filter((bake) => bake.id !== id));
     if (selectedKitchenBakeId === id) setSelectedKitchenBakeId("");
@@ -900,6 +1015,7 @@ export default function App() {
     batchTraceRecords,
     liquidSafetyLogs,
     selectedKitchenBakeId,
+    bakeDeskRecipeSignal,
     starters,
     customerProfiles,
     expenses,
@@ -939,6 +1055,9 @@ export default function App() {
     onSaveStarter: saveStarter,
     onSelectKitchenBake: selectKitchenBake,
     onSyncProductionPlans: syncProductionPlans,
+    onAddRecipeToCalendar: addRecipeToCalendar,
+    onAddRecipeToKitchen: addRecipeToKitchen,
+    onOpenRecipeInBakeDesk: openRecipeInBakeDesk,
     businessFocus,
     selectedOrderId,
     productionView,

@@ -135,6 +135,7 @@ export default function BakePage({
   onSyncProductionPlans,
   onStarterLogged,
   onOpenProductionArea,
+  bakeDeskRecipeSignal,
   productionPlanDate,
   productionPlanToLoad,
 }) {
@@ -194,6 +195,25 @@ export default function BakePage({
   useEffect(() => {
     if (productionPlanToLoad?.plan) loadPlan(productionPlanToLoad.plan);
   }, [productionPlanToLoad?.nonce]);
+
+  useEffect(() => {
+    if (!bakeDeskRecipeSignal?.recipeId) return;
+    const nextRecipe = recipes.find((item) => item.id === bakeDeskRecipeSignal.recipeId);
+    if (!nextRecipe) return;
+    const nextTimeline = normalizeTimelineSettings(nextRecipe);
+    const nextUsesStarter = recipeUsesStarter(nextRecipe);
+    setEditingPlanId(null);
+    setConfirmPlanDelete(false);
+    setRecipeId(nextRecipe.id);
+    setLoaves(Number(nextRecipe.yield || 1));
+    setStarterId(nextUsesStarter ? (starters[0]?.id || "") : "");
+    setRatio(nextUsesStarter ? "1:2:2" : "");
+    setDoughTemperature(76);
+    setColdProofHours(nextTimeline.includeColdProof ? Number(nextTimeline.defaultColdProofHours || 0) : 0);
+    setAnchorMode("start");
+    setAnchorDateTime(defaultAnchor());
+    setView(bakeDeskRecipeSignal.view === "kitchen" ? "kitchen" : "plan");
+  }, [bakeDeskRecipeSignal?.nonce]);
 
   useEffect(() => {
     if (!usesStarter) {

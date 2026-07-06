@@ -19698,6 +19698,274 @@ html body .app-shell:not(.customer-storefront) .page.page .availability-toolbar.
   color: #101010 !important;
 }
 
+/* menu-product-readonly-sheet-v1 */
+.menu-product-card {
+  width: 100%;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.menu-product-card:hover,
+.menu-product-card:focus-visible {
+  border-color: rgba(214, 161, 95, .58);
+  transform: translateY(-1px);
+  box-shadow: 0 14px 28px rgba(0, 0, 0, .2);
+}
+
+.owner-product-sheet {
+  display: grid;
+  gap: 16px;
+}
+
+.owner-product-hero {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 18px;
+  align-items: stretch;
+  padding: 16px;
+  border: 1px solid rgba(214, 161, 95, .34);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at top left, rgba(214, 161, 95, .18), transparent 38%),
+    linear-gradient(135deg, #262923, #181c18);
+}
+
+.owner-product-photo {
+  min-height: 142px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  color: #d6a15f;
+  border: 1px solid rgba(214, 161, 95, .28);
+  border-radius: 18px;
+  background: rgba(89, 67, 48, .52);
+}
+
+.owner-product-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.owner-product-hero h3 {
+  margin: 3px 0 6px;
+  font-family: "Newsreader", Georgia, serif;
+  font-size: clamp(32px, 5vw, 56px);
+  font-weight: 500;
+  line-height: .95;
+}
+
+.owner-product-hero p {
+  max-width: 68ch;
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.owner-product-badges,
+.owner-product-action-grid,
+.owner-product-grid,
+.owner-product-detail-columns {
+  display: grid;
+  gap: 10px;
+}
+
+.owner-product-badges {
+  grid-template-columns: repeat(3, minmax(0, max-content));
+  margin-top: 14px;
+}
+
+.owner-product-badges span {
+  padding: 7px 10px;
+  border: 1px solid rgba(214, 161, 95, .28);
+  border-radius: 999px;
+  background: rgba(255,255,255,.055);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.owner-product-action-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.owner-product-action-grid button {
+  min-height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.owner-product-grid,
+.owner-product-detail-columns {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.owner-product-grid > article,
+.owner-product-detail-card {
+  min-width: 0;
+  padding: 15px;
+  border: 1px solid rgba(214, 161, 95, .28);
+  border-radius: 18px;
+  background: linear-gradient(145deg, #30322e, #222621);
+}
+
+.owner-product-grid > article > small {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+}
+
+.owner-product-grid > article > strong {
+  display: block;
+  font-family: "Newsreader", Georgia, serif;
+  font-size: 27px;
+  font-weight: 500;
+}
+
+.owner-product-option-list,
+.owner-product-timeline-list,
+.owner-product-step-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.owner-product-option-list span,
+.owner-product-timeline-list span {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 10px;
+  border: 1px solid rgba(214, 161, 95, .18);
+  border-radius: 12px;
+  background: rgba(10, 15, 13, .36);
+}
+
+.owner-product-option-list em {
+  font-style: normal;
+}
+
+.owner-product-detail-card .section-title-line {
+  margin-bottom: 10px;
+}
+
+.owner-product-ingredient-table {
+  display: grid;
+  gap: 6px;
+}
+
+.owner-product-ingredient-table > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) 96px 68px;
+  gap: 8px;
+  align-items: center;
+  padding: 9px 10px;
+  border: 1px solid rgba(214, 161, 95, .14);
+  border-radius: 12px;
+  background: rgba(10, 15, 13, .34);
+}
+
+.owner-product-ingredient-table > div:first-child {
+  background: rgba(214, 161, 95, .1);
+}
+
+.owner-product-ingredient-table span:first-child {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.owner-product-ingredient-table em {
+  font-size: 10px;
+  font-style: normal;
+  text-transform: capitalize;
+  opacity: .78;
+}
+
+.owner-product-step-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: product-step;
+}
+
+.owner-product-step-list li {
+  position: relative;
+  min-height: 52px;
+  padding: 10px 10px 10px 46px;
+  border: 1px solid rgba(214, 161, 95, .14);
+  border-radius: 12px;
+  background: rgba(10, 15, 13, .34);
+  counter-increment: product-step;
+}
+
+.owner-product-step-list li::before {
+  content: counter(product-step);
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 25px;
+  height: 25px;
+  display: grid;
+  place-items: center;
+  color: #1b1510;
+  border-radius: 50%;
+  background: #d6a15f;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.owner-product-step-list b,
+.owner-product-step-list span {
+  display: block;
+}
+
+.owner-product-step-list span {
+  margin-top: 2px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+html body .app-shell .modal-sheet .owner-product-sheet,
+html body .app-shell .modal-sheet .owner-product-sheet :is(p, small, label, span, summary, a, button, em, li, td, th) {
+  color: #d8d4ca !important;
+}
+
+html body .app-shell .modal-sheet .owner-product-sheet :is(h1, h2, h3, h4, strong, b) {
+  color: #f1dfbd !important;
+}
+
+html body .app-shell .modal-sheet .owner-product-sheet :is(.owner-product-hero, .owner-product-grid > article, .owner-product-detail-card, .owner-product-option-list span, .owner-product-timeline-list span, .owner-product-ingredient-table > div, .owner-product-step-list li) {
+  border-color: rgba(214, 161, 95, .28) !important;
+  background-color: #252923 !important;
+}
+
+html body .app-shell .modal-sheet .owner-product-sheet .owner-product-ingredient-table > div:first-child {
+  background-color: #34332c !important;
+}
+
+@media (max-width: 760px) {
+  .owner-product-hero,
+  .owner-product-grid,
+  .owner-product-detail-columns,
+  .owner-product-action-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .owner-product-photo {
+    min-height: 180px;
+  }
+
+  .owner-product-badges {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* recipe-import-workspace-v1 */
 .recipe-import-workspace {
   display: grid;
