@@ -562,3 +562,115 @@ html body .app-shell:not(.customer-storefront) .page.page .production-inventory-
     linear-gradient(145deg, rgba(120, 99, 76, .98), rgba(88, 67, 52, .98)) !important;
   color: #fff0df !important;
 }
+
+/* grey-leftovers-v1: finish the last cream/sage owner controls called out in
+   Orders queue, Kitchen, and Starter feed history. */
+html body .app-shell:not(.customer-storefront) .page.page :is(
+  .orders-intake-card .cloud-inbox-banner,
+  .orders-intake-card .cloud-inbox-banner.has-orders,
+  .orders-toolbar .view-switch,
+  .orders-toolbar .view-switch button,
+  .orders-search-row .search-field,
+  .orders-search-row .segmented-control,
+  .orders-search-row .segmented-control button,
+  .starter-history .history-row.detailed,
+  .starter-history .feed-ratio-badge,
+  .kitchen-hero > strong,
+  .kitchen-disclosure-actions > strong,
+  .kitchen-board .kitchen-step-row.done,
+  .kitchen-board .kitchen-stagger-list li
+) {
+  background:
+    linear-gradient(145deg, rgba(92, 94, 89, .98), rgba(67, 70, 66, .98)) !important;
+  border-color: rgba(205, 161, 103, .46) !important;
+  color: #f1eee8 !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page :is(
+  .orders-intake-card .cloud-inbox-banner,
+  .orders-intake-card .cloud-inbox-banner.has-orders,
+  .orders-toolbar .view-switch,
+  .orders-toolbar .view-switch button,
+  .orders-search-row .search-field,
+  .orders-search-row .segmented-control,
+  .orders-search-row .segmented-control button,
+  .starter-history .history-row.detailed,
+  .starter-history .feed-ratio-badge,
+  .kitchen-hero > strong,
+  .kitchen-disclosure-actions > strong,
+  .kitchen-board .kitchen-step-row.done,
+  .kitchen-board .kitchen-stagger-list li
+) :is(span, strong, small, b, em, svg, path) {
+  color: #f1eee8 !important;
+  stroke: currentColor !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page :is(
+  .orders-toolbar .view-switch button.selected,
+  .orders-search-row .segmented-control button.selected
+) {
+  background:
+    linear-gradient(145deg, rgba(122, 114, 101, .98), rgba(89, 85, 78, .98)) !important;
+  border-color: rgba(229, 173, 101, .58) !important;
+  color: #ffffff !important;
+  box-shadow: inset 0 0 0 1px rgba(229, 173, 101, .22) !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .orders-search-row .search-field input {
+  color: #ffffff !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .orders-search-row .search-field input::placeholder {
+  color: rgba(241, 238, 232, .72) !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page :is(
+  .orders-card-list .status,
+  .orders-card-list .status-success,
+  .orders-card-list .status-accent,
+  .orders-card-list .payment-status-chip,
+  .orders-card-list .payment-status-chip.deposit,
+  .orders-card-list .payment-status-chip.paid,
+  .orders-card-list .payment-status-chip.refunded
+) {
+  background:
+    linear-gradient(145deg, rgba(108, 108, 101, .98), rgba(78, 80, 75, .98)) !important;
+  border: 1px solid rgba(205, 161, 103, .38) !important;
+  color: #f6f1ea !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .starter-history .feed-ratio-badge {
+  min-width: 42px;
+  box-shadow: inset 0 0 0 1px rgba(229, 173, 101, .18) !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page :is(
+  .sample-record-banner,
+  .bake-side-card .bake-side-row,
+  .bake-side-card .bake-side-empty,
+  .starter-history .empty-state,
+  .starter-history .section-title-line button
+) {
+  background:
+    linear-gradient(145deg, rgba(82, 85, 80, .98), rgba(55, 59, 55, .98)) !important;
+  border-color: rgba(205, 161, 103, .44) !important;
+  color: #f1eee8 !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page :is(
+  .sample-record-banner,
+  .bake-side-card .bake-side-row,
+  .bake-side-card .bake-side-empty,
+  .starter-history .empty-state,
+  .starter-history .section-title-line button
+) :is(span, strong, small, p, h3, svg, path) {
+  color: #f1eee8 !important;
+  stroke: currentColor !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .sample-record-banner button {
+  background:
+    linear-gradient(135deg, #9a4b1f, #5f2a10) !important;
+  border-color: rgba(229, 173, 101, .58) !important;
+  color: #ffffff !important;
+}
