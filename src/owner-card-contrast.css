@@ -1301,6 +1301,37 @@ html body .app-shell:not(.customer-storefront) .customer-directory-row.customer-
   stroke: currentColor !important;
 }
 
+/* owner-customer-directory-tabs-empty-bronze-v1
+   The customer view tabs and empty prompts sit outside the profile form, so
+   force them into the same bronze-on-grey treatment. */
+html body .app-shell:not(.customer-storefront) .customer-directory-panel.customer-directory-panel :is(
+  .customer-directory-toolbar,
+  .customer-filter,
+  .customer-filter button,
+  .customer-filter button.selected,
+  .customer-filter span,
+  .empty-state,
+  .empty-state h3,
+  .empty-state p
+) {
+  color: #d6a15f !important;
+  -webkit-text-fill-color: #d6a15f !important;
+  border-color: rgba(139, 85, 45, .92) !important;
+}
+
+html body .app-shell:not(.customer-storefront) .customer-directory-panel.customer-directory-panel .customer-filter button,
+html body .app-shell:not(.customer-storefront) .customer-directory-panel.customer-directory-panel .empty-state {
+  background:
+    radial-gradient(circle at top left, rgba(112, 78, 44, .12), transparent 42%),
+    linear-gradient(145deg, rgba(59, 60, 54, .98), rgba(33, 36, 32, .99)) !important;
+}
+
+html body .app-shell:not(.customer-storefront) .customer-directory-panel.customer-directory-panel .customer-filter button.selected,
+html body .app-shell:not(.customer-storefront) .customer-directory-panel.customer-directory-panel .customer-filter span {
+  background:
+    linear-gradient(145deg, rgba(92, 70, 47, .96), rgba(50, 47, 40, .98)) !important;
+}
+
 @media (max-width: 900px) {
   html body .app-shell:not(.customer-storefront) .resource-hub-page {
     max-width: 100%;
