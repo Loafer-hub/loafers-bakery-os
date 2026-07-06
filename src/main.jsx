@@ -6,6 +6,7 @@ import { StatusBar, Style } from "@capacitor/status-bar";
 import App from "./App";
 import "./styles.css";
 import "./owner-card-contrast.css";
+import "./mobile-layout.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>

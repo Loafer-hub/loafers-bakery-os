@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   BookOpen,
   CalendarDays,
@@ -33,6 +34,12 @@ const desktopNavItems = [
   { id: "logbook", label: "Logbook", icon: BookOpen, page: "business", businessFocus: "logbook" },
   { id: "customers", label: "Customers", icon: UserRound, page: "business", businessFocus: "customers" },
   { id: "settings", label: "Settings", icon: Settings2, page: "settings" },
+];
+
+const mobileOwnerNavItems = [
+  ...desktopNavItems,
+  { id: "help", label: "Need help?", icon: BookOpen, page: "help" },
+  { id: "resources", label: "Owner resources", icon: UserRound, page: "resources" },
 ];
 
 export function BrandHeader({ compact = false, onOpenSettings, onOpenStorage }) {
@@ -79,7 +86,13 @@ export function BrandHeader({ compact = false, onOpenSettings, onOpenStorage }) 
 }
 
 export function BottomNav({ active, activeNavKey = active, onChange, orderBadgeCount = 0 }) {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const badgeLabel = orderBadgeCount > 99 ? "99+" : String(orderBadgeCount || "");
+
+  const navigateFromMobile = ({ id, page, productionView, productionArea, businessFocus }) => {
+    onChange(page, { navKey: id, productionView, productionArea, businessFocus });
+    setMobileMenuOpen(false);
+  };
 
   return (
     <nav className="bottom-nav" aria-label="Main navigation">
@@ -102,6 +115,62 @@ export function BottomNav({ active, activeNavKey = active, onChange, orderBadgeC
             </button>
           );
         })}
+      </div>
+
+      <div className={mobileMenuOpen ? "mobile-owner-menu open" : "mobile-owner-menu"}>
+        {mobileMenuOpen ? (
+          <button
+            className="mobile-owner-menu-scrim"
+            type="button"
+            aria-label="Close owner menu"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+        ) : null}
+        <div className="mobile-owner-menu-dock">
+          {mobileMenuOpen ? (
+            <div className="mobile-owner-menu-panel" role="dialog" aria-label="Owner navigation">
+              <div className="mobile-owner-menu-header">
+                <span>
+                  <strong>Loafers Home Bakery</strong>
+                  <small>Owner workspace</small>
+                </span>
+                <button type="button" aria-label="Close menu" onClick={() => setMobileMenuOpen(false)}>
+                  <X size={18} />
+                </button>
+              </div>
+              <div className="mobile-owner-menu-list">
+                {mobileOwnerNavItems.map((item) => {
+                  const { id, label, icon: Icon, page, showBadge } = item;
+                  const isActive = activeNavKey === id || (!activeNavKey && active === page);
+                  return (
+                    <button
+                      key={id}
+                      className={isActive ? "mobile-owner-menu-item active" : "mobile-owner-menu-item"}
+                      type="button"
+                      onClick={() => navigateFromMobile(item)}
+                      aria-current={isActive ? "page" : undefined}
+                    >
+                      <Icon size={18} />
+                      <span>{label}</span>
+                      {showBadge && badgeLabel ? <b className="nav-badge">{badgeLabel}</b> : null}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
+          <button
+            className="mobile-owner-menu-toggle"
+            type="button"
+            aria-label={mobileMenuOpen ? "Close owner menu" : "Open owner menu"}
+            aria-expanded={mobileMenuOpen}
+            onClick={() => setMobileMenuOpen((current) => !current)}
+          >
+            {mobileMenuOpen ? <X size={23} /> : <Plus size={25} />}
+            <span>Menu</span>
+            {!mobileMenuOpen && badgeLabel ? <b className="nav-badge">{badgeLabel}</b> : null}
+          </button>
+        </div>
       </div>
 
       <div className="desktop-nav-items">

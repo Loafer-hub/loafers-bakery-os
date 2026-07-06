@@ -1,0 +1,528 @@
+/* mobile-owner-layout-v1
+   Phone-only owner shell. Desktop and tablet keep the existing sidebar at 760px+. */
+
+.mobile-owner-menu {
+  display: none;
+}
+
+@media (max-width: 759px) {
+  :root {
+    --mobile-night: #050807;
+    --mobile-panel: #111512;
+    --mobile-panel-2: #1a1d18;
+    --mobile-panel-3: #25241f;
+    --mobile-line: rgba(194, 125, 54, 0.54);
+    --mobile-line-soft: rgba(194, 125, 54, 0.28);
+    --mobile-bronze: #d59a55;
+    --mobile-bronze-soft: #c7a46d;
+    --mobile-cream: #f2ece1;
+    --mobile-muted: #c8b596;
+  }
+
+  html,
+  body,
+  #root {
+    background: #030504 !important;
+  }
+
+  html body .app-stage {
+    min-height: 100svh !important;
+    padding: 0 !important;
+    place-items: stretch !important;
+    background:
+      radial-gradient(circle at 84% 0%, rgba(94, 53, 143, 0.24), transparent 30%),
+      radial-gradient(circle at 6% 92%, rgba(169, 94, 36, 0.16), transparent 34%),
+      linear-gradient(180deg, #020404 0%, #07100f 52%, #030504 100%) !important;
+  }
+
+  html body .app-shell:not(.customer-storefront) {
+    width: 100vw !important;
+    max-width: none !important;
+    height: 100svh !important;
+    min-height: 0 !important;
+    grid-template-rows: minmax(0, 1fr) !important;
+    overflow: hidden !important;
+    color: var(--mobile-bronze) !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background:
+      radial-gradient(circle at 88% 0%, rgba(77, 51, 118, 0.2), transparent 26%),
+      linear-gradient(180deg, #07100f 0%, #060b0a 100%) !important;
+    box-shadow: none !important;
+  }
+
+  html body .app-shell:not(.customer-storefront) .scroll-view {
+    min-width: 0 !important;
+    background:
+      radial-gradient(circle at 90% -4%, rgba(63, 148, 107, 0.09), transparent 28%),
+      linear-gradient(180deg, #08100f 0%, #050807 58%, #030504 100%) !important;
+  }
+
+  html body .app-shell:not(.customer-storefront) .page {
+    min-height: 100% !important;
+    padding: 22px 16px calc(104px + env(safe-area-inset-bottom)) !important;
+    color: var(--mobile-bronze) !important;
+    background: transparent !important;
+  }
+
+  html body .app-shell:not(.customer-storefront) .bottom-nav {
+    position: absolute !important;
+    inset: 0 !important;
+    z-index: 60 !important;
+    display: block !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    pointer-events: none !important;
+  }
+
+  html body .app-shell:not(.customer-storefront) .mobile-nav-items,
+  html body .app-shell:not(.customer-storefront) .desktop-nav-brand,
+  html body .app-shell:not(.customer-storefront) .desktop-nav-items,
+  html body .app-shell:not(.customer-storefront) .desktop-nav-footer,
+  html body .app-shell:not(.customer-storefront) .global-quick-action,
+  html body .app-shell:not(.customer-storefront) .quick-action-popover {
+    display: none !important;
+  }
+
+  .mobile-owner-menu {
+    position: absolute;
+    inset: 0;
+    display: block;
+    pointer-events: none;
+  }
+
+  .mobile-owner-menu-scrim {
+    position: absolute;
+    inset: 0;
+    display: block;
+    border: 0;
+    background: rgba(0, 0, 0, 0.36);
+    pointer-events: auto;
+  }
+
+  .mobile-owner-menu-dock {
+    position: absolute;
+    right: 16px;
+    bottom: calc(18px + env(safe-area-inset-bottom));
+    z-index: 2;
+    display: grid;
+    justify-items: end;
+    gap: 12px;
+    pointer-events: auto;
+  }
+
+  .mobile-owner-menu-toggle {
+    min-width: 68px;
+    min-height: 58px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 12px 14px;
+    color: var(--mobile-cream) !important;
+    border: 1.5px solid var(--mobile-line) !important;
+    border-radius: 999px;
+    background:
+      radial-gradient(circle at 30% 18%, rgba(231, 172, 93, 0.28), transparent 42%),
+      linear-gradient(145deg, #23170f 0%, #111512 100%) !important;
+    box-shadow: 0 18px 42px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .mobile-owner-menu-toggle svg,
+  .mobile-owner-menu-toggle path {
+    color: var(--mobile-bronze) !important;
+    stroke: currentColor !important;
+  }
+
+  .mobile-owner-menu-toggle .nav-badge {
+    position: absolute;
+    top: -5px;
+    right: -3px;
+  }
+
+  .mobile-owner-menu-panel {
+    width: min(346px, calc(100vw - 32px));
+    max-height: min(72svh, 620px);
+    overflow: auto;
+    padding: 12px;
+    color: var(--mobile-bronze) !important;
+    border: 1.5px solid var(--mobile-line);
+    border-radius: 24px;
+    background:
+      radial-gradient(circle at 88% 0%, rgba(94, 53, 143, 0.16), transparent 30%),
+      linear-gradient(180deg, rgba(18, 22, 19, 0.98), rgba(5, 8, 7, 0.99)) !important;
+    box-shadow: 0 28px 72px rgba(0, 0, 0, 0.72), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    scrollbar-width: thin;
+    scrollbar-color: var(--mobile-line) rgba(255, 255, 255, 0.05);
+  }
+
+  .mobile-owner-menu-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+    padding: 8px 8px 12px;
+    border-bottom: 1px solid var(--mobile-line-soft);
+  }
+
+  .mobile-owner-menu-header strong,
+  .mobile-owner-menu-header small {
+    display: block;
+  }
+
+  .mobile-owner-menu-header strong {
+    color: var(--mobile-cream) !important;
+    font-family: "Newsreader", Georgia, serif;
+    font-size: 22px;
+    font-weight: 600;
+  }
+
+  .mobile-owner-menu-header small {
+    margin-top: 1px;
+    color: var(--mobile-bronze-soft) !important;
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  .mobile-owner-menu-header button {
+    width: 38px;
+    height: 38px;
+    display: grid;
+    place-items: center;
+    color: var(--mobile-bronze) !important;
+    border: 1px solid var(--mobile-line-soft);
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.18);
+  }
+
+  .mobile-owner-menu-list {
+    display: grid;
+    gap: 7px;
+  }
+
+  .mobile-owner-menu-item {
+    width: 100%;
+    min-height: 49px;
+    display: grid;
+    grid-template-columns: 30px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    color: var(--mobile-bronze) !important;
+    text-align: left;
+    border: 1px solid var(--mobile-line-soft);
+    border-radius: 15px;
+    background: linear-gradient(135deg, rgba(37, 36, 31, 0.94), rgba(15, 19, 16, 0.96)) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+
+  .mobile-owner-menu-item svg,
+  .mobile-owner-menu-item path {
+    color: var(--mobile-bronze) !important;
+    stroke: currentColor !important;
+  }
+
+  .mobile-owner-menu-item span {
+    color: var(--mobile-bronze) !important;
+    font-size: 15px;
+    font-weight: 900;
+  }
+
+  .mobile-owner-menu-item.active {
+    color: var(--mobile-cream) !important;
+    border-color: rgba(220, 153, 80, 0.84);
+    background: linear-gradient(135deg, rgba(132, 72, 28, 0.62), rgba(31, 22, 13, 0.98)) !important;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.26), inset 0 1px 0 rgba(255, 255, 255, 0.09);
+  }
+
+  .mobile-owner-menu-item.active span,
+  .mobile-owner-menu-item.active svg,
+  .mobile-owner-menu-item.active path {
+    color: var(--mobile-cream) !important;
+  }
+
+  html body .app-shell:not(.customer-storefront) .nav-badge {
+    color: var(--mobile-cream) !important;
+    border: 1px solid rgba(255, 228, 183, 0.28);
+    background: linear-gradient(135deg, #a55521, #5c2d14) !important;
+  }
+
+  html body .app-shell:not(.customer-storefront) :is(
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6,
+    .display-title,
+    .brand-name,
+    .page-heading h1,
+    .greeting h1,
+    .today-page > h2,
+    .section-title-line h2
+  ) {
+    color: var(--mobile-cream) !important;
+    text-shadow: 0 1px 18px rgba(0, 0, 0, 0.45);
+  }
+
+  html body .app-shell:not(.customer-storefront) :is(
+    p,
+    small,
+    label,
+    legend,
+    summary,
+    li,
+    td,
+    th,
+    a,
+    button,
+    input,
+    select,
+    textarea,
+    .brand-subname,
+    .eyebrow-label
+  ) {
+    color: var(--mobile-bronze-soft) !important;
+  }
+
+  html body .app-shell:not(.customer-storefront) :is(strong, b, em) {
+    color: var(--mobile-cream) !important;
+  }
+
+  html body .app-shell:not(.customer-storefront) :is(svg, path, line, polyline, circle, rect) {
+    color: var(--mobile-bronze) !important;
+    stroke: currentColor;
+  }
+
+  html body .app-shell:not(.customer-storefront) :is(
+    .brand-header,
+    .compact-brand,
+    .page-heading,
+    .settings-card,
+    .settings-hero-card,
+    .settings-publish-card,
+    .settings-command-card,
+    .settings-command-hero,
+    .settings-command-grid article,
+    .starter-panel,
+    .order-panel,
+    .fermentation-progress-track,
+    .product-type-settings-card,
+    .product-availability-card,
+    .owner-command-card,
+    .orders-command-hero,
+    .order-command-card,
+    .orders-card,
+    .orders-side-panel,
+    .bake-command-hero,
+    .bake-command-card,
+    .bake-work-card,
+    .bake-side-card-dark,
+    .kitchen-board,
+    .kitchen-hero,
+    .kitchen-add-form,
+    .kitchen-suggestion-card,
+    .production-dashboard,
+    .production-dashboard article,
+    .production-ops-card,
+    .production-inventory-row,
+    .product-card,
+    .product-type-card,
+    .menu-owner-panel,
+    .owner-menu-card,
+    .menu-embedded-workspace,
+    .menu-sidebar-card,
+    .owner-product-sheet,
+    .recipe-card,
+    .recipe-import-workspace,
+    .recipe-import-card,
+    .flour-database-panel,
+    .flour-guide-card,
+    .starter-card,
+    .starter-science-card,
+    .starter-history,
+    .feed-history-row,
+    .calendar-card,
+    .calendar-day,
+    .calendar-event,
+    .batch-plan-card,
+    .weekly-production-day,
+    .prep-list-card,
+    .inventory-section,
+    .inventory-row,
+    .owner-quality-card,
+    .quality-check-row,
+    .owner-alert-row,
+    .management-logbook-section,
+    .compact-logbook-list,
+    .batch-trace-row,
+    .expense-row,
+    .purchase-row,
+    .quick-metrics,
+    .quick-metrics > div,
+    .metric-button,
+    .pricing-product-row,
+    .customer-profile-card,
+    .resource-hero-card,
+    .resource-roadmap-card,
+    .resource-link-card,
+    .help-doc-card,
+    .help-workflow-card,
+    .help-step-list li,
+    .help-changelog-list article,
+    .modal-sheet
+  ) {
+    color: var(--mobile-bronze-soft) !important;
+    border-color: var(--mobile-line-soft) !important;
+    background:
+      linear-gradient(145deg, rgba(32, 35, 31, 0.94), rgba(12, 17, 14, 0.98)) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+  }
+
+  html body .app-shell:not(.customer-storefront) :is(
+    input,
+    select,
+    textarea,
+    .search-field,
+    .view-switch,
+    .segmented-control,
+    .settings-number-grid label,
+    .settings-hours-grid label,
+    .settings-test-grid label
+  ) {
+    color: var(--mobile-cream) !important;
+    border: 1px solid var(--mobile-line-soft) !important;
+    background: #1b1d19 !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035) !important;
+  }
+
+  html body .app-shell:not(.customer-storefront) :is(input, textarea)::placeholder {
+    color: rgba(213, 154, 85, 0.74) !important;
+  }
+
+  html body .app-shell:not(.customer-storefront) :is(option) {
+    color: var(--mobile-cream) !important;
+    background: #121512 !important;
+  }
+
+  html body .app-shell:not(.customer-storefront) :is(
+    .primary-button,
+    .secondary-button,
+    .settings-test-button,
+    .settings-save-button,
+    .round-action,
+    .small-action-button,
+    .text-button
+  ) {
+    color: var(--mobile-cream) !important;
+    border: 1px solid rgba(210, 137, 65, 0.54) !important;
+    background: linear-gradient(135deg, #994b1d, #542714) !important;
+  }
+
+  html body .app-shell:not(.customer-storefront) :is(
+    .view-switch button,
+    .segmented-control button,
+    .production-ops-switch button,
+    .flour-type-tabs button,
+    .flour-brand-tabs button
+  ) {
+    color: var(--mobile-bronze-soft) !important;
+    border-color: transparent !important;
+    background: transparent !important;
+  }
+
+  html body .app-shell:not(.customer-storefront) :is(
+    .view-switch button.selected,
+    .segmented-control button.selected,
+    .production-ops-switch button.selected,
+    .flour-type-tabs button.active,
+    .flour-brand-tabs button.active
+  ) {
+    color: var(--mobile-cream) !important;
+    border-color: rgba(210, 137, 65, 0.55) !important;
+    background: linear-gradient(135deg, rgba(151, 83, 32, 0.58), rgba(21, 20, 16, 0.96)) !important;
+  }
+
+  html body .app-shell:not(.customer-storefront) .modal-backdrop {
+    background: rgba(0, 0, 0, 0.72) !important;
+    backdrop-filter: blur(14px) !important;
+  }
+
+  html body .app-shell:not(.customer-storefront) .modal-sheet {
+    width: min(100vw - 18px, 560px) !important;
+    max-height: calc(100svh - 22px) !important;
+    color: var(--mobile-bronze-soft) !important;
+    border: 1px solid var(--mobile-line) !important;
+    background:
+      radial-gradient(circle at 100% 0%, rgba(95, 51, 129, 0.12), transparent 30%),
+      linear-gradient(180deg, #1b1d19, #0a0f0d) !important;
+  }
+
+  html body .app-shell:not(.customer-storefront) .modal-sheet :is(h1, h2, h3, h4, strong, b) {
+    color: var(--mobile-cream) !important;
+  }
+
+  html body .app-shell:not(.customer-storefront) .modal-sheet :is(p, small, label, span, summary, a, button, em, td, th) {
+    color: var(--mobile-bronze-soft) !important;
+  }
+
+  html body .app-shell:not(.customer-storefront) :is(
+    .today-layout,
+    .today-grid,
+    .orders-command-grid,
+    .orders-main-grid,
+    .bake-command-grid,
+    .bake-workspace,
+    .bake-workspace-grid,
+    .bake-desk-layout,
+    .production-command-grid,
+    .production-ops-grid,
+    .menu-workspace,
+    .menu-desk-layout,
+    .menu-owner-grid,
+    .settings-grid,
+    .settings-command-grid,
+    .business-dashboard-grid,
+    .management-grid,
+    .resource-card-grid,
+    .recipe-import-grid,
+    .owner-product-grid,
+    .form-grid
+  ) {
+    grid-template-columns: 1fr !important;
+  }
+
+  html body .app-shell:not(.customer-storefront) :is(
+    .page-heading,
+    .section-title-line,
+    .orders-command-hero,
+    .bake-command-hero,
+    .production-command-hero,
+    .menu-command-hero
+  ) {
+    gap: 12px !important;
+  }
+
+  html body .app-shell:not(.customer-storefront) :is(.page-heading h1, .greeting h1, .display-title) {
+    font-size: clamp(40px, 13vw, 62px) !important;
+    line-height: 0.95 !important;
+  }
+
+  html body .app-shell:not(.customer-storefront) :is(.page-heading p, .greeting p, .page-heading small) {
+    font-size: 14px !important;
+    line-height: 1.45 !important;
+  }
+
+  html body .app-shell:not(.customer-storefront) :is(.desktop-only, .wide-only) {
+    display: none !important;
+  }
+}
