@@ -905,3 +905,196 @@ html body .app-shell:not(.customer-storefront) .page.page .inventory-section .in
     0 0 0 3px rgba(181, 107, 49, .18),
     0 14px 26px rgba(0, 0, 0, .18) !important;
 }
+
+/* owner-help-logbook-resource-v1 */
+html body .app-shell:not(.customer-storefront) .page.page .management-logbook-section .batch-trace-row.batch-trace-row,
+html body .app-shell:not(.customer-storefront) .page.page .management-logbook-section .batch-trace-row.batch-trace-row > span,
+html body .app-shell:not(.customer-storefront) .page.page .compact-logbook-list .batch-trace-row.batch-trace-row,
+html body .app-shell:not(.customer-storefront) .page.page .compact-logbook-list .batch-trace-row.batch-trace-row > span {
+  background:
+    linear-gradient(145deg, rgba(58, 51, 43, .98), rgba(33, 34, 31, .98)) !important;
+  border-color: rgba(166, 90, 39, .98) !important;
+  color: #f4eee8 !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .management-logbook-section .batch-trace-row.batch-trace-row :is(strong, b, em),
+html body .app-shell:not(.customer-storefront) .page.page .compact-logbook-list .batch-trace-row.batch-trace-row :is(strong, b, em) {
+  color: #d6a15f !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .management-logbook-section .batch-trace-row.batch-trace-row :is(small, span, p),
+html body .app-shell:not(.customer-storefront) .page.page .compact-logbook-list .batch-trace-row.batch-trace-row :is(small, span, p) {
+  color: #f4eee8 !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.help-page :is(
+  .help-hero-card,
+  .help-doc-card,
+  .help-workflow-card,
+  .help-safety-card,
+  .help-changelog-card,
+  .help-note-card
+) {
+  background:
+    linear-gradient(145deg, rgba(56, 50, 42, .98), rgba(30, 32, 29, .98)) !important;
+  border: 1.5px solid rgba(139, 85, 45, .92) !important;
+  color: #d6a15f !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.help-page :is(
+  h1, h2, h3, h4, strong, b,
+  p, small, span, li, a, button, em,
+  .page-heading p,
+  .eyebrow-label
+) {
+  color: #d6a15f !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.help-page .help-step-list li,
+html body .app-shell:not(.customer-storefront) .page.help-page .help-changelog-list article,
+html body .app-shell:not(.customer-storefront) .page.help-page .help-doc-card {
+  background:
+    linear-gradient(145deg, rgba(68, 61, 52, .98), rgba(41, 39, 34, .98)) !important;
+  border: 1.5px solid rgba(139, 85, 45, .9) !important;
+  box-shadow: inset 0 0 0 1px rgba(229, 173, 101, .12) !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.help-page .help-step-list li::before,
+html body .app-shell:not(.customer-storefront) .page.help-page .help-changelog-list article > span {
+  background: #8b552d !important;
+  color: #ffffff !important;
+  border-color: rgba(229, 173, 101, .65) !important;
+}
+
+html body .app-shell:not(.customer-storefront) .desktop-profile-link.desktop-profile-link.active {
+  background:
+    linear-gradient(135deg, rgba(73, 47, 27, .96), rgba(31, 28, 23, .96)) !important;
+  border-color: #d6a15f !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(229, 173, 101, .18),
+    0 0 0 3px rgba(214, 161, 95, .12) !important;
+}
+
+html body .app-shell:not(.customer-storefront) .resource-hub-page {
+  max-width: min(1500px, calc(100vw - 360px));
+}
+
+html body .app-shell:not(.customer-storefront) .resource-hub-page .page-heading :is(h1, p),
+html body .app-shell:not(.customer-storefront) .resource-hub-page :is(h2, h3, strong, b) {
+  color: #f4eee8 !important;
+}
+
+html body .app-shell:not(.customer-storefront) .resource-hub-page :is(p, small, span, em) {
+  color: #d6a15f !important;
+}
+
+html body .app-shell:not(.customer-storefront) .resource-hero-card,
+html body .app-shell:not(.customer-storefront) .resource-roadmap-card {
+  display: flex;
+  gap: 22px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px;
+  margin-bottom: 18px;
+  border-radius: 24px;
+  border: 1.5px solid rgba(139, 85, 45, .92);
+  background:
+    radial-gradient(circle at top right, rgba(120, 65, 36, .24), transparent 38%),
+    linear-gradient(145deg, rgba(41, 39, 34, .98), rgba(17, 22, 20, .98));
+  box-shadow:
+    inset 0 0 0 1px rgba(229, 173, 101, .1),
+    0 18px 36px rgba(0, 0, 0, .2);
+}
+
+html body .app-shell:not(.customer-storefront) .resource-hero-card p {
+  max-width: 760px;
+  margin-top: 10px;
+}
+
+html body .app-shell:not(.customer-storefront) .resource-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+html body .app-shell:not(.customer-storefront) .resource-link-card {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 14px;
+  align-items: center;
+  width: 100%;
+  min-height: 112px;
+  padding: 18px;
+  border-radius: 20px;
+  border: 1.5px solid rgba(139, 85, 45, .94);
+  background:
+    linear-gradient(145deg, rgba(54, 49, 42, .98), rgba(31, 33, 30, .98));
+  color: #d6a15f !important;
+  text-align: left;
+  text-decoration: none;
+  box-shadow: inset 0 0 0 1px rgba(229, 173, 101, .1);
+}
+
+html body .app-shell:not(.customer-storefront) .resource-link-card:hover,
+html body .app-shell:not(.customer-storefront) .resource-link-card:focus-visible {
+  border-color: #d6a15f;
+  box-shadow:
+    inset 0 0 0 1px rgba(229, 173, 101, .18),
+    0 0 0 3px rgba(214, 161, 95, .14);
+}
+
+html body .app-shell:not(.customer-storefront) .resource-link-card :is(svg, path) {
+  color: #d6a15f !important;
+  stroke: currentColor !important;
+}
+
+html body .app-shell:not(.customer-storefront) .resource-link-card span {
+  display: grid;
+  gap: 4px;
+}
+
+html body .app-shell:not(.customer-storefront) .resource-link-card em {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: flex-end;
+  font-style: normal;
+  font-weight: 900;
+  color: #f4eee8 !important;
+}
+
+html body .app-shell:not(.customer-storefront) .resource-roadmap-card {
+  display: block;
+}
+
+html body .app-shell:not(.customer-storefront) .resource-roadmap-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+html body .app-shell:not(.customer-storefront) .resource-roadmap-list article {
+  display: flex;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(139, 85, 45, .78);
+  background: rgba(18, 23, 20, .86);
+}
+
+@media (max-width: 900px) {
+  html body .app-shell:not(.customer-storefront) .resource-hub-page {
+    max-width: 100%;
+  }
+
+  html body .app-shell:not(.customer-storefront) .resource-link-card {
+    grid-template-columns: auto 1fr;
+  }
+
+  html body .app-shell:not(.customer-storefront) .resource-link-card em {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+}

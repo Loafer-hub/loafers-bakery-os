@@ -131,11 +131,15 @@ export function BottomNav({ active, activeNavKey = active, onChange, orderBadgeC
           <BookOpen size={18} />
           <span>Need help?</span>
         </button>
-        <button className="desktop-profile-link" type="button" onClick={() => onChange("settings")}>
+        <button
+          className={activeNavKey === "resources" ? "desktop-profile-link active" : "desktop-profile-link"}
+          type="button"
+          onClick={() => onChange("resources", { navKey: "resources" })}
+        >
           <span className="desktop-profile-avatar">LB</span>
           <span>
             <strong>Loafers Bakery</strong>
-            <small>Owner</small>
+            <small>Owner resources</small>
           </span>
           <ChevronRight size={17} />
         </button>

@@ -51,6 +51,7 @@ import MorePage from "./pages/MorePage";
 import OrdersPage from "./pages/OrdersPage";
 import ProductionPage from "./pages/ProductionPage";
 import RecipesPage from "./pages/RecipesPage";
+import ResourceHubPage from "./pages/ResourceHubPage";
 import SettingsPage from "./pages/SettingsPage";
 import TodayPage from "./pages/TodayPage";
 import HelpPage from "./pages/HelpPage";
@@ -66,6 +67,7 @@ const pages = {
   business: MorePage,
   settings: SettingsPage,
   help: HelpPage,
+  resources: ResourceHubPage,
 };
 
 const pageAliases = {
