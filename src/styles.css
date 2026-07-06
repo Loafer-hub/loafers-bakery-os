@@ -21755,6 +21755,43 @@ html body .app-shell:not(.customer-storefront) .page.page .search-row .search-fi
   background: rgba(255, 255, 255, .06);
 }
 
+.resource-publish-button {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 13px;
+  color: #ffffff !important;
+  border: 1px solid rgba(214, 161, 95, .48) !important;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #9a4b1f, #5f2a10) !important;
+  font-size: 12px;
+  font-weight: 950;
+  cursor: pointer;
+  box-shadow: 0 12px 28px rgba(2, 5, 9, .28);
+}
+
+.resource-publish-button:disabled {
+  opacity: .66;
+  cursor: wait;
+}
+
+.resource-publish-button svg {
+  stroke: currentColor !important;
+}
+
+.resource-publish-message {
+  margin: -2px 0 10px;
+  padding: 10px 12px;
+  color: #e5ad65 !important;
+  border: 1px solid rgba(214, 161, 95, .38);
+  border-radius: 14px;
+  background: linear-gradient(145deg, #242a24, #151a16) !important;
+  font-size: 12px;
+  font-weight: 850;
+}
+
 .customer-header-actions {
   display: flex;
   flex: 0 0 auto;

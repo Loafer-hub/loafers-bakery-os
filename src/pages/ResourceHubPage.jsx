@@ -166,7 +166,13 @@ function resizeResourcePhoto(file) {
   });
 }
 
-export default function ResourceHubPage({ setActive, onOpenStorage }) {
+export default function ResourceHubPage({
+  bakerySettings,
+  cloudAccount,
+  onOpenStorage,
+  onSaveBakerySettings,
+  setActive,
+}) {
   const baseUrl = ownerBaseUrl();
   const storefrontUrl = baseUrl ? `${baseUrl}?order=loafers` : "?order=loafers";
   const ownerUrl = baseUrl || "/";
@@ -175,7 +181,12 @@ export default function ResourceHubPage({ setActive, onOpenStorage }) {
   const [draft, setDraft] = useState(emptyResourceDraft);
   const [editingId, setEditingId] = useState(null);
   const [photoError, setPhotoError] = useState("");
+  const [publishMessage, setPublishMessage] = useState("");
+  const [isPublishing, setIsPublishing] = useState(false);
   const safeBenchItems = useMemo(() => normalizeResourceBenchItems(benchItems), [benchItems]);
+  const publicBenchItems = useMemo(() => (
+    safeBenchItems.filter((item) => item.customerVisible !== false)
+  ), [safeBenchItems]);
   const currentType = resourceTypeMeta(draft.type);
   const CurrentTypeIcon = currentType.icon;
 
@@ -236,6 +247,36 @@ export default function ResourceHubPage({ setActive, onOpenStorage }) {
     setPhotoError("");
   }
 
+  async function publishCustomerResources(nextItems = safeBenchItems, options = {}) {
+    const publicItems = normalizeResourceBenchItems(nextItems)
+      .filter((item) => item.customerVisible !== false);
+
+    if (!onSaveBakerySettings || !cloudAccount?.workspace?.bakeryId) {
+      setPublishMessage(publicItems.length
+        ? `${publicItems.length} customer resource${publicItems.length === 1 ? "" : "s"} saved on this device. Sign into cloud to publish them for all customers.`
+        : "No customer-visible resources to publish yet.");
+      return;
+    }
+
+    setIsPublishing(true);
+    setPublishMessage("");
+    try {
+      await onSaveBakerySettings({
+        ...(bakerySettings || {}),
+        customerResourceItems: publicItems,
+      });
+      if (!options.quiet) {
+        setPublishMessage(publicItems.length
+          ? `${publicItems.length} customer resource${publicItems.length === 1 ? "" : "s"} published to the storefront.`
+          : "Customer Resources page cleared.");
+      }
+    } catch (error) {
+      setPublishMessage(error?.message || "Customer resource publish failed.");
+    } finally {
+      setIsPublishing(false);
+    }
+  }
+
   async function handlePhotoUpload(event) {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -280,23 +321,25 @@ export default function ResourceHubPage({ setActive, onOpenStorage }) {
       updatedAt: new Date().toISOString(),
     };
 
-    setBenchItems((current) => {
-      const list = Array.isArray(current) ? current : [];
-      if (!editingId) return [nextItem, ...list];
-      return list.map((item) => (item.id === editingId
+    const nextItems = editingId
+      ? safeBenchItems.map((item) => (item.id === editingId
         ? {
           ...item,
           ...nextItem,
           id: item.id,
           createdAt: item.createdAt || nextItem.createdAt,
         }
-        : item));
-    });
+        : item))
+      : [nextItem, ...safeBenchItems];
+    setBenchItems(nextItems);
+    publishCustomerResources(nextItems, { quiet: true });
     resetDraft(draft.type);
   }
 
   function removeBenchItem(itemId) {
-    setBenchItems((current) => (Array.isArray(current) ? current.filter((item) => item.id !== itemId) : []));
+    const nextItems = safeBenchItems.filter((item) => item.id !== itemId);
+    setBenchItems(nextItems);
+    publishCustomerResources(nextItems, { quiet: true });
     if (editingId === itemId) resetDraft();
   }
 
@@ -455,9 +498,19 @@ export default function ResourceHubPage({ setActive, onOpenStorage }) {
               <div>
                 <span className="eyebrow-label dark">Saved shelf</span>
                 <h2>{safeBenchItems.length} resources ready to shape.</h2>
+                <small>{publicBenchItems.length} visible on the customer Resources page.</small>
               </div>
-              <FolderKanban size={22} />
+              <button
+                className="resource-publish-button"
+                type="button"
+                disabled={isPublishing}
+                onClick={() => publishCustomerResources()}
+              >
+                <Save size={16} />
+                {isPublishing ? "Publishing…" : "Publish customer resources"}
+              </button>
             </div>
+            {publishMessage ? <p className="resource-publish-message">{publishMessage}</p> : null}
 
             <div className="resource-bench-list">
               {safeBenchItems.length ? safeBenchItems.map((item) => {

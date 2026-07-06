@@ -474,8 +474,14 @@ export default function CustomerOrderPortal({
   const trackedContact = urlParams.get("contact") || "";
   const showTrackMyBake = rules.trackMyBakePublic !== false || Boolean(trackedCode);
   const customerResources = useMemo(() => (
-    normalizeResourceBenchItems(resourceBenchItems).filter((item) => item.customerVisible !== false)
-  ), [resourceBenchItems]);
+    normalizeResourceBenchItems(
+      Array.isArray(rules.customerResourceItems)
+        ? rules.customerResourceItems
+        : cloudAccount.configured
+          ? []
+          : resourceBenchItems,
+    ).filter((item) => item.customerVisible !== false)
+  ), [cloudAccount.configured, resourceBenchItems, rules.customerResourceItems]);
   const resourceTabs = useMemo(() => {
     const counts = customerResources.reduce((map, item) => {
       map.set(item.type, (map.get(item.type) || 0) + 1);
