@@ -878,7 +878,14 @@
     .pricing-product-row.pricing-product-row,
     .pricing-product-row.warning.warning,
     .owner-report-card.owner-report-card,
-    .owner-command-grid.owner-command-grid article
+    .owner-command-grid.owner-command-grid article,
+    .recipe-detail .recipe-package-list,
+    .recipe-detail .recipe-package-list > div,
+    .recipe-detail .recipe-margin-panel,
+    .recipe-detail .recipe-margin-card,
+    .recipe-detail .recipe-margin-card.warning,
+    .recipe-detail .recipe-version-panel,
+    .recipe-detail .recipe-version-list article
   ) {
     color: var(--mobile-bronze-soft) !important;
     border: 1.5px solid rgba(210, 137, 65, 0.72) !important;
@@ -916,7 +923,12 @@
     .pricing-intelligence-summary article,
     .pricing-product-row.pricing-product-row,
     .owner-report-card.owner-report-card,
-    .owner-command-grid.owner-command-grid article
+    .owner-command-grid.owner-command-grid article,
+    .recipe-detail .recipe-package-list,
+    .recipe-detail .recipe-margin-panel,
+    .recipe-detail .recipe-version-panel,
+    .recipe-detail .recipe-margin-card,
+    .recipe-detail .recipe-version-list article
   ) :is(p, small, span, em, li, label, td, th, input, select, textarea, button) {
     color: var(--mobile-bronze-soft) !important;
     -webkit-text-fill-color: var(--mobile-bronze-soft) !important;
@@ -932,7 +944,12 @@
     .menu-mode-board.menu-mode-board,
     .pricing-intelligence-card.pricing-intelligence-card,
     .pricing-product-row.pricing-product-row,
-    .owner-report-card.owner-report-card
+    .owner-report-card.owner-report-card,
+    .recipe-detail .recipe-package-list,
+    .recipe-detail .recipe-margin-panel,
+    .recipe-detail .recipe-version-panel,
+    .recipe-detail .recipe-margin-card,
+    .recipe-detail .recipe-version-list article
   ) :is(h1, h2, h3, h4, h5, h6, strong, b, summary) {
     color: var(--mobile-cream) !important;
     -webkit-text-fill-color: var(--mobile-cream) !important;

@@ -1464,6 +1464,82 @@ html body .app-shell:not(.customer-storefront) .page.page :is(
   -webkit-text-fill-color: #d6a15f !important;
 }
 
+/* owner-recipe-detail-dark-panels-v1
+   Recipe/product detail still had legacy pale package, profit, and version cards. */
+html body .app-shell:not(.customer-storefront) .recipe-detail :is(
+  .recipe-package-list,
+  .recipe-package-list > div,
+  .recipe-margin-panel,
+  .recipe-margin-card,
+  .recipe-margin-card.warning,
+  .recipe-version-panel,
+  .recipe-version-list article
+) {
+  color: #d6a15f !important;
+  border-color: rgba(139, 85, 45, .94) !important;
+  background:
+    radial-gradient(circle at top left, rgba(112, 78, 44, .13), transparent 42%),
+    linear-gradient(145deg, rgba(61, 61, 55, .98), rgba(37, 40, 36, .99)) !important;
+  box-shadow: inset 0 0 0 1px rgba(229, 173, 101, .09) !important;
+}
+
+html body .app-shell:not(.customer-storefront) .recipe-detail .recipe-package-list {
+  border: 1.5px solid rgba(139, 85, 45, .94) !important;
+}
+
+html body .app-shell:not(.customer-storefront) .recipe-detail .recipe-package-list > div {
+  border-bottom: 1px solid rgba(139, 85, 45, .7) !important;
+  box-shadow: none !important;
+}
+
+html body .app-shell:not(.customer-storefront) .recipe-detail .recipe-package-list > div:last-child {
+  border-bottom: 0 !important;
+}
+
+html body .app-shell:not(.customer-storefront) .recipe-detail :is(
+  .recipe-margin-panel,
+  .recipe-version-panel
+) {
+  border: 1.5px solid rgba(139, 85, 45, .94) !important;
+}
+
+html body .app-shell:not(.customer-storefront) .recipe-detail :is(
+  .recipe-margin-card,
+  .recipe-margin-card.warning,
+  .recipe-version-list article
+) {
+  background:
+    linear-gradient(145deg, rgba(49, 50, 45, .99), rgba(27, 31, 28, .99)) !important;
+}
+
+html body .app-shell:not(.customer-storefront) .recipe-detail :is(
+  .recipe-package-list,
+  .recipe-margin-panel,
+  .recipe-version-panel,
+  .recipe-margin-card,
+  .recipe-version-list article
+) :is(p, small, span, em, li, label, td, th) {
+  color: #d6a15f !important;
+  -webkit-text-fill-color: #d6a15f !important;
+}
+
+html body .app-shell:not(.customer-storefront) .recipe-detail :is(
+  .recipe-package-list,
+  .recipe-margin-panel,
+  .recipe-version-panel,
+  .recipe-margin-card,
+  .recipe-version-list article
+) :is(h1, h2, h3, h4, strong, b) {
+  color: #fffaf0 !important;
+  -webkit-text-fill-color: #fffaf0 !important;
+}
+
+html body .app-shell:not(.customer-storefront) .recipe-detail .recipe-version-list strong {
+  border: 1px solid rgba(229, 173, 101, .62) !important;
+  background:
+    linear-gradient(145deg, rgba(151, 83, 32, .96), rgba(83, 42, 19, .98)) !important;
+}
+
 /* owner-customer-profile-bronze-v1
    Customer directory/profile linked information was still inheriting dark text
    from the legacy light form styles. Keep it bronze across page and modal. */
