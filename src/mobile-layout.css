@@ -835,4 +835,128 @@
     background:
       linear-gradient(145deg, rgba(126, 92, 55, 0.98), rgba(65, 61, 50, 0.99)) !important;
   }
+
+  /* mobile-bronze-frame-islands-v1
+     Match the locked desktop owner look for the remaining phone-only surfaces:
+     Today, ready shelf, Menu tabs, Reports, and pricing intelligence. */
+  html body .app-shell:not(.customer-storefront) .page.page :is(
+    .today-accept-orders-card.today-accept-orders-card,
+    .today-accept-orders-card .cloud-inbox-banner,
+    .today-page .order-summary-card,
+    .today-page .visual-source-card,
+    .today-page .visual-fermentation-card,
+    .production-dashboard.production-dashboard,
+    .production-card.production-card,
+    .production-morning-brief > span,
+    .production-mini-list button,
+    .production-window-list span,
+    .production-shortage-list span,
+    .production-attention-list button,
+    .production-attention-list > span,
+    .ready-shelf-panel.ready-shelf-panel,
+    .ready-shelf-row.ready-shelf-row,
+    .ready-shelf-source-grid.ready-shelf-source-grid,
+    .ready-shelf-details-input.ready-shelf-details-input,
+    .menu-view-switch.menu-view-switch,
+    .menu-view-switch.menu-view-switch button,
+    .menu-product-board.menu-product-board,
+    .menu-mode-board.menu-mode-board,
+    .menu-sidebar-card.menu-sidebar-card,
+    .menu-side-card.menu-side-card,
+    .pricing-intelligence-card.pricing-intelligence-card,
+    .pricing-intelligence-summary article,
+    .pricing-product-row.pricing-product-row,
+    .pricing-product-row.warning.warning,
+    .owner-report-card.owner-report-card,
+    .owner-command-grid.owner-command-grid article
+  ) {
+    color: var(--mobile-bronze-soft) !important;
+    border: 1.5px solid rgba(210, 137, 65, 0.72) !important;
+    background:
+      radial-gradient(circle at top left, rgba(112, 78, 44, 0.16), transparent 42%),
+      linear-gradient(145deg, rgba(68, 69, 62, 0.98), rgba(45, 48, 43, 0.99)) !important;
+    box-shadow:
+      inset 0 0 0 1px rgba(229, 173, 101, 0.1),
+      0 10px 22px rgba(0, 0, 0, 0.16) !important;
+  }
+
+  html body .app-shell:not(.customer-storefront) .page.page :is(
+    .today-accept-orders-card.today-accept-orders-card,
+    .today-accept-orders-card .cloud-inbox-banner,
+    .today-page .order-summary-card,
+    .today-page .visual-source-card,
+    .today-page .visual-fermentation-card,
+    .production-dashboard.production-dashboard,
+    .production-card.production-card,
+    .production-morning-brief > span,
+    .production-mini-list button,
+    .production-window-list span,
+    .production-shortage-list span,
+    .production-attention-list button,
+    .production-attention-list > span,
+    .ready-shelf-panel.ready-shelf-panel,
+    .ready-shelf-row.ready-shelf-row,
+    .menu-view-switch.menu-view-switch,
+    .menu-view-switch.menu-view-switch button,
+    .menu-product-board.menu-product-board,
+    .menu-mode-board.menu-mode-board,
+    .menu-sidebar-card.menu-sidebar-card,
+    .menu-side-card.menu-side-card,
+    .pricing-intelligence-card.pricing-intelligence-card,
+    .pricing-intelligence-summary article,
+    .pricing-product-row.pricing-product-row,
+    .owner-report-card.owner-report-card,
+    .owner-command-grid.owner-command-grid article
+  ) :is(p, small, span, em, li, label, td, th, input, select, textarea, button) {
+    color: var(--mobile-bronze-soft) !important;
+    -webkit-text-fill-color: var(--mobile-bronze-soft) !important;
+  }
+
+  html body .app-shell:not(.customer-storefront) .page.page :is(
+    .today-accept-orders-card.today-accept-orders-card,
+    .production-dashboard.production-dashboard,
+    .ready-shelf-panel.ready-shelf-panel,
+    .ready-shelf-row.ready-shelf-row,
+    .menu-view-switch.menu-view-switch,
+    .menu-product-board.menu-product-board,
+    .menu-mode-board.menu-mode-board,
+    .pricing-intelligence-card.pricing-intelligence-card,
+    .pricing-product-row.pricing-product-row,
+    .owner-report-card.owner-report-card
+  ) :is(h1, h2, h3, h4, h5, h6, strong, b, summary) {
+    color: var(--mobile-cream) !important;
+    -webkit-text-fill-color: var(--mobile-cream) !important;
+  }
+
+  html body .app-shell:not(.customer-storefront) .page.page .menu-view-switch.menu-view-switch button.selected,
+  html body .app-shell:not(.customer-storefront) .page.page .menu-view-switch.menu-view-switch button[aria-selected="true"] {
+    color: var(--mobile-cream) !important;
+    -webkit-text-fill-color: var(--mobile-cream) !important;
+    border-color: rgba(229, 173, 101, 0.9) !important;
+    background:
+      linear-gradient(145deg, rgba(121, 76, 39, 0.98), rgba(80, 51, 30, 0.99)) !important;
+  }
+
+  html body .app-shell:not(.customer-storefront) .page.page :is(
+    .pricing-intelligence-summary strong,
+    .pricing-product-row strong,
+    .ready-shelf-row > strong,
+    .production-card > div > strong,
+    .production-morning-brief strong
+  ) {
+    color: var(--mobile-cream) !important;
+    -webkit-text-fill-color: var(--mobile-cream) !important;
+  }
+
+  html body .app-shell:not(.customer-storefront) .page.page :is(
+    .pricing-intelligence-summary small,
+    .pricing-product-row small,
+    .ready-shelf-panel small,
+    .ready-shelf-row small,
+    .production-card small,
+    .production-morning-brief small
+  ) {
+    color: var(--mobile-bronze-soft) !important;
+    -webkit-text-fill-color: var(--mobile-bronze-soft) !important;
+  }
 }
