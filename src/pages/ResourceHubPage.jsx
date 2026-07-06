@@ -26,6 +26,12 @@ import {
 import { useMemo, useState } from "react";
 import { PageHeading } from "../components/AppChrome";
 import { usePersistentState } from "../hooks/usePersistentState";
+import {
+  RESOURCE_BENCH_STORAGE_KEY,
+  formatResourceDate,
+  normalizeResourceBenchItems,
+  seedResourceBenchItems,
+} from "../lib/resourceBench";
 
 const resourceTypeOptions = [
   {
@@ -72,39 +78,6 @@ const resourceTypeOptions = [
   },
 ];
 
-const seedResourceBenchItems = [
-  {
-    id: "bench-printable-recipe-cards",
-    type: "article",
-    title: "Printable recipe cards",
-    summary: "Share polished recipes, ingredient notes, and customer-friendly instructions.",
-    url: "",
-    details: "Good first resource for customer handouts and downloadable product guides.",
-    options: [],
-    createdAt: "2026-07-06T12:00:00.000Z",
-  },
-  {
-    id: "bench-product-launch-sheets",
-    type: "information",
-    title: "Product launch sheets",
-    summary: "Bundle pricing, labels, photos, preorder windows, and batch notes for each new item.",
-    url: "",
-    details: "Use for weekly drops, seasonal products, or new menu categories.",
-    options: [],
-    createdAt: "2026-07-06T12:05:00.000Z",
-  },
-  {
-    id: "bench-customer-education-library",
-    type: "article",
-    title: "Customer education library",
-    summary: "Explain pickup, storage, reheating, fermentation, allergens, and specialty products.",
-    url: "",
-    details: "A customer-facing library can reduce repeated questions and make the storefront feel more professional.",
-    options: [],
-    createdAt: "2026-07-06T12:10:00.000Z",
-  },
-];
-
 const emptyResourceDraft = {
   type: "article",
   title: "",
@@ -114,6 +87,7 @@ const emptyResourceDraft = {
   pollOptions: "",
   photoUrl: "",
   photoAlt: "",
+  customerVisible: true,
 };
 
 function ownerBaseUrl() {
@@ -132,13 +106,6 @@ function makeResourceId() {
   return `resource-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-function formatResourceDate(value) {
-  if (!value) return "Just now";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Saved resource";
-  return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
-}
-
 function draftFromResource(item) {
   return {
     type: item?.type || "article",
@@ -149,6 +116,7 @@ function draftFromResource(item) {
     pollOptions: Array.isArray(item?.options) ? item.options.join("\n") : "",
     photoUrl: item?.photoUrl || "",
     photoAlt: item?.photoAlt || item?.title || "",
+    customerVisible: item?.customerVisible !== false,
   };
 }
 
@@ -203,11 +171,11 @@ export default function ResourceHubPage({ setActive, onOpenStorage }) {
   const storefrontUrl = baseUrl ? `${baseUrl}?order=loafers` : "?order=loafers";
   const ownerUrl = baseUrl || "/";
   const [resourceView, setResourceView] = useState("hub");
-  const [benchItems, setBenchItems] = usePersistentState("loafers-resource-bench-v1", seedResourceBenchItems);
+  const [benchItems, setBenchItems] = usePersistentState(RESOURCE_BENCH_STORAGE_KEY, seedResourceBenchItems);
   const [draft, setDraft] = useState(emptyResourceDraft);
   const [editingId, setEditingId] = useState(null);
   const [photoError, setPhotoError] = useState("");
-  const safeBenchItems = useMemo(() => (Array.isArray(benchItems) ? benchItems : []), [benchItems]);
+  const safeBenchItems = useMemo(() => normalizeResourceBenchItems(benchItems), [benchItems]);
   const currentType = resourceTypeMeta(draft.type);
   const CurrentTypeIcon = currentType.icon;
 
@@ -307,6 +275,7 @@ export default function ResourceHubPage({ setActive, onOpenStorage }) {
       options: draft.type === "poll" ? options : [],
       photoUrl: draft.photoUrl,
       photoAlt: draft.photoAlt.trim() || title,
+      customerVisible: draft.customerVisible !== false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -368,6 +337,18 @@ export default function ResourceHubPage({ setActive, onOpenStorage }) {
               <CurrentTypeIcon size={18} />
               <span>{currentType.help}</span>
             </div>
+
+            <label className="resource-visibility-toggle">
+              <input
+                type="checkbox"
+                checked={draft.customerVisible !== false}
+                onChange={(event) => updateDraft("customerVisible", event.target.checked)}
+              />
+              <span>
+                <strong>Show on customer Resources page</strong>
+                <small>Turn this off for private drafts, internal notes, or future ideas.</small>
+              </span>
+            </label>
 
             <label>
               Title
@@ -510,6 +491,9 @@ export default function ResourceHubPage({ setActive, onOpenStorage }) {
                     ) : null}
                     <div className="resource-bench-item-footer">
                       <span>{item.updatedAt ? `Updated ${formatResourceDate(item.updatedAt)}` : formatResourceDate(item.createdAt)}</span>
+                      <span className={item.customerVisible ? "resource-public-pill" : "resource-public-pill private"}>
+                        {item.customerVisible ? "Customer page" : "Owner only"}
+                      </span>
                       {item.url ? (
                         <a href={item.url} target="_blank" rel="noreferrer">
                           Open link

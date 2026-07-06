@@ -1,5 +1,7 @@
 import {
   Banknote,
+  BarChart3,
+  BookOpen,
   CalendarDays,
   CheckCircle2,
   ChevronLeft,
@@ -7,9 +9,13 @@ import {
   Clock3,
   ClipboardList,
   Download,
+  ExternalLink,
+  FileText,
   Heart,
+  Image as ImageIcon,
   Info,
   KeyRound,
+  Link2,
   LockKeyhole,
   Megaphone,
   Minus,
@@ -23,6 +29,7 @@ import {
   Store,
   Trash2,
   UserRound,
+  Video,
   Wheat,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -56,6 +63,13 @@ import { estimateRecipeNutrition } from "../lib/nutrition";
 import { pluralUnit } from "../lib/salesOptions";
 import { productTypeMap, productTypeSettingsFor } from "../lib/productTypes";
 import { LOAFERS_BRAND } from "../lib/brand";
+import { usePersistentState } from "../hooks/usePersistentState";
+import {
+  RESOURCE_BENCH_STORAGE_KEY,
+  formatResourceDate,
+  normalizeResourceBenchItems,
+  seedResourceBenchItems,
+} from "../lib/resourceBench";
 
 // product-type-settings-v1
 // customer-options-v1
@@ -85,6 +99,14 @@ const PRODUCT_BADGE_LABELS = {
   dairy: "Contains dairy",
   gluten: "Gluten",
   limited_batch: "Limited batch",
+};
+const CUSTOMER_RESOURCE_META = {
+  article: { label: "Article", icon: FileText },
+  poll: { label: "Poll", icon: BarChart3 },
+  information: { label: "Info", icon: Info },
+  link: { label: "Link", icon: Link2 },
+  photo: { label: "Photo", icon: ImageIcon },
+  video: { label: "Video", icon: Video },
 };
 
 function dollars(cents) {
@@ -423,6 +445,10 @@ export default function CustomerOrderPortal({
   const [accountHistoryLoading, setAccountHistoryLoading] = useState(false);
   const [selectedCapacity, setSelectedCapacity] = useState(null);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [resourcesOpen, setResourcesOpen] = useState(false);
+  const [selectedResource, setSelectedResource] = useState(null);
+  const [resourceFilter, setResourceFilter] = useState("all");
+  const [resourceBenchItems] = usePersistentState(RESOURCE_BENCH_STORAGE_KEY, seedResourceBenchItems);
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -447,6 +473,24 @@ export default function CustomerOrderPortal({
   const trackedCode = urlParams.get("track") || "";
   const trackedContact = urlParams.get("contact") || "";
   const showTrackMyBake = rules.trackMyBakePublic !== false || Boolean(trackedCode);
+  const customerResources = useMemo(() => (
+    normalizeResourceBenchItems(resourceBenchItems).filter((item) => item.customerVisible !== false)
+  ), [resourceBenchItems]);
+  const resourceTabs = useMemo(() => {
+    const counts = customerResources.reduce((map, item) => {
+      map.set(item.type, (map.get(item.type) || 0) + 1);
+      return map;
+    }, new Map());
+    return [
+      { id: "all", label: "All", count: customerResources.length },
+      ...Object.entries(CUSTOMER_RESOURCE_META)
+        .filter(([type]) => counts.has(type))
+        .map(([type, meta]) => ({ id: type, label: meta.label, count: counts.get(type) || 0 })),
+    ];
+  }, [customerResources]);
+  const visibleCustomerResources = resourceFilter === "all"
+    ? customerResources
+    : customerResources.filter((item) => item.type === resourceFilter);
 
   useEffect(() => {
     if (!cloudAccount.configured) {
@@ -716,6 +760,12 @@ export default function CustomerOrderPortal({
       setActiveCatalogTab("all");
     }
   }, [activeCatalogTab, catalogTabs]);
+
+  useEffect(() => {
+    if (!resourceTabs.some((tab) => tab.id === resourceFilter)) {
+      setResourceFilter("all");
+    }
+  }, [resourceFilter, resourceTabs]);
 
   useEffect(() => {
     if (!passwordResetMode || !customerAccountsEnabled) return;
@@ -1255,24 +1305,41 @@ export default function CustomerOrderPortal({
       <main className="customer-portal customer-ordering-paused">
         <header className="customer-header">
           <div className="brand-lockup"><span className="brand-mark"><img src={LOAFERS_BRAND.badgeSrc} alt="" /></span><span><span className="brand-name">{LOAFERS_BRAND.shortName}</span><span className="brand-subname">Home Bakery</span></span></div>
-        </header>
-        {customerAnnouncement ? <CustomerAnnouncement announcement={customerAnnouncement} /> : null}
-        <section className="customer-hero">
-          <img className="customer-brand-banner" src={LOAFERS_BRAND.bannerSrc} alt={`${LOAFERS_BRAND.businessName} breads and aurora banner`} />
-          <span className="eyebrow-label dark">{LOAFERS_BRAND.tagline}</span>
-          <h1>Online ordering is paused.</h1>
-          <p>{showTrackMyBake ? "The baker is not accepting new requests right now. Existing customers can still track an order below." : "The baker is not accepting new requests right now."}</p>
-          <div className="customer-fulfillment-strip">
-            <span><Store size={17} /><span><small>Pickup</small><strong>{rules.pickupLocation}</strong></span></span>
+          <div className="customer-header-actions">
+            <button type="button" onClick={() => setResourcesOpen((value) => !value)}><BookOpen size={17} /> {resourcesOpen ? "Menu" : "Resources"}</button>
           </div>
-        </section>
-        {showTrackMyBake ? <CustomerOrderLookup
-          configured={cloudAccount.configured}
-          feedbackEnabled={rules.feedbackEnabled}
-          initialCode={trackedCode}
-          initialContact={trackedContact || form.email}
-          slug={slug}
-        /> : null}
+        </header>
+        {resourcesOpen ? (
+          <CustomerResourcePage
+            resources={visibleCustomerResources}
+            resourceFilter={resourceFilter}
+            resourceTabs={resourceTabs}
+            onBack={() => setResourcesOpen(false)}
+            onOpenResource={setSelectedResource}
+            onSelectFilter={setResourceFilter}
+          />
+        ) : (
+          <>
+            {customerAnnouncement ? <CustomerAnnouncement announcement={customerAnnouncement} /> : null}
+            <section className="customer-hero">
+              <img className="customer-brand-banner" src={LOAFERS_BRAND.bannerSrc} alt={`${LOAFERS_BRAND.businessName} breads and aurora banner`} />
+              <span className="eyebrow-label dark">{LOAFERS_BRAND.tagline}</span>
+              <h1>Online ordering is paused.</h1>
+              <p>{showTrackMyBake ? "The baker is not accepting new requests right now. Existing customers can still track an order below." : "The baker is not accepting new requests right now."}</p>
+              <div className="customer-fulfillment-strip">
+                <span><Store size={17} /><span><small>Pickup</small><strong>{rules.pickupLocation}</strong></span></span>
+              </div>
+            </section>
+            {showTrackMyBake ? <CustomerOrderLookup
+              configured={cloudAccount.configured}
+              feedbackEnabled={rules.feedbackEnabled}
+              initialCode={trackedCode}
+              initialContact={trackedContact || form.email}
+              slug={slug}
+            /> : null}
+          </>
+        )}
+        {selectedResource ? <CustomerResourceModal resource={selectedResource} onClose={() => setSelectedResource(null)} /> : null}
       </main>
     );
   }
@@ -1281,9 +1348,12 @@ export default function CustomerOrderPortal({
     <main className="customer-portal customer-storefront">
       <header className="customer-header">
         <div className="brand-lockup"><span className="brand-mark"><img src={LOAFERS_BRAND.badgeSrc} alt="" /></span><span><span className="brand-name">{LOAFERS_BRAND.shortName}</span><span className="brand-subname">Home Bakery</span></span></div>
-        {customerAccountsEnabled ? (
-          <button type="button" onClick={() => setAccountOpen((value) => !value)}><UserRound size={17} /> {cloudAccount.session ? "My account" : "Account"}</button>
-        ) : null}
+        <div className="customer-header-actions">
+          <button type="button" onClick={() => setResourcesOpen((value) => !value)}><BookOpen size={17} /> {resourcesOpen ? "Menu" : "Resources"}</button>
+          {customerAccountsEnabled ? (
+            <button type="button" onClick={() => setAccountOpen((value) => !value)}><UserRound size={17} /> {cloudAccount.session ? "My account" : "Account"}</button>
+          ) : null}
+        </div>
       </header>
 
       {!cloudAccount.configured ? <div className="portal-preview-banner"><LockKeyhole size={15} /> Preview only · cloud connection still needed</div> : null}
@@ -1464,6 +1534,8 @@ export default function CustomerOrderPortal({
         </Modal>
       ) : null}
 
+      {!resourcesOpen ? (
+        <>
       <section className="customer-hero">
         <img className="customer-brand-banner" src={LOAFERS_BRAND.bannerSrc} alt={`${LOAFERS_BRAND.businessName} breads and aurora banner`} />
         <span className="eyebrow-label dark">{LOAFERS_BRAND.tagline}</span>
@@ -1781,6 +1853,18 @@ export default function CustomerOrderPortal({
           onClose={() => setSelectedProduct(null)}
         />
       ) : null}
+        </>
+      ) : (
+        <CustomerResourcePage
+          resources={visibleCustomerResources}
+          resourceFilter={resourceFilter}
+          resourceTabs={resourceTabs}
+          onBack={() => setResourcesOpen(false)}
+          onOpenResource={setSelectedResource}
+          onSelectFilter={setResourceFilter}
+        />
+      )}
+      {selectedResource ? <CustomerResourceModal resource={selectedResource} onClose={() => setSelectedResource(null)} /> : null}
     </main>
   );
 }
@@ -1988,6 +2072,124 @@ function CustomerAnnouncement({ announcement }) {
       </div>
       <ChevronRight size={18} />
     </section>
+  );
+}
+
+function customerResourceMeta(type) {
+  return CUSTOMER_RESOURCE_META[type] || CUSTOMER_RESOURCE_META.article;
+}
+
+function CustomerResourcePage({
+  onBack,
+  onOpenResource,
+  onSelectFilter,
+  resourceFilter,
+  resources,
+  resourceTabs,
+}) {
+  const allCount = resourceTabs.find((tab) => tab.id === "all")?.count || 0;
+  return (
+    <section className="customer-resource-page" aria-label="Bakery resources">
+      <div className="customer-resource-hero">
+        <span className="eyebrow-label dark">Loafers resource shelf</span>
+        <h1>Notes from the bakery table.</h1>
+        <p>Read posted articles, storage tips, care notes, links, photos, videos, and other resources from {LOAFERS_BRAND.shortName}.</p>
+        <button className="secondary-button" type="button" onClick={onBack}>
+          <ChevronLeft size={16} />
+          Back to menu
+        </button>
+      </div>
+
+      <div className="customer-resource-tabs" role="tablist" aria-label="Resource categories">
+        {resourceTabs.map((tab) => (
+          <button
+            type="button"
+            role="tab"
+            aria-selected={resourceFilter === tab.id}
+            className={resourceFilter === tab.id ? "selected" : ""}
+            key={tab.id}
+            onClick={() => onSelectFilter(tab.id)}
+          >
+            <strong>{tab.label}</strong>
+            <small>{tab.count}</small>
+          </button>
+        ))}
+      </div>
+
+      {resources.length ? (
+        <div className="customer-resource-grid">
+          {resources.map((resource) => (
+            <CustomerResourceCard
+              key={resource.id}
+              resource={resource}
+              onOpen={() => onOpenResource(resource)}
+            />
+          ))}
+        </div>
+      ) : (
+        <article className="customer-resource-empty">
+          <BookOpen size={28} />
+          <strong>{allCount ? "No resources in this category yet." : "No customer resources posted yet."}</strong>
+          <span>{allCount ? "Choose another category or return to the menu." : "Check back after the baker posts articles, links, photos, or care notes."}</span>
+        </article>
+      )}
+    </section>
+  );
+}
+
+function CustomerResourceCard({ onOpen, resource }) {
+  const meta = customerResourceMeta(resource.type);
+  const Icon = meta.icon;
+  return (
+    <article className="customer-resource-card">
+      <button type="button" onClick={onOpen} aria-label={`Open ${resource.title}`}>
+        <span className={resource.photoUrl ? "customer-resource-cover" : "customer-resource-cover empty"}>
+          {resource.photoUrl ? <img src={resource.photoUrl} alt={resource.photoAlt || resource.title} /> : <Icon size={34} />}
+        </span>
+        <span className="customer-resource-card-body">
+          <small><Icon size={13} /> {meta.label} · {resource.updatedAt ? `Updated ${formatResourceDate(resource.updatedAt)}` : formatResourceDate(resource.createdAt)}</small>
+          <strong>{resource.title}</strong>
+          {resource.summary ? <p>{resource.summary}</p> : null}
+          <em>Open resource <ChevronRight size={14} /></em>
+        </span>
+      </button>
+    </article>
+  );
+}
+
+function CustomerResourceModal({ onClose, resource }) {
+  const meta = customerResourceMeta(resource.type);
+  const Icon = meta.icon;
+  return (
+    <Modal title={resource.title} onClose={onClose}>
+      <article className="customer-resource-detail">
+        <header>
+          <span className={resource.photoUrl ? "customer-resource-detail-cover" : "customer-resource-detail-cover empty"}>
+            {resource.photoUrl ? <img src={resource.photoUrl} alt={resource.photoAlt || resource.title} /> : <Icon size={42} />}
+          </span>
+          <div>
+            <small><Icon size={14} /> {meta.label} · {resource.updatedAt ? `Updated ${formatResourceDate(resource.updatedAt)}` : formatResourceDate(resource.createdAt)}</small>
+            <h2>{resource.title}</h2>
+            {resource.summary ? <p>{resource.summary}</p> : null}
+          </div>
+        </header>
+        {resource.details ? <section><h3>Details</h3><p>{resource.details}</p></section> : null}
+        {resource.options?.length ? (
+          <section>
+            <h3>Options</h3>
+            <ul>
+              {resource.options.map((option) => <li key={option}>{option}</li>)}
+            </ul>
+          </section>
+        ) : null}
+        {resource.url ? (
+          <a className="primary-button customer-resource-link" href={resource.url} target="_blank" rel="noreferrer">
+            Open attached {meta.label.toLowerCase()}
+            <ExternalLink size={16} />
+          </a>
+        ) : null}
+      </article>
+    </Modal>
   );
 }
 
