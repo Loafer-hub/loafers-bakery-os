@@ -525,4 +525,216 @@
   html body .app-shell:not(.customer-storefront) :is(.desktop-only, .wide-only) {
     display: none !important;
   }
+
+  /* mobile-no-white-card-sweep-v1
+     Catch newly added owner cards without touching desktop/tablet or the public storefront. */
+  html body .app-shell:not(.customer-storefront) .page :is(
+    section,
+    article,
+    aside,
+    details,
+    fieldset,
+    form,
+    label,
+    [class*="card"],
+    [class*="Card"],
+    [class*="panel"],
+    [class*="Panel"],
+    [class*="tile"],
+    [class*="Tile"],
+    [class*="banner"],
+    [class*="Banner"],
+    [class*="surface"],
+    [class*="Surface"],
+    [class*="sheet"],
+    [class*="Sheet"],
+    [class*="drawer"],
+    [class*="Drawer"],
+    [class*="popover"],
+    [class*="Popover"],
+    [class*="summary"],
+    [class*="Summary"],
+    [class*="record"],
+    [class*="Record"],
+    [class*="entry"],
+    [class*="Entry"],
+    [class*="row"],
+    [class*="Row"],
+    [class*="item"],
+    [class*="Item"],
+    [class*="field"],
+    [class*="Field"],
+    [class*="control"],
+    [class*="Control"],
+    [class*="status"],
+    [class*="Status"],
+    [class*="badge"],
+    [class*="Badge"],
+    [class*="pill"],
+    [class*="Pill"],
+    [class*="chip"],
+    [class*="Chip"],
+    [class*="metric"],
+    [class*="Metric"],
+    [class*="stat"],
+    [class*="Stat"],
+    [class*="step"],
+    [class*="Step"],
+    [class*="phase"],
+    [class*="Phase"],
+    [class*="history"],
+    [class*="History"],
+    [class*="calendar"],
+    [class*="Calendar"],
+    [class*="day"],
+    [class*="Day"],
+    [class*="event"],
+    [class*="Event"],
+    [class*="list"],
+    [class*="List"],
+    [class*="table"],
+    [class*="Table"],
+    [class*="cell"],
+    [class*="Cell"],
+    [class*="queue"],
+    [class*="Queue"],
+    [class*="lane"],
+    [class*="Lane"],
+    [class*="flow"],
+    [class*="Flow"],
+    [class*="track"],
+    [class*="Track"],
+    [class*="progress"],
+    [class*="Progress"]
+  ) {
+    color: var(--mobile-bronze-soft) !important;
+    border-color: var(--mobile-line-soft) !important;
+    background:
+      linear-gradient(145deg, rgba(37, 38, 33, 0.95), rgba(11, 15, 13, 0.98)) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035) !important;
+  }
+
+  html body .app-shell:not(.customer-storefront) .page :is(
+    [class*="card"],
+    [class*="Card"],
+    [class*="panel"],
+    [class*="Panel"],
+    [class*="tile"],
+    [class*="Tile"],
+    [class*="row"],
+    [class*="Row"],
+    [class*="item"],
+    [class*="Item"],
+    [class*="record"],
+    [class*="Record"],
+    [class*="entry"],
+    [class*="Entry"]
+  ) :is(h1, h2, h3, h4, h5, h6, strong, b) {
+    color: var(--mobile-cream) !important;
+  }
+
+  html body .app-shell:not(.customer-storefront) .page :is(
+    [class*="card"],
+    [class*="Card"],
+    [class*="panel"],
+    [class*="Panel"],
+    [class*="tile"],
+    [class*="Tile"],
+    [class*="row"],
+    [class*="Row"],
+    [class*="item"],
+    [class*="Item"],
+    [class*="record"],
+    [class*="Record"],
+    [class*="entry"],
+    [class*="Entry"]
+  ) :is(p, small, span, em, li, td, th, label) {
+    color: var(--mobile-bronze-soft) !important;
+  }
+
+  html body .app-shell:not(.customer-storefront) .page :is(
+    input,
+    select,
+    textarea,
+    [contenteditable="true"],
+    [class*="search"],
+    [class*="Search"]
+  ) {
+    color: var(--mobile-cream) !important;
+    border-color: rgba(210, 137, 65, 0.62) !important;
+    background: #171a16 !important;
+  }
+
+  /* mobile-leftover-light-surface-sweep-v1
+     Specific owner surfaces that were still inheriting cream/white card styles. */
+  html body .app-shell:not(.customer-storefront) .page :is(
+    .orders-toolbar,
+    .orders-toolbar .view-switch,
+    .orders-toolbar .view-switch button,
+    .availability-toolbar,
+    .availability-toolbar button,
+    .production-ops-note,
+    .menu-side-card button,
+    .settings-time-window,
+    .settings-time-window label,
+    .product-package-settings,
+    .product-package-settings label,
+    .customer-profile-chips span
+  ) {
+    color: var(--mobile-bronze-soft) !important;
+    border-color: rgba(210, 137, 65, 0.58) !important;
+    background:
+      linear-gradient(145deg, rgba(46, 47, 42, 0.96), rgba(15, 18, 16, 0.99)) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035) !important;
+  }
+
+  html body .app-shell:not(.customer-storefront) .page :is(
+    .orders-toolbar,
+    .orders-toolbar .view-switch,
+    .orders-toolbar .view-switch button,
+    .availability-toolbar,
+    .availability-toolbar button,
+    .production-ops-note,
+    .menu-side-card button,
+    .settings-time-window,
+    .product-package-settings,
+    .customer-profile-chips span
+  ) :is(h1, h2, h3, h4, h5, h6, strong, b, svg) {
+    color: var(--mobile-cream) !important;
+  }
+
+  html body .app-shell:not(.customer-storefront) .page :is(
+    .orders-toolbar,
+    .orders-toolbar .view-switch,
+    .orders-toolbar .view-switch button,
+    .availability-toolbar,
+    .availability-toolbar button,
+    .production-ops-note,
+    .menu-side-card button,
+    .settings-time-window,
+    .product-package-settings,
+    .customer-profile-chips span
+  ) :is(p, small, span, em, label) {
+    color: var(--mobile-bronze-soft) !important;
+  }
+
+  html body .app-shell:not(.customer-storefront) .page :is(
+    .settings-time-window input,
+    .product-package-settings input,
+    .product-package-settings select,
+    .product-package-settings textarea
+  ) {
+    color: var(--mobile-cream) !important;
+    border-color: rgba(210, 137, 65, 0.62) !important;
+    background: rgba(9, 12, 10, 0.98) !important;
+  }
+
+  html body .app-shell:not(.customer-storefront) .page .calendar-panel .availability-toolbar button:disabled {
+    color: var(--mobile-bronze-soft) !important;
+    -webkit-text-fill-color: var(--mobile-bronze-soft) !important;
+    border-color: rgba(210, 137, 65, 0.58) !important;
+    background:
+      linear-gradient(145deg, rgba(46, 47, 42, 0.96), rgba(15, 18, 16, 0.99)) !important;
+    opacity: 0.72 !important;
+  }
 }
