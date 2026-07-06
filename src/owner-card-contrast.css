@@ -1236,6 +1236,71 @@ html body .app-shell:not(.customer-storefront) .page.page :is(
   -webkit-text-fill-color: #d6a15f !important;
 }
 
+/* owner-customer-profile-bronze-v1
+   Customer directory/profile linked information was still inheriting dark text
+   from the legacy light form styles. Keep it bronze across page and modal. */
+html body .app-shell:not(.customer-storefront) :is(
+  .customer-directory-panel.customer-directory-panel,
+  .customer-directory-layout.customer-directory-layout,
+  .customer-directory-list.customer-directory-list,
+  .customer-directory-row.customer-directory-row,
+  .customer-profile-form.customer-profile-form,
+  .customer-profile-summary.customer-profile-summary,
+  .customer-profile-stats.customer-profile-stats span,
+  .customer-account-link-note.customer-account-link-note,
+  .customer-profile-chips.customer-profile-chips span
+) {
+  color: #d6a15f !important;
+  border-color: rgba(139, 85, 45, .94) !important;
+  background:
+    radial-gradient(circle at top left, rgba(112, 78, 44, .14), transparent 40%),
+    linear-gradient(145deg, rgba(61, 58, 51, .98), rgba(37, 40, 36, .99)) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(229, 173, 101, .1),
+    0 8px 18px rgba(0, 0, 0, .12) !important;
+}
+
+html body .app-shell:not(.customer-storefront) :is(
+  .customer-directory-row.customer-directory-row,
+  .customer-profile-form.customer-profile-form,
+  .customer-profile-summary.customer-profile-summary,
+  .customer-profile-stats.customer-profile-stats span,
+  .customer-account-link-note.customer-account-link-note,
+  .customer-profile-chips.customer-profile-chips span
+) :is(p, small, span, em, li, label, input, select, textarea, button) {
+  color: #d6a15f !important;
+  -webkit-text-fill-color: #d6a15f !important;
+}
+
+html body .app-shell:not(.customer-storefront) :is(
+  .customer-directory-row.customer-directory-row,
+  .customer-profile-form.customer-profile-form,
+  .customer-profile-summary.customer-profile-summary,
+  .customer-profile-stats.customer-profile-stats span,
+  .customer-account-link-note.customer-account-link-note,
+  .customer-profile-chips.customer-profile-chips span
+) :is(h1, h2, h3, h4, strong, b) {
+  color: #d6a15f !important;
+  -webkit-text-fill-color: #d6a15f !important;
+}
+
+html body .app-shell:not(.customer-storefront) .customer-profile-form.customer-profile-form :is(input, select, textarea),
+html body .app-shell:not(.customer-storefront) .customer-profile-form.customer-profile-form :is(input, textarea)::placeholder {
+  color: #d6a15f !important;
+  -webkit-text-fill-color: #d6a15f !important;
+  border-color: rgba(139, 85, 45, .92) !important;
+  background:
+    linear-gradient(145deg, rgba(49, 49, 44, .98), rgba(28, 31, 28, .99)) !important;
+}
+
+html body .app-shell:not(.customer-storefront) .customer-account-link-note.customer-account-link-note :is(svg, path),
+html body .app-shell:not(.customer-storefront) .customer-profile-summary.customer-profile-summary :is(svg, path),
+html body .app-shell:not(.customer-storefront) .customer-profile-chips.customer-profile-chips span :is(svg, path),
+html body .app-shell:not(.customer-storefront) .customer-directory-row.customer-directory-row :is(svg, path) {
+  color: #d6a15f !important;
+  stroke: currentColor !important;
+}
+
 @media (max-width: 900px) {
   html body .app-shell:not(.customer-storefront) .resource-hub-page {
     max-width: 100%;
