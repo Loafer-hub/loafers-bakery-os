@@ -12,12 +12,16 @@ import {
   Info,
   Link2,
   PackagePlus,
+  Pencil,
   Plus,
+  Save,
   Share2,
   Store,
   Trash2,
+  Upload,
   Video,
   Wrench,
+  X,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { PageHeading } from "../components/AppChrome";
@@ -108,6 +112,8 @@ const emptyResourceDraft = {
   url: "",
   details: "",
   pollOptions: "",
+  photoUrl: "",
+  photoAlt: "",
 };
 
 function ownerBaseUrl() {
@@ -133,6 +139,65 @@ function formatResourceDate(value) {
   return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }
 
+function draftFromResource(item) {
+  return {
+    type: item?.type || "article",
+    title: item?.title || "",
+    summary: item?.summary || "",
+    url: item?.url || "",
+    details: item?.details || "",
+    pollOptions: Array.isArray(item?.options) ? item.options.join("\n") : "",
+    photoUrl: item?.photoUrl || "",
+    photoAlt: item?.photoAlt || item?.title || "",
+  };
+}
+
+function resizeResourcePhoto(file) {
+  return new Promise((resolve, reject) => {
+    if (!file || !file.type?.startsWith("image/")) {
+      reject(new Error("Choose an image file."));
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Could not read that image."));
+    reader.onload = () => {
+      const source = String(reader.result || "");
+      if (typeof window === "undefined") {
+        resolve(source);
+        return;
+      }
+
+      const loadedImage = new window.Image();
+      loadedImage.onerror = () => resolve(source);
+      loadedImage.onload = () => {
+        const maxEdge = 1200;
+        const width = loadedImage.naturalWidth || loadedImage.width;
+        const height = loadedImage.naturalHeight || loadedImage.height;
+        const scale = Math.min(1, maxEdge / Math.max(width, height));
+
+        if (scale >= 1 && source.length < 450_000) {
+          resolve(source);
+          return;
+        }
+
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(width * scale));
+        canvas.height = Math.max(1, Math.round(height * scale));
+        const context = canvas.getContext("2d");
+        if (!context) {
+          resolve(source);
+          return;
+        }
+        context.drawImage(loadedImage, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/jpeg", 0.84));
+      };
+      loadedImage.src = source;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function ResourceHubPage({ setActive, onOpenStorage }) {
   const baseUrl = ownerBaseUrl();
   const storefrontUrl = baseUrl ? `${baseUrl}?order=loafers` : "?order=loafers";
@@ -140,6 +205,8 @@ export default function ResourceHubPage({ setActive, onOpenStorage }) {
   const [resourceView, setResourceView] = useState("hub");
   const [benchItems, setBenchItems] = usePersistentState("loafers-resource-bench-v1", seedResourceBenchItems);
   const [draft, setDraft] = useState(emptyResourceDraft);
+  const [editingId, setEditingId] = useState(null);
+  const [photoError, setPhotoError] = useState("");
   const safeBenchItems = useMemo(() => (Array.isArray(benchItems) ? benchItems : []), [benchItems]);
   const currentType = resourceTypeMeta(draft.type);
   const CurrentTypeIcon = currentType.icon;
@@ -189,7 +256,38 @@ export default function ResourceHubPage({ setActive, onOpenStorage }) {
     setDraft((current) => ({ ...current, [field]: value }));
   }
 
-  function addBenchItem(event) {
+  function resetDraft(nextType = draft.type) {
+    setDraft({ ...emptyResourceDraft, type: nextType });
+    setEditingId(null);
+    setPhotoError("");
+  }
+
+  function editBenchItem(item) {
+    setEditingId(item.id);
+    setDraft(draftFromResource(item));
+    setPhotoError("");
+  }
+
+  async function handlePhotoUpload(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setPhotoError("");
+    try {
+      const photoUrl = await resizeResourcePhoto(file);
+      setDraft((current) => ({
+        ...current,
+        photoUrl,
+        photoAlt: current.photoAlt || file.name.replace(/\.[^.]+$/, ""),
+      }));
+    } catch (error) {
+      setPhotoError(error?.message || "Could not upload that photo.");
+    } finally {
+      event.target.value = "";
+    }
+  }
+
+  function saveBenchItem(event) {
     event.preventDefault();
     const title = draft.title.trim();
     if (!title) return;
@@ -207,15 +305,30 @@ export default function ResourceHubPage({ setActive, onOpenStorage }) {
       url: draft.url.trim(),
       details: draft.details.trim(),
       options: draft.type === "poll" ? options : [],
+      photoUrl: draft.photoUrl,
+      photoAlt: draft.photoAlt.trim() || title,
       createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
 
-    setBenchItems((current) => [nextItem, ...(Array.isArray(current) ? current : [])]);
-    setDraft({ ...emptyResourceDraft, type: draft.type });
+    setBenchItems((current) => {
+      const list = Array.isArray(current) ? current : [];
+      if (!editingId) return [nextItem, ...list];
+      return list.map((item) => (item.id === editingId
+        ? {
+          ...item,
+          ...nextItem,
+          id: item.id,
+          createdAt: item.createdAt || nextItem.createdAt,
+        }
+        : item));
+    });
+    resetDraft(draft.type);
   }
 
   function removeBenchItem(itemId) {
     setBenchItems((current) => (Array.isArray(current) ? current.filter((item) => item.id !== itemId) : []));
+    if (editingId === itemId) resetDraft();
   }
 
   if (resourceView === "bench") {
@@ -233,13 +346,13 @@ export default function ResourceHubPage({ setActive, onOpenStorage }) {
         />
 
         <section className="resource-bench-layout">
-          <form className="resource-bench-form" onSubmit={addBenchItem}>
+          <form className="resource-bench-form" onSubmit={saveBenchItem}>
             <div className="section-title-line">
               <div>
-                <span className="eyebrow-label dark">Add resource</span>
-                <h2>Build the next shareable thing.</h2>
+                <span className="eyebrow-label dark">{editingId ? "Edit resource" : "Add resource"}</span>
+                <h2>{editingId ? "Refine this resource card." : "Build the next shareable thing."}</h2>
               </div>
-              <Plus size={22} />
+              {editingId ? <Pencil size={22} /> : <Plus size={22} />}
             </div>
 
             <label>
@@ -287,6 +400,39 @@ export default function ResourceHubPage({ setActive, onOpenStorage }) {
               />
             </label>
 
+            <section className="resource-photo-uploader">
+              <div className="resource-photo-upload-head">
+                <span>
+                  <strong>Photo attachment</strong>
+                  <small>Upload a product shot, article image, label proof, or resource cover.</small>
+                </span>
+                <Upload size={18} />
+              </div>
+              {draft.photoUrl ? (
+                <figure className="resource-photo-preview">
+                  <img src={draft.photoUrl} alt={draft.photoAlt || draft.title || "Resource preview"} />
+                  <button type="button" onClick={() => updateDraft("photoUrl", "")}>
+                    <X size={14} />
+                    Clear photo
+                  </button>
+                </figure>
+              ) : null}
+              <label>
+                Upload photo
+                <input type="file" accept="image/*" onChange={handlePhotoUpload} />
+              </label>
+              <label>
+                Photo description
+                <input
+                  type="text"
+                  value={draft.photoAlt}
+                  onChange={(event) => updateDraft("photoAlt", event.target.value)}
+                  placeholder="Rustic sourdough on a cutting board"
+                />
+              </label>
+              {photoError ? <p className="resource-form-error">{photoError}</p> : null}
+            </section>
+
             {draft.type === "poll" ? (
               <label>
                 Poll options
@@ -309,10 +455,18 @@ export default function ResourceHubPage({ setActive, onOpenStorage }) {
               />
             </label>
 
-            <button className="primary-button" type="submit">
-              <Plus size={17} />
-              Add to Resource bench
-            </button>
+            <div className="resource-bench-form-actions">
+              <button className="primary-button" type="submit">
+                {editingId ? <Save size={17} /> : <Plus size={17} />}
+                {editingId ? "Save resource changes" : "Add to Resource bench"}
+              </button>
+              {editingId ? (
+                <button className="secondary-button" type="button" onClick={() => resetDraft()}>
+                  <X size={15} />
+                  Cancel edit
+                </button>
+              ) : null}
+            </div>
           </form>
 
           <section className="resource-bench-library">
@@ -332,10 +486,20 @@ export default function ResourceHubPage({ setActive, onOpenStorage }) {
                   <article className="resource-bench-item" key={item.id}>
                     <div className="resource-bench-item-top">
                       <span className="resource-bench-kind"><Icon size={15} />{meta.label}</span>
-                      <button type="button" onClick={() => removeBenchItem(item.id)} aria-label={`Remove ${item.title}`}>
-                        <Trash2 size={16} />
-                      </button>
+                      <span className="resource-bench-actions">
+                        <button type="button" onClick={() => editBenchItem(item)} aria-label={`Edit ${item.title}`}>
+                          <Pencil size={16} />
+                        </button>
+                        <button type="button" onClick={() => removeBenchItem(item.id)} aria-label={`Remove ${item.title}`}>
+                          <Trash2 size={16} />
+                        </button>
+                      </span>
                     </div>
+                    {item.photoUrl ? (
+                      <figure className="resource-bench-photo">
+                        <img src={item.photoUrl} alt={item.photoAlt || item.title} />
+                      </figure>
+                    ) : null}
                     <strong>{item.title}</strong>
                     {item.summary ? <p>{item.summary}</p> : null}
                     {item.details ? <small>{item.details}</small> : null}
@@ -345,7 +509,7 @@ export default function ResourceHubPage({ setActive, onOpenStorage }) {
                       </ul>
                     ) : null}
                     <div className="resource-bench-item-footer">
-                      <span>{formatResourceDate(item.createdAt)}</span>
+                      <span>{item.updatedAt ? `Updated ${formatResourceDate(item.updatedAt)}` : formatResourceDate(item.createdAt)}</span>
                       {item.url ? (
                         <a href={item.url} target="_blank" rel="noreferrer">
                           Open link

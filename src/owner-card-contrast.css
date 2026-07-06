@@ -1312,6 +1312,96 @@ html body .app-shell:not(.customer-storefront) .resource-bench-item ul {
   padding-left: 18px;
 }
 
+/* owner-resource-edit-photos-v1 */
+html body .app-shell:not(.customer-storefront) .resource-bench-form-actions {
+  display: grid;
+  gap: 10px;
+}
+
+html body .app-shell:not(.customer-storefront) .resource-bench-form-actions :is(.primary-button, .secondary-button) {
+  width: 100%;
+  min-height: 46px;
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+}
+
+html body .app-shell:not(.customer-storefront) .resource-photo-uploader {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1.5px solid rgba(139, 85, 45, .78);
+  border-radius: 18px;
+  color: #d6a15f !important;
+  -webkit-text-fill-color: #d6a15f !important;
+  background: rgba(16, 20, 18, .78);
+}
+
+html body .app-shell:not(.customer-storefront) .resource-photo-upload-head {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+html body .app-shell:not(.customer-storefront) .resource-photo-upload-head span {
+  display: grid;
+  gap: 4px;
+}
+
+html body .app-shell:not(.customer-storefront) .resource-photo-upload-head strong,
+html body .app-shell:not(.customer-storefront) .resource-photo-upload-head small {
+  color: #d6a15f !important;
+  -webkit-text-fill-color: #d6a15f !important;
+}
+
+html body .app-shell:not(.customer-storefront) .resource-photo-preview,
+html body .app-shell:not(.customer-storefront) .resource-bench-photo {
+  margin: 0;
+  overflow: hidden;
+  border: 1.5px solid rgba(214, 161, 95, .52);
+  border-radius: 16px;
+  background: rgba(8, 12, 11, .72);
+}
+
+html body .app-shell:not(.customer-storefront) .resource-photo-preview img,
+html body .app-shell:not(.customer-storefront) .resource-bench-photo img {
+  display: block;
+  width: 100%;
+  max-height: 220px;
+  object-fit: cover;
+}
+
+html body .app-shell:not(.customer-storefront) .resource-photo-preview button {
+  width: 100%;
+  min-height: 40px;
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-top: 1px solid rgba(214, 161, 95, .38);
+  border-radius: 0;
+  color: #fffaf0 !important;
+  -webkit-text-fill-color: #fffaf0 !important;
+  background: rgba(90, 47, 23, .84);
+  font-weight: 900;
+}
+
+html body .app-shell:not(.customer-storefront) .resource-bench-actions {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+}
+
+html body .app-shell:not(.customer-storefront) .resource-form-error {
+  margin: 0;
+  color: #f3b68d !important;
+  -webkit-text-fill-color: #f3b68d !important;
+  font-weight: 900;
+}
+
 /* owner-bronze-frame-islands-v1
    Final desktop/tablet contrast pass for owner surfaces that still inherited
    pale utility cards: Today, ready shelf, Menu tabs, and Reports pricing. */
