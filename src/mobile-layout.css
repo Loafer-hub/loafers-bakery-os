@@ -1248,3 +1248,88 @@
     -webkit-text-fill-color: inherit !important;
   }
 }
+
+/* order-detail-modal-final-dark-v1
+   Keep the owner order information modal aligned with the dark bronze system.
+   This sits at the end of the last stylesheet so it wins over older form/card rules. */
+html body .app-stage .app-shell:not(.customer-storefront) .modal-backdrop .modal-sheet:has(.order-detail-summary) {
+  background: linear-gradient(180deg, rgba(6, 9, 8, .99), rgba(3, 5, 4, .99)) !important;
+  border-color: rgba(184, 107, 44, .82) !important;
+  color: #e2b878 !important;
+  -webkit-text-fill-color: #e2b878 !important;
+}
+
+html body .app-stage .app-shell:not(.customer-storefront) .modal-backdrop .modal-sheet:has(.order-detail-summary) .modal-title-row,
+html body .app-stage .app-shell:not(.customer-storefront) .modal-backdrop .modal-sheet:has(.order-detail-summary) .order-detail-summary,
+html body .app-stage .app-shell:not(.customer-storefront) .modal-backdrop .modal-sheet:has(.order-detail-summary) .order-detail-summary > div,
+html body .app-stage .app-shell:not(.customer-storefront) .modal-backdrop .modal-sheet:has(.order-detail-summary) .order-workflow-panel,
+html body .app-stage .app-shell:not(.customer-storefront) .modal-backdrop .modal-sheet:has(.order-detail-summary) .order-workflow-panel > label,
+html body .app-stage .app-shell:not(.customer-storefront) .modal-backdrop .modal-sheet:has(.order-detail-summary) .order-workflow-steps button,
+html body .app-stage .app-shell:not(.customer-storefront) .modal-backdrop .modal-sheet:has(.order-detail-summary) .payment-tracking-panel,
+html body .app-stage .app-shell:not(.customer-storefront) .modal-backdrop .modal-sheet:has(.order-detail-summary) .payment-tracking-panel label,
+html body .app-stage .app-shell:not(.customer-storefront) .modal-backdrop .modal-sheet:has(.order-detail-summary) .order-notification-panel,
+html body .app-stage .app-shell:not(.customer-storefront) .modal-backdrop .modal-sheet:has(.order-detail-summary) .order-notification-panel label,
+html body .app-stage .app-shell:not(.customer-storefront) .modal-backdrop .modal-sheet:has(.order-detail-summary) .baker-progress-panel,
+html body .app-stage .app-shell:not(.customer-storefront) .modal-backdrop .modal-sheet:has(.order-detail-summary) .baker-progress-grid > label,
+html body .app-stage .app-shell:not(.customer-storefront) .modal-backdrop .modal-sheet:has(.order-detail-summary) .order-capacity-note,
+html body .app-stage .app-shell:not(.customer-storefront) .modal-backdrop .modal-sheet:has(.order-detail-summary) .calendar-export-message,
+html body .app-stage .app-shell:not(.customer-storefront) .modal-backdrop .modal-sheet:has(.order-detail-summary) .local-notification-options,
+html body .app-stage .app-shell:not(.customer-storefront) .modal-backdrop .modal-sheet:has(.order-detail-summary) .local-notification-options label {
+  background:
+    radial-gradient(circle at top left, rgba(184, 107, 44, .12), transparent 42%),
+    linear-gradient(145deg, rgba(48, 50, 44, .99), rgba(10, 14, 12, .99)) !important;
+  border: 1.5px solid rgba(184, 107, 44, .76) !important;
+  color: #e2b878 !important;
+  -webkit-text-fill-color: #e2b878 !important;
+  box-shadow: none !important;
+}
+
+html body .app-stage .app-shell:not(.customer-storefront) .modal-backdrop .modal-sheet:has(.order-detail-summary) h1,
+html body .app-stage .app-shell:not(.customer-storefront) .modal-backdrop .modal-sheet:has(.order-detail-summary) h2,
+html body .app-stage .app-shell:not(.customer-storefront) .modal-backdrop .modal-sheet:has(.order-detail-summary) h3,
+html body .app-stage .app-shell:not(.customer-storefront) .modal-backdrop .modal-sheet:has(.order-detail-summary) h4,
+html body .app-stage .app-shell:not(.customer-storefront) .modal-backdrop .modal-sheet:has(.order-detail-summary) strong,
+html body .app-stage .app-shell:not(.customer-storefront) .modal-backdrop .modal-sheet:has(.order-detail-summary) b {
+  color: #f4efe7 !important;
+  -webkit-text-fill-color: #f4efe7 !important;
+}
+
+html body .app-stage .app-shell:not(.customer-storefront) .modal-backdrop .modal-sheet:has(.order-detail-summary) p,
+html body .app-stage .app-shell:not(.customer-storefront) .modal-backdrop .modal-sheet:has(.order-detail-summary) small,
+html body .app-stage .app-shell:not(.customer-storefront) .modal-backdrop .modal-sheet:has(.order-detail-summary) label,
+html body .app-stage .app-shell:not(.customer-storefront) .modal-backdrop .modal-sheet:has(.order-detail-summary) span,
+html body .app-stage .app-shell:not(.customer-storefront) .modal-backdrop .modal-sheet:has(.order-detail-summary) em,
+html body .app-stage .app-shell:not(.customer-storefront) .modal-backdrop .modal-sheet:has(.order-detail-summary) li,
+html body .app-stage .app-shell:not(.customer-storefront) .modal-backdrop .modal-sheet:has(.order-detail-summary) td,
+html body .app-stage .app-shell:not(.customer-storefront) .modal-backdrop .modal-sheet:has(.order-detail-summary) th,
+html body .app-stage .app-shell:not(.customer-storefront) .modal-backdrop .modal-sheet:has(.order-detail-summary) a,
+html body .app-stage .app-shell:not(.customer-storefront) .modal-backdrop .modal-sheet:has(.order-detail-summary) button {
+  color: #e2b878 !important;
+  -webkit-text-fill-color: #e2b878 !important;
+}
+
+html body .app-stage .app-shell:not(.customer-storefront) .modal-backdrop .modal-sheet:has(.order-detail-summary) input,
+html body .app-stage .app-shell:not(.customer-storefront) .modal-backdrop .modal-sheet:has(.order-detail-summary) select,
+html body .app-stage .app-shell:not(.customer-storefront) .modal-backdrop .modal-sheet:has(.order-detail-summary) textarea {
+  background:
+    radial-gradient(circle at top left, rgba(184, 107, 44, .1), transparent 38%),
+    linear-gradient(145deg, rgba(69, 70, 62, .99), rgba(38, 42, 36, .99)) !important;
+  border: 1.5px solid rgba(184, 107, 44, .8) !important;
+  color: #f4efe7 !important;
+  -webkit-text-fill-color: #f4efe7 !important;
+  caret-color: #e2b878 !important;
+}
+
+html body .app-stage .app-shell:not(.customer-storefront) .modal-backdrop .modal-sheet:has(.order-detail-summary) .form-stack > label {
+  background:
+    radial-gradient(circle at top left, rgba(184, 107, 44, .12), transparent 42%),
+    linear-gradient(145deg, rgba(48, 50, 44, .99), rgba(10, 14, 12, .99)) !important;
+  border: 1.5px solid rgba(184, 107, 44, .76) !important;
+  color: #e2b878 !important;
+  -webkit-text-fill-color: #e2b878 !important;
+}
+
+html body .app-stage .app-shell:not(.customer-storefront) .modal-backdrop .modal-sheet:has(.order-detail-summary) .form-stack > label > :not(input):not(select):not(textarea):not(option) {
+  color: #e2b878 !important;
+  -webkit-text-fill-color: #e2b878 !important;
+}
