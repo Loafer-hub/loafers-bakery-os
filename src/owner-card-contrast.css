@@ -1876,6 +1876,50 @@ html body .app-shell:not(.customer-storefront) .modal-sheet:has(.cloud-request-l
   stroke: currentColor !important;
 }
 
+html body .app-shell:not(.customer-storefront) .page.page .feed-calendar-legend span,
+html body .app-shell:not(.customer-storefront) .page.page .feed-event-chip,
+html body .app-shell:not(.customer-storefront) .page.page .feed-event-more,
+html body .app-shell:not(.customer-storefront) .page.page .feed-history-schedule {
+  color: #d6a15f !important;
+  -webkit-text-fill-color: #d6a15f !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .feed-calendar-legend span {
+  border: 1px solid rgba(139, 85, 45, .72) !important;
+  background:
+    linear-gradient(145deg, rgba(48, 48, 43, .98), rgba(24, 28, 25, .99)) !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .feed-day.has-feed-events,
+html body .app-shell:not(.customer-storefront) .page.page .feed-event-chip {
+  border-color: rgba(139, 85, 45, .72) !important;
+  background:
+    linear-gradient(145deg, rgba(44, 46, 41, .99), rgba(16, 20, 18, .99)) !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .feed-event-chip.feed {
+  border-left-color: rgba(98, 141, 101, .95) !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .feed-event-chip.peak {
+  border-left-color: rgba(229, 173, 101, .98) !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .feed-event-chip.refeed {
+  border-left-color: rgba(174, 79, 38, .98) !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .feed-event-chip span,
+html body .app-shell:not(.customer-storefront) .page.page .feed-event-chip strong {
+  color: #fffaf0 !important;
+  -webkit-text-fill-color: #fffaf0 !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .feed-event-chip span {
+  color: #d6a15f !important;
+  -webkit-text-fill-color: #d6a15f !important;
+}
+
 @media (max-width: 900px) {
   html body .app-shell:not(.customer-storefront) .resource-hub-page {
     max-width: 100%;

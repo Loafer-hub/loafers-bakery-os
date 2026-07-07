@@ -45,6 +45,104 @@ function feedCalendarCells(month) {
   });
 }
 
+function addHours(value, hours) {
+  const date = new Date(value);
+  const offset = Number(hours);
+  if (Number.isNaN(date.getTime()) || !Number.isFinite(offset)) return null;
+  return new Date(date.getTime() + offset * 60 * 60 * 1000);
+}
+
+function formatShortTime(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+}
+
+function feedAgainWindowHours(peakHours, temperature = 76) {
+  const peakValue = Number(peakHours);
+  if (!Number.isFinite(peakValue) || peakValue <= 0) return 4;
+  const temp = Number(temperature || 76);
+  const tempFactor = temp >= 78 ? 0.28 : temp <= 68 ? 0.46 : 0.36;
+  return Math.max(2, Math.min(8, peakValue * tempFactor));
+}
+
+function peakHoursForLog(log, starter, calibration) {
+  const loggedPeak = Number(log.peakHours);
+  if (Number.isFinite(loggedPeak) && loggedPeak > 0) {
+    return { hours: loggedPeak, source: "logged" };
+  }
+  const estimate = estimateStarterPeak({
+    ratio: log.ratio || "1:2:2",
+    temperature: log.temperature || 76,
+    flourBlend: log.flourBlend || starter?.flourBlend,
+    hydration: starter?.hydration,
+    calibration,
+  });
+  return { hours: estimate.hours, source: "estimated" };
+}
+
+function buildFeedCalendarEvents(logs, starter, calibration) {
+  const eventsByDate = new Map();
+
+  function addEvent(event) {
+    const key = dateKey(event.time);
+    if (!key) return;
+    const items = eventsByDate.get(key) || [];
+    items.push(event);
+    items.sort((a, b) => a.sort - b.sort);
+    eventsByDate.set(key, items);
+  }
+
+  logs.forEach((log) => {
+    const feedDate = new Date(log.dateTime);
+    if (Number.isNaN(feedDate.getTime())) return;
+
+    const peakEstimate = peakHoursForLog(log, starter, calibration);
+    const peakAt = addHours(feedDate, peakEstimate.hours);
+    const feedAgainAt = addHours(feedDate, peakEstimate.hours + feedAgainWindowHours(peakEstimate.hours, log.temperature));
+
+    addEvent({
+      id: `${log.id || log.dateTime}-feed`,
+      type: "feed",
+      label: "Fed",
+      time: feedDate,
+      timeLabel: formatShortTime(feedDate),
+      detail: log.ratio || "Feed logged",
+      sort: feedDate.getTime(),
+    });
+
+    if (peakAt) {
+      addEvent({
+        id: `${log.id || log.dateTime}-peak`,
+        type: "peak",
+        label: "Peak",
+        time: peakAt,
+        timeLabel: formatShortTime(peakAt),
+        detail: `${peakEstimate.hours.toFixed(1)}h ${peakEstimate.source}`,
+        sort: peakAt.getTime(),
+      });
+    }
+
+    if (feedAgainAt) {
+      addEvent({
+        id: `${log.id || log.dateTime}-refeed`,
+        type: "refeed",
+        label: "Feed again",
+        time: feedAgainAt,
+        timeLabel: formatShortTime(feedAgainAt),
+        detail: "Starter should be ripe or beginning to recede",
+        sort: feedAgainAt.getTime(),
+      });
+    }
+  });
+
+  return eventsByDate;
+}
+
+function calendarDaySummary(events) {
+  return events.map((event) => `${event.label} ${event.timeLabel}: ${event.detail}`).join("; ");
+}
+
 function emptyProfile() {
   return {
     id: `starter-${Date.now()}`,
@@ -99,14 +197,7 @@ export function StarterLab({
   });
   const starterCurve = curvePath(peak.hours, "starter");
   const cells = feedCalendarCells(calendarMonth);
-  const logsByDate = new Map();
-
-  logs.forEach((log) => {
-    const key = dateKey(log.dateTime);
-    const items = logsByDate.get(key) || [];
-    items.push(log);
-    logsByDate.set(key, items);
-  });
+  const eventsByDate = useMemo(() => buildFeedCalendarEvents(logs, selected, calibration), [logs, selected, calibration]);
 
   function openFeed(date) {
     const dateTime = date
@@ -236,16 +327,38 @@ export function StarterLab({
         <div className="calendar-weekdays" aria-hidden="true">
           {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => <span key={day}>{day}</span>)}
         </div>
+        <div className="feed-calendar-legend" aria-label="Feed calendar markers">
+          <span><i className="feed-dot feed" /> Fed</span>
+          <span><i className="feed-dot peak" /> Expected peak</span>
+          <span><i className="feed-dot refeed" /> Feed again</span>
+        </div>
         <div className="feed-calendar-grid">
           {cells.map((day, index) => {
             if (!day) return <span className="calendar-blank" key={`feed-blank-${index}`} />;
             const key = `${calendarMonth.getFullYear()}-${String(calendarMonth.getMonth() + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-            const dayLogs = logsByDate.get(key) || [];
+            const dayEvents = eventsByDate.get(key) || [];
+            const visibleEvents = dayEvents.slice(0, 3);
+            const className = [
+              "feed-day",
+              dayEvents.length ? "has-feed-events" : "",
+              dayEvents.some((event) => event.type === "feed") ? "has-feed" : "",
+              dayEvents.some((event) => event.type === "peak") ? "has-peak" : "",
+              dayEvents.some((event) => event.type === "refeed") ? "has-refeed" : "",
+            ].filter(Boolean).join(" ");
             return (
-              <button type="button" className={dayLogs.length ? "feed-day has-feed" : "feed-day"} key={key} onClick={() => openFeed(key)} aria-label={`${key}: ${dayLogs.length ? dayLogs.map((log) => log.ratio).join(", ") : "log feed"}`}>
-                <span>{day}</span>
-                {dayLogs.length ? <small>{dayLogs[0].ratio}</small> : <Plus size={11} />}
-                {dayLogs.length > 1 ? <i>+{dayLogs.length - 1}</i> : null}
+              <button type="button" className={className} key={key} onClick={() => openFeed(key)} aria-label={`${key}: ${dayEvents.length ? calendarDaySummary(dayEvents) : "log feed"}`}>
+                <span className="feed-day-number">{day}</span>
+                {dayEvents.length ? (
+                  <span className="feed-day-events">
+                    {visibleEvents.map((event) => (
+                      <em className={`feed-event-chip ${event.type}`} key={event.id} title={event.detail}>
+                        <span>{event.label}</span>
+                        <strong>{event.timeLabel}</strong>
+                      </em>
+                    ))}
+                  </span>
+                ) : <Plus size={11} />}
+                {dayEvents.length > visibleEvents.length ? <small className="feed-event-more">+{dayEvents.length - visibleEvents.length} more</small> : null}
               </button>
             );
           })}
@@ -254,16 +367,22 @@ export function StarterLab({
 
       <div className="starter-history">
         <div className="section-title-line"><h3>Feed history</h3><button onClick={() => openFeed()}><CalendarDays size={15} /> Log feed</button></div>
-        {logs.length ? logs.slice(0, 8).map((log) => (
-          <div className="history-row detailed" key={log.id}>
-            <span className="feed-ratio-badge">{log.ratio}</span>
-            <span>
-              <strong>{new Date(log.dateTime).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</strong>
-              <small>{log.flourBlend?.map((item) => `${item.percent}% ${item.type}`).join(" · ") || selected.flourBlend.map((item) => `${item.percent}% ${item.type}`).join(" · ")}</small>
-            </span>
-            <small>{log.peakHours ? `${log.peakHours}h peak` : log.rise ? `${log.rise}× rise` : `${log.temperature}°F`}</small>
-          </div>
-        )) : <EmptyState title="No feed history" body="Log a feed to start calibrating this starter’s rise estimate." />}
+        {logs.length ? logs.slice(0, 8).map((log) => {
+          const peakEstimate = peakHoursForLog(log, selected, calibration);
+          const peakAt = addHours(log.dateTime, peakEstimate.hours);
+          const feedAgainAt = addHours(log.dateTime, peakEstimate.hours + feedAgainWindowHours(peakEstimate.hours, log.temperature));
+          return (
+            <div className="history-row detailed" key={log.id}>
+              <span className="feed-ratio-badge">{log.ratio}</span>
+              <span>
+                <strong>{new Date(log.dateTime).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</strong>
+                <small>{log.flourBlend?.map((item) => `${item.percent}% ${item.type}`).join(" · ") || selected.flourBlend.map((item) => `${item.percent}% ${item.type}`).join(" · ")}</small>
+                <small className="feed-history-schedule">Peak {formatShortTime(peakAt)} · Feed again {formatShortTime(feedAgainAt)}</small>
+              </span>
+              <small>{log.peakHours ? `${log.peakHours}h peak` : log.rise ? `${log.rise}× rise` : `${log.temperature}°F`}</small>
+            </div>
+          );
+        }) : <EmptyState title="No feed history" body="Log a feed to start calibrating this starter’s rise estimate." />}
       </div>
 
       {profileModal ? (
