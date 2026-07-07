@@ -97,6 +97,19 @@ function buildFeedCalendarEvents(logs, starter, calibration) {
     const feedDate = new Date(log.dateTime);
     if (Number.isNaN(feedDate.getTime())) return;
 
+    if (log.entryType === "rise") {
+      addEvent({
+        id: `${log.id || log.dateTime}-rise`,
+        type: "rise",
+        label: "Rise check",
+        time: feedDate,
+        timeLabel: formatShortTime(feedDate),
+        detail: log.peakHours ? `${log.peakHours}h peak observed` : log.rise ? `${log.rise}× rise` : `${log.temperature}°F check`,
+        sort: feedDate.getTime(),
+      });
+      return;
+    }
+
     const peakEstimate = peakHoursForLog(log, starter, calibration);
     const peakAt = addHours(feedDate, peakEstimate.hours);
     const feedAgainAt = addHours(feedDate, peakEstimate.hours + feedAgainWindowHours(peakEstimate.hours, log.temperature));
@@ -207,11 +220,12 @@ export function StarterLab({
   const cells = feedCalendarCells(calendarMonth);
   const eventsByDate = useMemo(() => buildFeedCalendarEvents(logs, selected, calibration), [logs, selected, calibration]);
 
-  function openFeed(date) {
+  function openFeed(date, mode = "feed") {
     const dateTime = date
       ? `${date}T08:00`
       : localDateTimeValue();
     setFeedModal({
+      mode,
       starterId: selected?.id,
       dateTime,
       ratio: latest?.ratio || "1:2:2",
@@ -221,6 +235,10 @@ export function StarterLab({
       flourType: latest?.flourBlend?.[0]?.type || selected?.flourBlend?.[0]?.type || "Bread flour",
       note: "",
     });
+  }
+
+  function openRise(date) {
+    openFeed(date, "rise");
   }
 
   function saveProfile(event) {
@@ -248,9 +266,10 @@ export function StarterLab({
 
   function saveFeed(event) {
     event.preventDefault();
-    const { flourType, ...savedFeed } = feedModal;
+    const { flourType, mode, ...savedFeed } = feedModal;
     onStarterLogged({
       ...savedFeed,
+      entryType: mode === "rise" ? "rise" : "feed",
       flourBlend: [{ type: flourType || "Bread flour", percent: 100 }],
       temperature: Number(feedModal.temperature),
       rise: feedModal.rise === "" ? null : Number(feedModal.rise),
@@ -304,6 +323,14 @@ export function StarterLab({
         <div><Thermometer /><strong>{latest?.temperature ? `${latest.temperature}°F` : "—"}</strong><span>last jar temp</span></div>
         <div><Clock3 /><strong>{peak.hours.toFixed(1)}h</strong><span>estimated peak</span></div>
       </div>
+      <div className="starter-log-actions" aria-label={`${selected.name} starter logging shortcuts`}>
+        <button type="button" className="starter-log-action feed" onClick={() => openFeed()}>
+          <CalendarDays size={16} /> Log feed
+        </button>
+        <button type="button" className="starter-log-action rise" onClick={() => openRise()}>
+          <TrendingUp size={16} /> Log rise
+        </button>
+      </div>
 
       <div className="starter-curve">
         <div className="section-title-line">
@@ -339,6 +366,7 @@ export function StarterLab({
         </div>
         <div className="feed-calendar-legend" aria-label="Feed calendar markers">
           <span><i className="feed-dot feed" /> Fed</span>
+          <span><i className="feed-dot rise" /> Rise check</span>
           <span><i className="feed-dot peak" /> Expected peak</span>
           <span><i className="feed-dot refeed" /> Feed again</span>
         </div>
@@ -352,6 +380,7 @@ export function StarterLab({
               "feed-day",
               dayEvents.length ? "has-feed-events" : "",
               dayEvents.some((event) => event.type === "feed") ? "has-feed" : "",
+              dayEvents.some((event) => event.type === "rise") ? "has-rise" : "",
               dayEvents.some((event) => event.type === "peak") ? "has-peak" : "",
               dayEvents.some((event) => event.type === "refeed") ? "has-refeed" : "",
             ].filter(Boolean).join(" ");
@@ -376,19 +405,30 @@ export function StarterLab({
       </section>
 
       <div className="starter-history">
-        <div className="section-title-line"><h3>Feed history</h3><button onClick={() => openFeed()}><CalendarDays size={15} /> Log feed</button></div>
+        <div className="section-title-line">
+          <h3>Starter history</h3>
+          <span className="starter-history-buttons">
+            <button type="button" onClick={() => openFeed()}><CalendarDays size={15} /> Log feed</button>
+            <button type="button" onClick={() => openRise()}><TrendingUp size={15} /> Log rise</button>
+          </span>
+        </div>
         {logs.length ? logs.slice(0, 8).map((log) => {
           const peakEstimate = peakHoursForLog(log, selected, calibration);
           const peakAt = addHours(log.dateTime, peakEstimate.hours);
           const feedAgainAt = addHours(log.dateTime, peakEstimate.hours + feedAgainWindowHours(peakEstimate.hours, log.temperature));
           const logKey = log.id ?? log.dateTime;
+          const isRiseCheck = log.entryType === "rise";
           return (
-            <div className="history-row detailed feed-history-card" key={logKey}>
-              <span className="feed-ratio-badge">{log.ratio}</span>
+            <div className={`history-row detailed feed-history-card ${isRiseCheck ? "rise-check" : "feed-check"}`} key={logKey}>
+              <span className="feed-ratio-badge">{isRiseCheck ? "Rise" : log.ratio}</span>
               <span>
                 <strong>{new Date(log.dateTime).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</strong>
                 <small>{log.flourBlend?.map((item) => `${item.percent}% ${item.type}`).join(" · ") || selected.flourBlend.map((item) => `${item.percent}% ${item.type}`).join(" · ")}</small>
-                <small className="feed-history-schedule">Peak {formatShortTime(peakAt)} · Feed again {formatShortTime(feedAgainAt)}</small>
+                <small className="feed-history-schedule">
+                  {isRiseCheck
+                    ? `Rise check${log.peakHours ? ` · ${log.peakHours}h peak calibrator` : ""}${log.note ? ` · ${log.note}` : ""}`
+                    : `Peak ${formatShortTime(peakAt)} · Feed again ${formatShortTime(feedAgainAt)}`}
+                </small>
               </span>
               <span className="feed-history-actions">
                 <small>{log.peakHours ? `${log.peakHours}h peak` : log.rise ? `${log.rise}× rise` : `${log.temperature}°F`}</small>
@@ -397,7 +437,7 @@ export function StarterLab({
                     className="feed-log-delete-button"
                     type="button"
                     onClick={() => onDeleteStarterLog(logKey)}
-                    aria-label={`Delete feed logged ${new Date(log.dateTime).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}`}
+                    aria-label={`Delete ${isRiseCheck ? "rise check" : "feed"} logged ${new Date(log.dateTime).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}`}
                   >
                     <Trash2 size={14} /> Delete
                   </button>
@@ -405,7 +445,7 @@ export function StarterLab({
               </span>
             </div>
           );
-        }) : <EmptyState title="No feed history" body="Log a feed to start calibrating this starter’s rise estimate." />}
+        }) : <EmptyState title="No starter history" body="Log a feed or rise check to start calibrating this starter’s rise estimate." />}
       </div>
 
       {profileModal ? (
@@ -432,12 +472,17 @@ export function StarterLab({
       ) : null}
 
       {feedModal ? (
-        <Modal title={`Log ${selected.name} feed`} onClose={() => setFeedModal(null)}>
+        <Modal title={`Log ${selected.name} ${feedModal.mode === "rise" ? "rise" : "feed"}`} onClose={() => setFeedModal(null)}>
           <form className="form-stack" onSubmit={saveFeed}>
-            <label>Date and time<input type="datetime-local" value={feedModal.dateTime} onChange={(event) => setFeedModal({ ...feedModal, dateTime: event.target.value })} /></label>
+            <p className="starter-feed-science-note">
+              {feedModal.mode === "rise"
+                ? "Use this when you are checking height, peak timing, bubbles, aroma, or strength without feeding the jar."
+                : "Use this when you feed the starter. The app will mark expected peak and feed-again times on the calendar."}
+            </p>
+            <label>{feedModal.mode === "rise" ? "Check date and time" : "Feed date and time"}<input type="datetime-local" value={feedModal.dateTime} onChange={(event) => setFeedModal({ ...feedModal, dateTime: event.target.value })} /></label>
             <div className="form-grid">
-              <label>Feed ratio<input value={feedModal.ratio} onChange={(event) => setFeedModal({ ...feedModal, ratio: event.target.value })} placeholder="1:2:2" /></label>
-              <label>Feed flour type<select value={feedModal.flourType} onChange={(event) => setFeedModal({ ...feedModal, flourType: event.target.value })}>{FLOUR_TYPES.map((type) => <option key={type}>{type}</option>)}</select></label>
+              <label>{feedModal.mode === "rise" ? "Last feed ratio" : "Feed ratio"}<input value={feedModal.ratio} onChange={(event) => setFeedModal({ ...feedModal, ratio: event.target.value })} placeholder="1:2:2" /></label>
+              <label>{feedModal.mode === "rise" ? "Last feed flour type" : "Feed flour type"}<select value={feedModal.flourType} onChange={(event) => setFeedModal({ ...feedModal, flourType: event.target.value })}>{FLOUR_TYPES.map((type) => <option key={type}>{type}</option>)}</select></label>
             </div>
             <div className="form-grid">
               <label>Jar temp °F<input type="number" min="45" max="105" value={feedModal.temperature} onChange={(event) => setFeedModal({ ...feedModal, temperature: event.target.value })} /></label>
@@ -445,10 +490,14 @@ export function StarterLab({
             </div>
             <div className="form-grid">
               <label>Hours to peak<input type="number" min="0" step="0.1" value={feedModal.peakHours} onChange={(event) => setFeedModal({ ...feedModal, peakHours: event.target.value })} placeholder="Optional" /></label>
-              <span className="starter-feed-science-note">The saved flour type calibrates the expected peak and feed-again markers.</span>
+              <span className="starter-feed-science-note">
+                {feedModal.mode === "rise"
+                  ? "If this was the peak, enter hours from feeding to peak. That calibrates the starter curve."
+                  : "The saved flour type calibrates the expected peak and feed-again markers."}
+              </span>
             </div>
             <label>Notes<textarea value={feedModal.note} onChange={(event) => setFeedModal({ ...feedModal, note: event.target.value })} placeholder="Aroma, bubbles, texture, feeding change…" /></label>
-            <button className="primary-button" type="submit">Save feed log</button>
+            <button className="primary-button" type="submit">{feedModal.mode === "rise" ? "Save rise check" : "Save feed log"}</button>
           </form>
         </Modal>
       ) : null}

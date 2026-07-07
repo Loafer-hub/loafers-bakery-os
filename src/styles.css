@@ -6489,6 +6489,44 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   font-size: 9px;
 }
 
+.starter-log-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding: 12px 0 22px;
+  border-bottom: 1px solid var(--line);
+}
+
+.starter-log-action {
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  color: var(--ink);
+  background: var(--surface-raised);
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.starter-log-action svg {
+  width: 16px;
+}
+
+.starter-log-action.feed {
+  color: var(--sage);
+  background: var(--sage-soft);
+}
+
+.starter-log-action.rise {
+  color: var(--terracotta);
+  background: rgba(199, 85, 53, .09);
+}
+
 .starter-curve, .starter-history {
   padding: 22px 0;
   border-bottom: 1px solid var(--line);
@@ -6535,6 +6573,10 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 }
 
 .feed-dot.peak {
+  background: var(--honey);
+}
+
+.feed-dot.rise {
   background: var(--honey);
 }
 
@@ -6649,6 +6691,10 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   border-left-color: var(--honey);
 }
 
+.feed-event-chip.rise {
+  border-left-color: var(--honey);
+}
+
 .feed-event-chip.refeed {
   border-left-color: var(--terracotta);
 }
@@ -6678,6 +6724,14 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   display: inline-flex;
   align-items: center;
   gap: 4px;
+}
+
+.starter-history-buttons {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .history-row.detailed {

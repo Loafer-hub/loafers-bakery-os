@@ -1930,6 +1930,10 @@ html body .app-shell:not(.customer-storefront) .page.page .feed-event-chip.peak 
   border-left-color: rgba(229, 173, 101, .98) !important;
 }
 
+html body .app-shell:not(.customer-storefront) .page.page .feed-event-chip.rise {
+  border-left-color: rgba(214, 161, 95, .98) !important;
+}
+
 html body .app-shell:not(.customer-storefront) .page.page .feed-event-chip.refeed {
   border-left-color: rgba(174, 79, 38, .98) !important;
 }
@@ -1943,6 +1947,35 @@ html body .app-shell:not(.customer-storefront) .page.page .feed-event-chip stron
 html body .app-shell:not(.customer-storefront) .page.page .feed-event-chip span {
   color: #d6a15f !important;
   -webkit-text-fill-color: #d6a15f !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .starter-log-actions {
+  border-bottom-color: rgba(139, 85, 45, .72) !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .starter-log-action,
+html body .app-shell:not(.customer-storefront) .page.page .starter-history-buttons button {
+  color: #d6a15f !important;
+  -webkit-text-fill-color: #d6a15f !important;
+  border: 1px solid rgba(139, 85, 45, .78) !important;
+  background:
+    linear-gradient(145deg, rgba(44, 46, 41, .99), rgba(16, 20, 18, .99)) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 239, 210, .08) !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .starter-log-action:hover,
+html body .app-shell:not(.customer-storefront) .page.page .starter-history-buttons button:hover {
+  color: #fffaf0 !important;
+  -webkit-text-fill-color: #fffaf0 !important;
+  border-color: rgba(214, 161, 95, .9) !important;
+  background:
+    linear-gradient(135deg, rgba(154, 75, 31, .98), rgba(89, 42, 19, .99)) !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .starter-log-action svg,
+html body .app-shell:not(.customer-storefront) .page.page .starter-history-buttons button svg {
+  color: #d6a15f !important;
+  stroke: currentColor !important;
 }
 
 @media (max-width: 900px) {

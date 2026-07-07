@@ -687,12 +687,12 @@ export default function App() {
       flourBlend: entry.flourBlend || starter?.flourBlend || [],
       dateTime: entry.dateTime || new Date().toISOString(),
     }, ...current]);
-    setToast("Starter feed logged");
+    setToast(entry.entryType === "rise" ? "Starter rise logged" : "Starter feed logged");
   }
 
   function deleteStarterLog(id) {
     setStarterLogs((current) => current.filter((log) => String(log.id ?? log.dateTime) !== String(id)));
-    setToast("Starter feed deleted");
+    setToast("Starter log deleted");
   }
 
   function saveStarter(starter) {
