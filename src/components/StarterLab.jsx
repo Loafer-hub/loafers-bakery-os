@@ -189,6 +189,13 @@ export function StarterLab({
     .sort((a, b) => new Date(b.dateTime || 0) - new Date(a.dateTime || 0)), [selected?.id, starterLogs, starters]);
   const latest = logs[0];
   const calibration = starterCalibration(starterLogs, selected?.id);
+  const calibrationLogCount = useMemo(() => starterLogs
+    .filter((log) => log.starterId === selected?.id && Number(log.peakHours) > 0)
+    .slice(0, 8)
+    .length, [selected?.id, starterLogs]);
+  const calibrationLabel = calibrationLogCount
+    ? `${calibrationLogCount} peak log${calibrationLogCount === 1 ? "" : "s"} · ${calibration.toFixed(2)}× calibrated`
+    : "0 peak logs · default curve";
   const peak = estimateStarterPeak({
     ratio: latest?.ratio || "1:2:2",
     temperature: latest?.temperature || 76,
@@ -301,7 +308,7 @@ export function StarterLab({
       <div className="starter-curve">
         <div className="section-title-line">
           <h3>Rise estimate</h3>
-          <span>{latest?.ratio || "1:2:2"} feed · {calibration === 1 ? "uncalibrated" : `${calibration.toFixed(2)}× calibrated`}</span>
+          <span>{latest?.ratio || "1:2:2"} feed · {calibrationLabel}</span>
         </div>
         <svg viewBox="0 0 300 100" role="img" aria-label={`Estimated starter rise peaking in ${peak.hours.toFixed(1)} hours`}>
           <path className="chart-fill starter-estimate-fill" d={starterCurve.fill} />
