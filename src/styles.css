@@ -6685,6 +6685,41 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   gap: 9px;
 }
 
+.feed-history-card {
+  align-items: center;
+  margin-bottom: 10px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: rgba(255, 255, 255, .42);
+}
+
+.feed-history-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.feed-log-delete-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 9px;
+  border: 1px solid rgba(199, 85, 53, .34);
+  border-radius: 999px;
+  color: var(--terracotta);
+  background: rgba(199, 85, 53, .08);
+  font-size: 10px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.feed-log-delete-button:hover {
+  color: var(--paper);
+  background: var(--terracotta);
+}
+
 .feed-ratio-badge {
   display: grid !important;
   place-items: center;
@@ -6700,6 +6735,20 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .feed-history-schedule {
   color: var(--terracotta);
   font-weight: 800;
+}
+
+.starter-feed-science-note {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 10px 12px;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .45);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.35;
 }
 
 .section-title-line {
@@ -6788,6 +6837,18 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .history-row small {
   color: var(--muted);
   font-size: 9px;
+}
+
+.history-row.feed-history-card:last-child {
+  border: 1px solid var(--line);
+}
+
+.history-row .feed-history-actions {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .starter-check-grid {

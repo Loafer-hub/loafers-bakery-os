@@ -134,6 +134,7 @@ export default function BakePage({
   onSelectKitchenBake,
   onSyncProductionPlans,
   onStarterLogged,
+  onDeleteStarterLog,
   onOpenProductionArea,
   bakeDeskRecipeSignal,
   productionPlanDate,
@@ -677,6 +678,7 @@ export default function BakePage({
           onSaveStarter={onSaveStarter}
           onDeleteStarter={onDeleteStarter}
           onStarterLogged={onStarterLogged}
+          onDeleteStarterLog={onDeleteStarterLog}
         />
       ) : null}
 

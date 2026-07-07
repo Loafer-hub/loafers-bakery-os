@@ -104,6 +104,7 @@ function ProductionOperations({
   starters = [],
   starterLogs = [],
   onDeleteStarter,
+  onDeleteStarterLog,
   onSaveStarter,
   onStarterLogged,
 }) {
@@ -221,6 +222,7 @@ function ProductionOperations({
           onSaveStarter={onSaveStarter}
           onDeleteStarter={onDeleteStarter}
           onStarterLogged={onStarterLogged}
+          onDeleteStarterLog={onDeleteStarterLog}
         />
       ) : null}
 

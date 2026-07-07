@@ -176,6 +176,7 @@ export function StarterLab({
   onSaveStarter,
   onDeleteStarter,
   onStarterLogged,
+  onDeleteStarterLog,
 }) {
   const [selectedId, setSelectedId] = useState(starters[0]?.id || "");
   const [profileModal, setProfileModal] = useState(null);
@@ -210,7 +211,7 @@ export function StarterLab({
       temperature: latest?.temperature || 76,
       rise: "",
       peakHours: "",
-      flourBlend: selected?.flourBlend || [],
+      flourType: latest?.flourBlend?.[0]?.type || selected?.flourBlend?.[0]?.type || "Bread flour",
       note: "",
     });
   }
@@ -240,8 +241,10 @@ export function StarterLab({
 
   function saveFeed(event) {
     event.preventDefault();
+    const { flourType, ...savedFeed } = feedModal;
     onStarterLogged({
-      ...feedModal,
+      ...savedFeed,
+      flourBlend: [{ type: flourType || "Bread flour", percent: 100 }],
       temperature: Number(feedModal.temperature),
       rise: feedModal.rise === "" ? null : Number(feedModal.rise),
       peakHours: feedModal.peakHours === "" ? null : Number(feedModal.peakHours),
@@ -371,15 +374,28 @@ export function StarterLab({
           const peakEstimate = peakHoursForLog(log, selected, calibration);
           const peakAt = addHours(log.dateTime, peakEstimate.hours);
           const feedAgainAt = addHours(log.dateTime, peakEstimate.hours + feedAgainWindowHours(peakEstimate.hours, log.temperature));
+          const logKey = log.id ?? log.dateTime;
           return (
-            <div className="history-row detailed" key={log.id}>
+            <div className="history-row detailed feed-history-card" key={logKey}>
               <span className="feed-ratio-badge">{log.ratio}</span>
               <span>
                 <strong>{new Date(log.dateTime).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</strong>
                 <small>{log.flourBlend?.map((item) => `${item.percent}% ${item.type}`).join(" · ") || selected.flourBlend.map((item) => `${item.percent}% ${item.type}`).join(" · ")}</small>
                 <small className="feed-history-schedule">Peak {formatShortTime(peakAt)} · Feed again {formatShortTime(feedAgainAt)}</small>
               </span>
-              <small>{log.peakHours ? `${log.peakHours}h peak` : log.rise ? `${log.rise}× rise` : `${log.temperature}°F`}</small>
+              <span className="feed-history-actions">
+                <small>{log.peakHours ? `${log.peakHours}h peak` : log.rise ? `${log.rise}× rise` : `${log.temperature}°F`}</small>
+                {onDeleteStarterLog ? (
+                  <button
+                    className="feed-log-delete-button"
+                    type="button"
+                    onClick={() => onDeleteStarterLog(logKey)}
+                    aria-label={`Delete feed logged ${new Date(log.dateTime).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}`}
+                  >
+                    <Trash2 size={14} /> Delete
+                  </button>
+                ) : null}
+              </span>
             </div>
           );
         }) : <EmptyState title="No feed history" body="Log a feed to start calibrating this starter’s rise estimate." />}
@@ -414,11 +430,15 @@ export function StarterLab({
             <label>Date and time<input type="datetime-local" value={feedModal.dateTime} onChange={(event) => setFeedModal({ ...feedModal, dateTime: event.target.value })} /></label>
             <div className="form-grid">
               <label>Feed ratio<input value={feedModal.ratio} onChange={(event) => setFeedModal({ ...feedModal, ratio: event.target.value })} placeholder="1:2:2" /></label>
-              <label>Jar temp °F<input type="number" min="45" max="105" value={feedModal.temperature} onChange={(event) => setFeedModal({ ...feedModal, temperature: event.target.value })} /></label>
+              <label>Feed flour type<select value={feedModal.flourType} onChange={(event) => setFeedModal({ ...feedModal, flourType: event.target.value })}>{FLOUR_TYPES.map((type) => <option key={type}>{type}</option>)}</select></label>
             </div>
             <div className="form-grid">
+              <label>Jar temp °F<input type="number" min="45" max="105" value={feedModal.temperature} onChange={(event) => setFeedModal({ ...feedModal, temperature: event.target.value })} /></label>
               <label>Rise multiple<input type="number" min="0" step="0.1" value={feedModal.rise} onChange={(event) => setFeedModal({ ...feedModal, rise: event.target.value })} placeholder="2.1" /></label>
+            </div>
+            <div className="form-grid">
               <label>Hours to peak<input type="number" min="0" step="0.1" value={feedModal.peakHours} onChange={(event) => setFeedModal({ ...feedModal, peakHours: event.target.value })} placeholder="Optional" /></label>
+              <span className="starter-feed-science-note">The saved flour type calibrates the expected peak and feed-again markers.</span>
             </div>
             <label>Notes<textarea value={feedModal.note} onChange={(event) => setFeedModal({ ...feedModal, note: event.target.value })} placeholder="Aroma, bubbles, texture, feeding change…" /></label>
             <button className="primary-button" type="submit">Save feed log</button>

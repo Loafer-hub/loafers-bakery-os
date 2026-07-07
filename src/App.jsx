@@ -681,13 +681,18 @@ export default function App() {
     const starter = starters.find((item) => item.id === entry.starterId) || starters[0];
     setStarterLogs((current) => [{
       ...entry,
-      id: Date.now(),
+      id: entry.id || Date.now(),
       starterId: entry.starterId || starter?.id,
       starterName: starter?.name || "Starter",
       flourBlend: entry.flourBlend || starter?.flourBlend || [],
       dateTime: entry.dateTime || new Date().toISOString(),
     }, ...current]);
     setToast("Starter feed logged");
+  }
+
+  function deleteStarterLog(id) {
+    setStarterLogs((current) => current.filter((log) => String(log.id ?? log.dateTime) !== String(id)));
+    setToast("Starter feed deleted");
   }
 
   function saveStarter(starter) {
@@ -1043,6 +1048,7 @@ export default function App() {
     onLogExpense: logExpense,
     onPlanCreated: setToast,
     onStarterLogged: logStarter,
+    onDeleteStarterLog: deleteStarterLog,
     onLogStarter: openQuickStarter,
     onOpenSettings: () => navigate("settings"),
     onOpenStorage: () => setStorageOpen(true),
