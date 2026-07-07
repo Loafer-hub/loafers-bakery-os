@@ -1726,6 +1726,156 @@ html body .app-shell:not(.customer-storefront) .customer-directory-panel.custome
     linear-gradient(145deg, rgba(92, 70, 47, .96), rgba(50, 47, 40, .98)) !important;
 }
 
+/* owner-customer-requests-modal-dark-v1
+   Customer request inbox was still using the legacy cream modal palette. */
+html body .app-shell:not(.customer-storefront) .modal-sheet:has(.cloud-request-list) {
+  color: #d6a15f !important;
+  border: 1.5px solid rgba(139, 85, 45, .94) !important;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(229, 173, 101, .10), transparent 36%),
+    radial-gradient(circle at 88% 6%, rgba(84, 128, 95, .12), transparent 38%),
+    linear-gradient(145deg, rgba(37, 40, 36, .99), rgba(16, 20, 18, .99)) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(229, 173, 101, .10),
+    0 32px 76px rgba(0, 0, 0, .54) !important;
+}
+
+html body .app-shell:not(.customer-storefront) .modal-sheet:has(.cloud-request-list) .modal-handle {
+  background: #d6a15f !important;
+}
+
+html body .app-shell:not(.customer-storefront) .modal-sheet:has(.cloud-request-list) .modal-title-row {
+  border-bottom: 1px solid rgba(139, 85, 45, .56) !important;
+  padding-bottom: 12px;
+}
+
+html body .app-shell:not(.customer-storefront) .modal-sheet:has(.cloud-request-list) .modal-title-row h2,
+html body .app-shell:not(.customer-storefront) .modal-sheet:has(.cloud-request-list) .modal-title-row button,
+html body .app-shell:not(.customer-storefront) .modal-sheet:has(.cloud-request-list) .modal-title-row button :is(svg, path) {
+  color: #d6a15f !important;
+  -webkit-text-fill-color: #d6a15f !important;
+  stroke: currentColor !important;
+}
+
+html body .app-shell:not(.customer-storefront) .modal-sheet:has(.cloud-request-list) .modal-title-row button {
+  border: 1px solid rgba(139, 85, 45, .88) !important;
+  background:
+    linear-gradient(145deg, rgba(53, 53, 48, .98), rgba(28, 31, 28, .99)) !important;
+}
+
+html body .app-shell:not(.customer-storefront) .modal-sheet:has(.cloud-request-list) .cloud-request-list,
+html body .app-shell:not(.customer-storefront) .modal-sheet:has(.cloud-request-list) .cloud-request-list :not(svg):not(path):not(option) {
+  color: #d6a15f !important;
+  -webkit-text-fill-color: #d6a15f !important;
+}
+
+html body .app-shell:not(.customer-storefront) .modal-sheet:has(.cloud-request-list) .cloud-history-switch {
+  border: 1px solid rgba(139, 85, 45, .76) !important;
+  background:
+    linear-gradient(145deg, rgba(52, 52, 47, .99), rgba(28, 31, 28, .99)) !important;
+}
+
+html body .app-shell:not(.customer-storefront) .modal-sheet:has(.cloud-request-list) .cloud-history-switch button {
+  color: #d6a15f !important;
+  -webkit-text-fill-color: #d6a15f !important;
+  border: 1px solid transparent !important;
+  background: transparent !important;
+}
+
+html body .app-shell:not(.customer-storefront) .modal-sheet:has(.cloud-request-list) .cloud-history-switch button.selected,
+html body .app-shell:not(.customer-storefront) .modal-sheet:has(.cloud-request-list) .cloud-history-switch button:hover {
+  color: #fffaf0 !important;
+  -webkit-text-fill-color: #fffaf0 !important;
+  border-color: rgba(214, 161, 95, .58) !important;
+  background:
+    linear-gradient(145deg, rgba(121, 76, 39, .94), rgba(72, 47, 30, .96)) !important;
+}
+
+html body .app-shell:not(.customer-storefront) .modal-sheet:has(.cloud-request-list) .cloud-history-switch span {
+  color: #2b1b10 !important;
+  -webkit-text-fill-color: #2b1b10 !important;
+  background: #d6a15f !important;
+}
+
+html body .app-shell:not(.customer-storefront) .modal-sheet:has(.cloud-request-list) .storage-file-button {
+  color: #d6a15f !important;
+  -webkit-text-fill-color: #d6a15f !important;
+  border: 1px solid rgba(139, 85, 45, .88) !important;
+  background:
+    linear-gradient(145deg, rgba(54, 54, 49, .99), rgba(31, 34, 31, .99)) !important;
+}
+
+html body .app-shell:not(.customer-storefront) .modal-sheet:has(.cloud-request-list) :is(
+  .cloud-request-card,
+  .cloud-feedback-card,
+  .rejected-history-card,
+  .reject-request-confirmation,
+  .delete-confirmation,
+  .settings-success,
+  .form-error,
+  .cloud-empty-copy
+) {
+  color: #d6a15f !important;
+  border: 1.5px solid rgba(139, 85, 45, .9) !important;
+  background:
+    radial-gradient(circle at top left, rgba(112, 78, 44, .13), transparent 42%),
+    linear-gradient(145deg, rgba(57, 57, 51, .98), rgba(30, 34, 31, .99)) !important;
+  box-shadow: inset 0 0 0 1px rgba(229, 173, 101, .08) !important;
+}
+
+html body .app-shell:not(.customer-storefront) .modal-sheet:has(.cloud-request-list) .cloud-request-heading strong,
+html body .app-shell:not(.customer-storefront) .modal-sheet:has(.cloud-request-list) .cloud-feedback-card strong,
+html body .app-shell:not(.customer-storefront) .modal-sheet:has(.cloud-request-list) .cloud-request-card > p {
+  color: #fffaf0 !important;
+  -webkit-text-fill-color: #fffaf0 !important;
+}
+
+html body .app-shell:not(.customer-storefront) .modal-sheet:has(.cloud-request-list) .cloud-request-card :is(
+  dl div,
+  blockquote,
+  .cloud-notification-preferences,
+  .cloud-allergy-alert,
+  .rejected-history-note
+),
+html body .app-shell:not(.customer-storefront) .modal-sheet:has(.cloud-request-list) .cloud-comment-field textarea {
+  color: #d6a15f !important;
+  -webkit-text-fill-color: #d6a15f !important;
+  border: 1px solid rgba(139, 85, 45, .76) !important;
+  background:
+    linear-gradient(145deg, rgba(44, 45, 40, .99), rgba(23, 27, 24, .99)) !important;
+}
+
+html body .app-shell:not(.customer-storefront) .modal-sheet:has(.cloud-request-list) .cloud-comment-field textarea::placeholder {
+  color: rgba(214, 161, 95, .7) !important;
+  -webkit-text-fill-color: rgba(214, 161, 95, .7) !important;
+}
+
+html body .app-shell:not(.customer-storefront) .modal-sheet:has(.cloud-request-list) .cloud-request-card dt,
+html body .app-shell:not(.customer-storefront) .modal-sheet:has(.cloud-request-list) .cloud-request-card dd,
+html body .app-shell:not(.customer-storefront) .modal-sheet:has(.cloud-request-list) .cloud-request-card small,
+html body .app-shell:not(.customer-storefront) .modal-sheet:has(.cloud-request-list) .cloud-feedback-card small,
+html body .app-shell:not(.customer-storefront) .modal-sheet:has(.cloud-request-list) .cloud-feedback-card p,
+html body .app-shell:not(.customer-storefront) .modal-sheet:has(.cloud-request-list) .rejected-history-note span {
+  color: #d6a15f !important;
+  -webkit-text-fill-color: #d6a15f !important;
+}
+
+html body .app-shell:not(.customer-storefront) .modal-sheet:has(.cloud-request-list) .cloud-request-actions :is(.primary-button, .secondary-button, .reject-request-button),
+html body .app-shell:not(.customer-storefront) .modal-sheet:has(.cloud-request-list) .reject-request-confirmation button,
+html body .app-shell:not(.customer-storefront) .modal-sheet:has(.cloud-request-list) .cloud-feedback-footer button,
+html body .app-shell:not(.customer-storefront) .modal-sheet:has(.cloud-request-list) .delete-confirmation button {
+  color: #fffaf0 !important;
+  -webkit-text-fill-color: #fffaf0 !important;
+  border: 1px solid rgba(214, 161, 95, .62) !important;
+  background:
+    linear-gradient(135deg, rgba(154, 75, 31, .98), rgba(89, 42, 19, .99)) !important;
+}
+
+html body .app-shell:not(.customer-storefront) .modal-sheet:has(.cloud-request-list) :is(svg, path) {
+  color: #d6a15f !important;
+  stroke: currentColor !important;
+}
+
 @media (max-width: 900px) {
   html body .app-shell:not(.customer-storefront) .resource-hub-page {
     max-width: 100%;
