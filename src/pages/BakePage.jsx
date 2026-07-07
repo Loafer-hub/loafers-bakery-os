@@ -24,7 +24,7 @@ import {
   recipeFlourBlend,
 } from "../lib/fermentationModel";
 import { normalizeTimelineSettings, recipeUsesStarter } from "../lib/recipeTimeline";
-import { pickupDateKey } from "../lib/orderCapacity";
+import { acceptedOrderBakesFromOrders } from "../lib/orderRecords";
 import {
   blockBakeryDay,
   listBakeryUnavailableDays,
@@ -163,20 +163,7 @@ export default function BakePage({
   const timelineSettings = normalizeTimelineSettings(recipe);
   const usesStarter = recipeUsesStarter(recipe);
   const starter = usesStarter ? (starters.find((item) => item.id === starterId) || starters[0]) : null;
-  const acceptedOrderBakes = useMemo(() => orders.flatMap((order) => {
-    if (!order.cloudOrderId || order.status === "Completed") return [];
-    const date = pickupDateKey(order.pickupAt);
-    if (!date) return [];
-    return [{
-      id: `accepted-${order.id}`,
-      date,
-      customer: order.customer,
-      recipeName: order.product,
-      loaves: order.quantity,
-      orderId: order.id,
-      kind: "accepted-order",
-    }];
-  }), [orders]);
+  const acceptedOrderBakes = useMemo(() => acceptedOrderBakesFromOrders(orders), [orders]);
 
   useEffect(() => {
     if (["calendar", "starter"].includes(view)) setView("plan");

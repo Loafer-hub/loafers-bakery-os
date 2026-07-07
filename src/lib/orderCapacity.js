@@ -1,6 +1,6 @@
 export const MAX_DAILY_LOAVES = 6;
 
-const NON_CAPACITY_STATUSES = new Set(["Cancelled", "Declined", "cancelled", "declined"]);
+const NON_CAPACITY_STATUSES = new Set(["cancelled", "canceled", "declined", "rejected", "completed"]);
 
 export function pickupDateKey(value) {
   if (!value) return "";
@@ -26,7 +26,7 @@ export function shiftDateKey(value, days) {
 export function dailyLoafTotals(orders, excludeOrderId = null) {
   const totals = new Map();
   orders.forEach((order) => {
-    if (order.id === excludeOrderId || order.isSample || NON_CAPACITY_STATUSES.has(order.status)) return;
+    if (order.id === excludeOrderId || order.isSample || NON_CAPACITY_STATUSES.has(String(order.status || "").toLowerCase())) return;
     const key = pickupDateKey(order.pickupAt);
     if (!key) return;
     totals.set(key, (totals.get(key) || 0) + Math.max(0, Number(order.quantity || 0)));

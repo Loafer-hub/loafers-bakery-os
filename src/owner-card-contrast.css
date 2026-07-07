@@ -1959,3 +1959,424 @@ html body .app-shell:not(.customer-storefront) .page.page .feed-event-chip span 
     justify-content: flex-start;
   }
 }
+
+/* data-sync-dark-authority-v1
+   Final contrast layer: no white working cards, bronze on dark/grey, and one shared owner/customer visual language. */
+:root {
+  --loafers-ink: #070b0a;
+  --loafers-panel: #151914;
+  --loafers-panel-2: #20221d;
+  --loafers-panel-3: #2c2b25;
+  --loafers-soft-grey: #5b5d56;
+  --loafers-mid-grey: #77766d;
+  --loafers-bronze: #d6a15f;
+  --loafers-bronze-2: #b96b2a;
+  --loafers-light: #f5efe2;
+  --loafers-border: rgba(214, 161, 95, .55);
+}
+
+html body :is(.app-shell, .customer-portal.customer-storefront) :is(
+  .metric-card,
+  .metric-button,
+  .summary-card,
+  .dashboard-card,
+  .today-card,
+  .section-card,
+  .settings-card,
+  .management-card,
+  .report-card,
+  .logbook-section,
+  .resource-link-card,
+  .resource-idea-card,
+  .production-inventory-row,
+  .production-inventory-panel,
+  .production-inventory-summary article,
+  .command-center-card,
+  .command-center-tile,
+  .production-day-card,
+  .batch-plan-card,
+  .batch-recipe-card,
+  .inventory-check-card,
+  .prep-list-card,
+  .pricing-intelligence-card,
+  .pricing-package-card,
+  .customer-card,
+  .customer-directory-panel,
+  .customer-profile-panel,
+  .ready-shelf-card,
+  .ready-shelf-row,
+  .kitchen-bake-card,
+  .kitchen-work-card,
+  .kitchen-now-card,
+  .up-next-card,
+  .cloud-request-card,
+  .cloud-feedback-card,
+  .barcode-import-panel,
+  .product-lookup-preview,
+  .recipe-version-card,
+  .product-detail-panel,
+  .formula-card,
+  .instructions-card,
+  .modal-sheet,
+  .modal-body,
+  .empty-state
+) {
+  color: var(--loafers-light) !important;
+  -webkit-text-fill-color: var(--loafers-light) !important;
+  border-color: var(--loafers-border) !important;
+  background:
+    radial-gradient(circle at top left, rgba(214, 161, 95, .08), transparent 42%),
+    linear-gradient(145deg, rgba(44, 45, 40, .98), rgba(15, 19, 17, .99)) !important;
+  box-shadow: inset 0 0 0 1px rgba(214, 161, 95, .05), 0 16px 36px rgba(0, 0, 0, .22) !important;
+}
+
+html body :is(.app-shell, .customer-portal.customer-storefront) :is(
+  .metric-card,
+  .metric-button,
+  .summary-card,
+  .dashboard-card,
+  .today-card,
+  .section-card,
+  .settings-card,
+  .management-card,
+  .report-card,
+  .logbook-section,
+  .resource-link-card,
+  .resource-idea-card,
+  .production-inventory-row,
+  .production-inventory-panel,
+  .production-inventory-summary article,
+  .command-center-card,
+  .command-center-tile,
+  .production-day-card,
+  .batch-plan-card,
+  .batch-recipe-card,
+  .inventory-check-card,
+  .prep-list-card,
+  .pricing-intelligence-card,
+  .pricing-package-card,
+  .customer-card,
+  .customer-directory-panel,
+  .customer-profile-panel,
+  .ready-shelf-card,
+  .ready-shelf-row,
+  .kitchen-bake-card,
+  .kitchen-work-card,
+  .kitchen-now-card,
+  .up-next-card,
+  .cloud-request-card,
+  .cloud-feedback-card,
+  .barcode-import-panel,
+  .product-lookup-preview,
+  .recipe-version-card,
+  .product-detail-panel,
+  .formula-card,
+  .instructions-card,
+  .modal-sheet,
+  .modal-body,
+  .empty-state
+) :is(p, span, small, label, li, dd, dt, em, strong, h1, h2, h3, h4, h5, h6):not(.status-pill):not(.badge):not(.pill) {
+  color: inherit !important;
+  -webkit-text-fill-color: inherit !important;
+}
+
+html body :is(.app-shell, .customer-portal.customer-storefront) :is(
+  .eyebrow-label,
+  .section-kicker,
+  .card-kicker,
+  .customer-product-card-meta,
+  .customer-product-badges span,
+  .status-pill,
+  .badge,
+  .pill,
+  .logbook-section small,
+  .purchase-record-row small,
+  .bake-record-row small,
+  .resource-link-card small,
+  .resource-idea-card small,
+  .customer-resource-card small,
+  .customer-resource-detail small
+) {
+  color: var(--loafers-bronze) !important;
+  -webkit-text-fill-color: var(--loafers-bronze) !important;
+}
+
+html body :is(.app-shell, .customer-portal.customer-storefront) :is(
+  .view-switch,
+  .production-area-switch,
+  .cloud-history-switch,
+  .customer-menu-tabs,
+  .customer-resource-tabs,
+  .order-filter-tabs,
+  .customer-view-switch,
+  .menu-tabs,
+  .workflow-tabs,
+  .tab-strip
+) {
+  color: var(--loafers-bronze) !important;
+  -webkit-text-fill-color: var(--loafers-bronze) !important;
+  border: 1.5px solid var(--loafers-border) !important;
+  background:
+    linear-gradient(145deg, rgba(49, 49, 44, .98), rgba(21, 25, 22, .99)) !important;
+}
+
+html body :is(.app-shell, .customer-portal.customer-storefront) :is(
+  .view-switch button,
+  .production-area-switch button,
+  .cloud-history-switch button,
+  .customer-menu-tabs button,
+  .customer-resource-tabs button,
+  .order-filter-tabs button,
+  .customer-view-switch button,
+  .menu-tabs button,
+  .workflow-tabs button,
+  .tab-strip button
+) {
+  color: var(--loafers-bronze) !important;
+  -webkit-text-fill-color: var(--loafers-bronze) !important;
+  background: transparent !important;
+  border: 1px solid transparent !important;
+}
+
+html body :is(.app-shell, .customer-portal.customer-storefront) :is(
+  .view-switch button.selected,
+  .view-switch button.active,
+  .production-area-switch button.selected,
+  .cloud-history-switch button.selected,
+  .customer-menu-tabs button.selected,
+  .customer-resource-tabs button.selected,
+  .order-filter-tabs button.selected,
+  .customer-view-switch button.selected,
+  .menu-tabs button.selected,
+  .workflow-tabs button.selected,
+  .tab-strip button.selected
+) {
+  color: var(--loafers-light) !important;
+  -webkit-text-fill-color: var(--loafers-light) !important;
+  border-color: rgba(214, 161, 95, .66) !important;
+  background:
+    linear-gradient(135deg, rgba(155, 83, 35, .88), rgba(60, 42, 27, .98)) !important;
+}
+
+html body :is(.app-shell, .customer-portal.customer-storefront) :is(
+  input,
+  select,
+  textarea,
+  .search-field,
+  .search-field input,
+  .order-search,
+  .customer-search,
+  .menu-search
+) {
+  color: #10100e !important;
+  -webkit-text-fill-color: #10100e !important;
+  caret-color: #10100e !important;
+  border: 1.5px solid rgba(139, 85, 45, .92) !important;
+  background: #8e8c82 !important;
+}
+
+html body :is(.app-shell, .customer-portal.customer-storefront) :is(input, select, textarea)::placeholder,
+html body :is(.app-shell, .customer-portal.customer-storefront) .search-field input::placeholder {
+  color: rgba(16, 16, 14, .72) !important;
+  -webkit-text-fill-color: rgba(16, 16, 14, .72) !important;
+}
+
+html body :is(.app-shell, .customer-portal.customer-storefront) :is(button, a, .text-button, .primary-button, .secondary-button, .small-action-button) {
+  border-color: rgba(214, 161, 95, .52) !important;
+}
+
+html body .app-shell:not(.customer-storefront) :is(
+  .purchase-record-row,
+  .bake-record-row,
+  .finished-liquid-row,
+  .batch-record-row,
+  .inventory-row,
+  .inventory-list-row,
+  .management-inventory-row,
+  .production-inventory-row,
+  .batch-list-row,
+  .daily-checklist-row,
+  .quality-task-row,
+  .order-row,
+  .customer-row,
+  .feed-history-card,
+  .feed-history-row,
+  .calendar-event,
+  .calendar-item,
+  .ready-status,
+  .status-chip,
+  .timeline-number,
+  .number-bubble
+) {
+  color: var(--loafers-bronze) !important;
+  -webkit-text-fill-color: var(--loafers-bronze) !important;
+  border: 1.5px solid rgba(139, 85, 45, .72) !important;
+  background:
+    linear-gradient(145deg, rgba(52, 51, 45, .98), rgba(24, 27, 24, .99)) !important;
+}
+
+html body .app-shell:not(.customer-storefront) :is(
+  .daily-checklist-row strong,
+  .daily-checklist-row p,
+  .quality-task-row strong,
+  .quality-task-row p,
+  .command-center-card strong,
+  .command-center-card p,
+  .batch-list-row strong,
+  .batch-list-row p,
+  .inventory-check-card strong,
+  .inventory-check-card p,
+  .prep-list-card strong,
+  .prep-list-card p,
+  .purchase-record-row strong,
+  .bake-record-row strong,
+  .finished-liquid-row strong,
+  .feed-history-card strong
+) {
+  color: var(--loafers-light) !important;
+  -webkit-text-fill-color: var(--loafers-light) !important;
+}
+
+html body .app-shell:not(.customer-storefront) :is(
+  .ready-status,
+  .status-chip.ready,
+  .status-chip.low,
+  .status-chip.warning,
+  .status-pill,
+  .order-status-pill,
+  .production-inventory-row em
+) {
+  color: var(--loafers-light) !important;
+  -webkit-text-fill-color: var(--loafers-light) !important;
+  background:
+    linear-gradient(135deg, rgba(88, 87, 78, .98), rgba(40, 43, 38, .99)) !important;
+  border: 1px solid rgba(214, 161, 95, .55) !important;
+}
+
+html body .app-shell:not(.customer-storefront) :is(
+  .command-center,
+  .production-command-center,
+  .production-dashboard,
+  .kitchen-now,
+  .up-next,
+  .daily-production-panel,
+  .quality-checklist,
+  .production-planner,
+  .batch-planner,
+  .inventory-check,
+  .feed-history,
+  .starter-science-card,
+  .activity-curves-card,
+  .flour-behavior-card,
+  .true-cost-card
+) {
+  color: var(--loafers-light) !important;
+  -webkit-text-fill-color: var(--loafers-light) !important;
+  border-color: rgba(139, 85, 45, .58) !important;
+  background:
+    linear-gradient(145deg, rgba(35, 36, 32, .98), rgba(10, 14, 12, .99)) !important;
+}
+
+html body .customer-portal.customer-storefront {
+  color: var(--loafers-light) !important;
+  -webkit-text-fill-color: var(--loafers-light) !important;
+  background:
+    radial-gradient(circle at 20% 0%, rgba(68, 99, 82, .24), transparent 30%),
+    radial-gradient(circle at 80% 10%, rgba(85, 49, 101, .2), transparent 34%),
+    linear-gradient(145deg, #050807, #10140f 58%, #070907) !important;
+}
+
+html body .customer-portal.customer-storefront :is(
+  .customer-menu-summary,
+  .customer-menu-summary article,
+  .customer-menu-summary a,
+  .customer-product,
+  .customer-product.compact-product,
+  .customer-product-type-note,
+  .customer-cart-panel,
+  .customer-checkout-panel,
+  .customer-flow-card,
+  .customer-recipe-detail,
+  .customer-product-detail-card,
+  .customer-resource-page,
+  .customer-resource-hero,
+  .customer-resource-card,
+  .customer-resource-empty,
+  .customer-resource-detail,
+  .customer-review-card,
+  .customer-track-card,
+  .customer-account-card,
+  .customer-shelf-card
+) {
+  color: var(--loafers-light) !important;
+  -webkit-text-fill-color: var(--loafers-light) !important;
+  border: 1.5px solid rgba(139, 85, 45, .78) !important;
+  background:
+    radial-gradient(circle at top left, rgba(214, 161, 95, .08), transparent 44%),
+    linear-gradient(145deg, rgba(42, 43, 38, .98), rgba(12, 16, 14, .99)) !important;
+}
+
+html body .customer-portal.customer-storefront :is(
+  .customer-product h3,
+  .customer-product strong,
+  .customer-product p,
+  .customer-product small,
+  .customer-product-card-body,
+  .customer-product-card-footer,
+  .customer-menu-summary strong,
+  .customer-menu-summary span,
+  .customer-resource-card strong,
+  .customer-resource-card p,
+  .customer-resource-detail h2,
+  .customer-resource-detail h3,
+  .customer-resource-detail p,
+  .customer-resource-detail li
+) {
+  color: inherit !important;
+  -webkit-text-fill-color: inherit !important;
+}
+
+html body .customer-portal.customer-storefront .customer-product-photo,
+html body .app-shell:not(.customer-storefront) .product-photo-placeholder,
+html body .app-shell:not(.customer-storefront) .menu-product-photo {
+  border: 1px solid rgba(139, 85, 45, .7) !important;
+  background:
+    linear-gradient(145deg, rgba(83, 67, 49, .95), rgba(38, 32, 25, .98)) !important;
+}
+
+/* settings-dark-cleanup-v1
+   Final sweep for the settings surfaces that were still inheriting cream cards.
+*/
+html body .app-shell:not(.customer-storefront) :is(
+  .settings-sync-pill,
+  .settings-provider-note,
+  .settings-time-window,
+  .automatic-email-status,
+  .email-delivery-history,
+  .product-customer-option-row,
+  .product-customer-option-row.disabled
+) {
+  color: var(--loafers-light) !important;
+  -webkit-text-fill-color: var(--loafers-light) !important;
+  border: 1.5px solid rgba(139, 85, 45, .72) !important;
+  background:
+    radial-gradient(circle at top left, rgba(214, 161, 95, .07), transparent 48%),
+    linear-gradient(145deg, rgba(51, 50, 44, .98), rgba(21, 24, 22, .99)) !important;
+}
+
+html body .app-shell:not(.customer-storefront) :is(
+  .settings-sync-pill,
+  .settings-provider-note,
+  .settings-time-window,
+  .automatic-email-status,
+  .email-delivery-history,
+  .product-customer-option-row,
+  .product-customer-option-row.disabled
+) :is(strong, span, small, p, label, b, em, h3, h4) {
+  color: inherit !important;
+  -webkit-text-fill-color: inherit !important;
+}
+
+html body .app-shell:not(.customer-storefront) .product-customer-option-row.disabled {
+  opacity: .82 !important;
+}

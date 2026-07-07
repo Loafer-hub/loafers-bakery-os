@@ -29,10 +29,9 @@ import {
   inventoryStatus,
   orderProductionLines,
 } from "../lib/productionPlanner";
+import { isProductionOrder } from "../lib/orderRecords";
 import { LOAFERS_BRAND } from "../lib/brand";
 
-const CLOSED_ORDER_STATUSES = new Set(["completed", "rejected", "cancelled", "canceled"]);
-const PRODUCTION_READY_STATUSES = new Set(["accepted", "paid", "deposit", "confirmed", "in progress", "ready", "picked up"]);
 const MAJOR_ALLERGEN_PATTERNS = [
   { id: "milk", label: "Milk", pattern: /\b(milk|cream|butter|buttermilk|whey|cheese|yogurt|dairy)\b/i },
   { id: "egg", label: "Egg", pattern: /\b(egg|eggs|albumin)\b/i },
@@ -139,9 +138,7 @@ function requirementLabel(row) {
 }
 
 function isProductionReadyOrder(order) {
-  const status = String(order?.status || "").toLowerCase();
-  if (order?.isSample === true || CLOSED_ORDER_STATUSES.has(status)) return false;
-  return !status || PRODUCTION_READY_STATUSES.has(status);
+  return isProductionOrder(order);
 }
 
 function eventDateKey(event) {

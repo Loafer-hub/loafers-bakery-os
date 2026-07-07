@@ -20,17 +20,13 @@ import { listReadyShelfItems } from "../lib/cloud";
 import { buildBakeSchedule } from "../lib/fermentationModel";
 import { activeKitchenBakes, buildKitchenBakeSchedule } from "../lib/kitchenBakes";
 import { pickupDateKey } from "../lib/orderCapacity";
+import { isProductionOrder } from "../lib/orderRecords";
 import { buildProductionPlanner, DEFAULT_PRODUCTION_AUTOMATION } from "../lib/productionPlanner";
 
 const clamp = (value, minimum, maximum) => Math.min(maximum, Math.max(minimum, value));
-const CLOSED_ORDER_STATUSES = new Set(["completed", "rejected", "cancelled", "canceled"]);
-const PRODUCTION_READY_STATUSES = new Set(["accepted", "paid", "deposit", "confirmed", "in progress", "ready", "picked up"]);
 
 function isOpenProductionOrder(order) {
-  const status = String(order?.status || "").toLowerCase();
-  return order?.isSample !== true
-    && !CLOSED_ORDER_STATUSES.has(status)
-    && (!status || PRODUCTION_READY_STATUSES.has(status));
+  return isProductionOrder(order);
 }
 
 function money(value) {

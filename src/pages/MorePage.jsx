@@ -34,6 +34,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { PageHeading } from "../components/AppChrome";
 import { EmptyState, Modal } from "../components/Primitives";
 import { usePersistentState } from "../hooks/usePersistentState";
+import {
+  blankCustomerProfile,
+  buildCustomerRecords as buildSharedCustomerRecords,
+  isClosedOrder,
+  isProductionOrder,
+  orderTimestamp,
+} from "../lib/orderRecords";
 import { estimateRecipeEconomics } from "../lib/productCosting";
 import { batchCodeFor, recipeVersionLabel } from "../lib/recipeVersions";
 
@@ -246,63 +253,8 @@ function importedPurchaseRows(records, inventory) {
   });
 }
 
-const CLOSED_ORDER_STATUSES = new Set(["completed", "rejected", "cancelled", "canceled"]);
-const READY_ORDER_STATUSES = new Set(["accepted", "paid", "deposit", "deposit paid", "new", "requested", "pending"]);
 const PAID_ORDER_MARKERS = ["paid in full", "paid", "complete"];
 const LIQUID_SAFETY_TYPES = new Set(["hot_sauce", "vinegar", "infused_oil"]);
-
-function customerIdFromName(name) {
-  return String(name || "")
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-}
-
-function customerEmailKey(value) {
-  return String(value || "").trim().toLowerCase();
-}
-
-function customerPhoneKey(value) {
-  return String(value || "").replace(/\D/g, "");
-}
-
-function customerAliasKeys({ customerId, customerUserId, email, phone, name }) {
-  return [
-    customerUserId ? `account:${customerUserId}` : "",
-    customerId ? `cloud:${customerId}` : "",
-    customerEmailKey(email) ? `email:${customerEmailKey(email)}` : "",
-    customerPhoneKey(phone) ? `phone:${customerPhoneKey(phone)}` : "",
-    customerIdFromName(name) ? `name:${customerIdFromName(name)}` : "",
-  ].filter(Boolean);
-}
-
-function customerIdFromAliases(aliases, fallback = "") {
-  const preferred = aliases.find((alias) => !alias.startsWith("name:")) || aliases[0];
-  return preferred
-    ? preferred.replace(":", "-").replace(/[^a-z0-9-]+/gi, "-").toLowerCase()
-    : fallback;
-}
-
-function rememberCustomerAliases(aliasMap, aliases, id) {
-  aliases.forEach((alias) => aliasMap.set(alias, id));
-}
-
-function orderProductNames(order) {
-  const itemNames = (order.items || [])
-    .map((item) => item.product_name)
-    .filter(Boolean);
-  return itemNames.length ? itemNames : [order.product].filter(Boolean);
-}
-
-function orderTimestamp(order) {
-  const candidates = [order.pickupAt, order.createdAt, order.date, order.due];
-  for (const value of candidates) {
-    const date = new Date(value);
-    if (!Number.isNaN(date.getTime())) return date.getTime();
-  }
-  return 0;
-}
 
 function dateTimeLabel(value) {
   if (!value) return "";
@@ -318,11 +270,7 @@ function dateTimeLabel(value) {
 }
 
 function isActiveOrder(order) {
-  return !CLOSED_ORDER_STATUSES.has(String(order.status || "").toLowerCase());
-}
-
-function statusKey(value) {
-  return String(value || "").trim().toLowerCase();
+  return order?.isSample !== true && !isClosedOrder(order);
 }
 
 function dateKey(value) {
@@ -332,8 +280,7 @@ function dateKey(value) {
 }
 
 function isReadyOrder(order) {
-  const status = statusKey(order.status);
-  return isActiveOrder(order) && (!status || READY_ORDER_STATUSES.has(status));
+  return isProductionOrder(order);
 }
 
 function hasPickupTarget(order) {
@@ -405,95 +352,6 @@ function orderProgressLabel(order) {
   if (!entries.length) return "";
   const complete = entries.filter(([, value]) => Boolean(value)).length;
   return `${complete}/${entries.length} bake phases complete`;
-}
-
-function blankCustomerProfile(name = "") {
-  const id = customerIdFromName(name) || `customer-${Date.now()}`;
-  return {
-    id,
-    name,
-    email: "",
-    phone: "",
-    customerId: "",
-    customerUserId: "",
-    allergies: "",
-    preferences: "",
-    address: "",
-    pickupNotes: "",
-    paymentNotes: "",
-    favoriteItems: "",
-    notes: "",
-  };
-}
-
-function buildCustomerRecords(orders, profiles) {
-  const byId = new Map();
-  const aliasesById = new Map();
-  profiles.forEach((profile) => {
-    const aliases = customerAliasKeys({
-      customerId: profile.customerId,
-      customerUserId: profile.customerUserId,
-      email: profile.email,
-      phone: profile.phone,
-      name: profile.name,
-    });
-    const id = profile.id || customerIdFromAliases(aliases, customerIdFromName(profile.name));
-    if (!id) return;
-    byId.set(id, {
-      ...blankCustomerProfile(profile.name),
-      ...profile,
-      id,
-      orders: [],
-    });
-    rememberCustomerAliases(aliasesById, aliases, id);
-  });
-  orders.forEach((order) => {
-    const aliases = customerAliasKeys({
-      customerId: order.customerId,
-      customerUserId: order.customerUserId,
-      email: order.customerEmail,
-      phone: order.customerPhone,
-      name: order.customer,
-    });
-    const matchedId = aliases.map((alias) => aliasesById.get(alias)).find(Boolean);
-    const id = matchedId || customerIdFromAliases(aliases, `order-customer-${order.id}`);
-    const existing = byId.get(id) || {
-      ...blankCustomerProfile(order.customer),
-      id,
-      orders: [],
-    };
-    byId.set(id, {
-      ...existing,
-      name: existing.name || order.customer || "Customer",
-      email: existing.email || order.customerEmail || "",
-      phone: existing.phone || order.customerPhone || "",
-      customerId: existing.customerId || order.customerId || "",
-      customerUserId: existing.customerUserId || order.customerUserId || "",
-      allergies: existing.allergies || order.allergies || "",
-      orders: [...existing.orders, order],
-    });
-    rememberCustomerAliases(aliasesById, aliases, id);
-  });
-  return Array.from(byId.values()).map((customer) => {
-    const sortedOrders = [...customer.orders].sort((a, b) => orderTimestamp(b) - orderTimestamp(a));
-    const activeOrders = sortedOrders.filter(isActiveOrder);
-    const totalSpent = sortedOrders.reduce((sum, order) => sum + Number(order.total || 0), 0);
-    const products = [...new Set(sortedOrders.flatMap(orderProductNames))].slice(0, 4);
-    return {
-      ...customer,
-      orders: sortedOrders,
-      activeOrders,
-      isActive: activeOrders.length > 0,
-      lastOrderAt: sortedOrders[0] ? orderTimestamp(sortedOrders[0]) : 0,
-      firstOrderAt: sortedOrders.length ? orderTimestamp(sortedOrders[sortedOrders.length - 1]) : 0,
-      totalSpent,
-      favoriteItems: customer.favoriteItems || products.join(", "),
-    };
-  }).sort((a, b) => (
-    Number(b.isActive) - Number(a.isActive)
-    || b.lastOrderAt - a.lastOrderAt
-    || a.name.localeCompare(b.name)
-  ));
 }
 
 function BarcodeImportPanel({
@@ -723,7 +581,7 @@ export default function MorePage({
     date: todayKey,
   });
   const manualQualityChecks = qualityLog?.date === todayKey ? qualityLog.checked || {} : {};
-  const customerRecords = useMemo(() => buildCustomerRecords(orders, customerProfiles), [orders, customerProfiles]);
+  const customerRecords = useMemo(() => buildSharedCustomerRecords(orders, customerProfiles), [orders, customerProfiles]);
   const activeCustomerRecords = useMemo(() => customerRecords.filter((customer) => customer.isActive), [customerRecords]);
   const pastCustomerRecords = useMemo(() => customerRecords.filter((customer) => customer.orders.length && !customer.isActive), [customerRecords]);
   const accountCustomerRecords = useMemo(() => customerRecords.filter((customer) => customer.customerUserId), [customerRecords]);

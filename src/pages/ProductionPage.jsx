@@ -9,7 +9,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { BakeCalendar } from "../components/BakeCalendar";
 import { StarterLab } from "../components/StarterLab";
-import { pickupDateKey } from "../lib/orderCapacity";
+import { acceptedOrderBakesFromOrders } from "../lib/orderRecords";
 import {
   blockBakeryDay,
   listBakeryUnavailableDays,
@@ -117,20 +117,7 @@ function ProductionOperations({
   const [availabilitySaving, setAvailabilitySaving] = useState(false);
   const [availabilityError, setAvailabilityError] = useState("");
   const activeArea = operationAreas.some((item) => item.id === area) ? area : "calendar";
-  const acceptedOrderBakes = useMemo(() => orders.flatMap((order) => {
-    if (!order.cloudOrderId || order.status === "Completed") return [];
-    const date = pickupDateKey(order.pickupAt);
-    if (!date) return [];
-    return [{
-      id: `accepted-${order.id}`,
-      date,
-      customer: order.customer,
-      recipeName: order.product,
-      loaves: order.quantity,
-      orderId: order.id,
-      kind: "accepted-order",
-    }];
-  }), [orders]);
+  const acceptedOrderBakes = useMemo(() => acceptedOrderBakesFromOrders(orders), [orders]);
   const lowStockItems = useMemo(() => inventory.filter((item) => itemStockTone(item) !== "ok"), [inventory]);
 
   useEffect(() => {
