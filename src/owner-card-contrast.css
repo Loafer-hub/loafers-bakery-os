@@ -2380,3 +2380,1428 @@ html body .app-shell:not(.customer-storefront) :is(
 html body .app-shell:not(.customer-storefront) .product-customer-option-row.disabled {
   opacity: .82 !important;
 }
+
+/* dark-theme-consistency-final-v1
+   One authority layer for the remaining parchment/white leaks across owner
+   pages, modals, recipe import, storage, and the customer storefront.
+*/
+:root {
+  --loafers-dark-surface: #1f231f;
+  --loafers-dark-surface-2: #2c2e29;
+  --loafers-dark-surface-3: #393a34;
+  --loafers-dark-panel: linear-gradient(145deg, rgba(46, 47, 41, .98), rgba(18, 23, 19, .99));
+  --loafers-dark-panel-soft: linear-gradient(145deg, rgba(67, 66, 58, .98), rgba(39, 42, 36, .99));
+  --loafers-dark-field: #8d887d;
+  --loafers-border-strong: rgba(178, 101, 39, .88);
+  --loafers-border-soft: rgba(214, 161, 95, .5);
+  --loafers-text-soft: #e8e1d7;
+}
+
+html,
+body,
+#root {
+  background: #050807 !important;
+}
+
+html body :is(.app-shell, .customer-portal, .customer-portal.customer-storefront) {
+  background:
+    radial-gradient(circle at 18% 0%, rgba(72, 104, 82, .18), transparent 32%),
+    radial-gradient(circle at 84% 0%, rgba(84, 43, 103, .16), transparent 34%),
+    linear-gradient(145deg, #050807, #10140f 58%, #070907) !important;
+  color: var(--loafers-text-soft) !important;
+  -webkit-text-fill-color: var(--loafers-text-soft) !important;
+}
+
+html body :is(.app-shell, .customer-portal) :is(
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  strong,
+  b,
+  legend,
+  summary
+) {
+  color: #f6f1ea !important;
+  -webkit-text-fill-color: #f6f1ea !important;
+}
+
+html body :is(.app-shell, .customer-portal) :is(
+  p,
+  small,
+  span,
+  label,
+  li,
+  td,
+  th,
+  em,
+  dt,
+  dd
+):not(.primary-button):not(.primary-button *):not(.settings-save-button):not(.settings-save-button *) {
+  color: var(--loafers-text-soft) !important;
+  -webkit-text-fill-color: var(--loafers-text-soft) !important;
+}
+
+html body :is(.app-shell, .customer-portal) :is(
+  .eyebrow-label,
+  .brand-subname,
+  .customer-product-card-meta,
+  .customer-product-card-footer small,
+  .customer-menu-tabs small,
+  .section-title-line small,
+  .modal-handle,
+  .product-badge,
+  .status-chip,
+  .status-pill,
+  .resource-public-pill,
+  .customer-filter span,
+  .nav-badge,
+  .badge
+) {
+  color: var(--loafers-bronze) !important;
+  -webkit-text-fill-color: var(--loafers-bronze) !important;
+}
+
+html body :is(.app-shell, .customer-portal) :is(
+  input,
+  select,
+  textarea,
+  .search-field,
+  .search-field input,
+  .order-search,
+  .customer-search,
+  .menu-search,
+  .customer-product-option input,
+  .customer-product-option select
+) {
+  color: #0e0f0d !important;
+  -webkit-text-fill-color: #0e0f0d !important;
+  caret-color: #0e0f0d !important;
+  background: var(--loafers-dark-field) !important;
+  border: 1.5px solid var(--loafers-border-strong) !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .06) !important;
+}
+
+html body :is(.app-shell, .customer-portal) :is(input, textarea, .search-field input)::placeholder {
+  color: rgba(14, 15, 13, .78) !important;
+  -webkit-text-fill-color: rgba(14, 15, 13, .78) !important;
+}
+
+html body :is(.app-shell, .customer-portal) :is(select option, option) {
+  color: #f6f1ea !important;
+  background: #10140f !important;
+}
+
+html body :is(.app-shell, .customer-portal) :is(
+  .modal-sheet,
+  .modal-card,
+  .modal-panel,
+  .owner-product-sheet,
+  .customer-directory-panel,
+  .order-history-panel,
+  .storage-center,
+  .storage-section,
+  .storage-hero,
+  .storage-privacy-note,
+  .storage-success,
+  .baker-cloud-panel,
+  .cloud-section,
+  .cloud-connected,
+  .settings-command-hero,
+  .settings-command-center,
+  .settings-card,
+  .settings-hero-card,
+  .settings-provider-note,
+  .settings-event-list,
+  .settings-time-window,
+  .settings-sync-pill,
+  .recipe-import-card,
+  .recipe-import-hero,
+  .recipe-import-empty,
+  .recipe-import-status,
+  .recipe-import-warnings,
+  .owner-product-hero,
+  .owner-product-detail-card,
+  .owner-product-status-panel,
+  .owner-product-status-control,
+  .owner-product-grid > article,
+  .customer-flow-panel,
+  .customer-details,
+  .customer-cart-panel,
+  .customer-checkout-panel,
+  .customer-review-panel,
+  .customer-contact-sheet,
+  .customer-menu-summary,
+  .customer-menu-summary article,
+  .customer-menu-summary a,
+  .customer-product-type-note,
+  .customer-product,
+  .customer-product-detail-card,
+  .customer-resource-page,
+  .customer-resource-hero,
+  .customer-resource-card,
+  .customer-resource-detail,
+  .customer-resource-empty,
+  .customer-review-card,
+  .customer-track-card,
+  .customer-account-card,
+  .customer-shelf-card,
+  .customer-announcement,
+  .customer-weekly-bakes,
+  .customer-reviews,
+  .install-app-card
+) {
+  background: var(--loafers-dark-panel) !important;
+  border: 1.5px solid var(--loafers-border-soft) !important;
+  color: var(--loafers-text-soft) !important;
+  -webkit-text-fill-color: var(--loafers-text-soft) !important;
+}
+
+html body :is(.app-shell, .customer-portal) :is(
+  .modal-title-row,
+  .modal-sheet > header,
+  .storage-status-grid > div,
+  .storage-dataset-grid > div,
+  .storage-file-button,
+  .storage-preview-button,
+  .restore-preview,
+  .restore-preview > div,
+  .baker-cloud-panel > *,
+  .cloud-privacy-pill,
+  .cloud-feature-card,
+  .settings-command-grid > *,
+  .settings-number-grid > *,
+  .settings-hours-grid > *,
+  .settings-test-grid > *,
+  .settings-summary-card,
+  .settings-toggle-list label,
+  .settings-command-card,
+  .product-type-settings-card,
+  .product-availability-card,
+  .product-customer-option-row,
+  .recipe-import-summary span,
+  .recipe-import-form label,
+  .recipe-import-table > div,
+  .recipe-import-step-card,
+  .owner-product-option-list span,
+  .owner-product-timeline-list span,
+  .owner-product-ingredient-table > div,
+  .owner-product-step-list li,
+  .owner-product-badges span,
+  .owner-product-status-control select,
+  .order-history-card,
+  .order-history-facts span,
+  .order-history-detail-grid span,
+  .order-history-notes,
+  .customer-directory-toolbar,
+  .customer-directory-layout,
+  .customer-directory-list,
+  .customer-directory-row,
+  .customer-directory-meta-card,
+  .customer-directory-form-card,
+  .customer-directory-field,
+  .customer-menu-tabs,
+  .customer-menu-tabs button,
+  .customer-fulfillment-strip > span,
+  .pickup-location-card,
+  .customer-checkout-steps,
+  .customer-checkout-steps button,
+  .customer-checkout-summary-strip span,
+  .customer-cart-row,
+  .customer-cart-total,
+  .customer-cart-empty,
+  .customer-request-note,
+  .checkout-review-grid article,
+  .customer-product-option,
+  .customer-quantity button,
+  .customer-item-modal-total,
+  .customer-resource-tabs,
+  .customer-resource-tabs button,
+  .customer-resource-card button,
+  .customer-resource-link,
+  .portal-preview-banner,
+  .customer-order-footer
+) {
+  background: var(--loafers-dark-panel-soft) !important;
+  border: 1.5px solid rgba(139, 85, 45, .72) !important;
+  color: var(--loafers-text-soft) !important;
+  -webkit-text-fill-color: var(--loafers-text-soft) !important;
+}
+
+html body .app-shell:not(.customer-storefront) :is(
+  .management-card,
+  .management-alert-card,
+  .management-checklist-card,
+  .management-logbook-section,
+  .management-logbook-panel,
+  .management-inventory-panel,
+  .management-inventory-list,
+  .management-summary-strip,
+  .management-summary-strip > *,
+  .daily-checklist,
+  .daily-checklist-row,
+  .quality-task-row,
+  .batch-records,
+  .batch-record-row,
+  .batch-trace-row,
+  .inventory-row,
+  .inventory-list-row,
+  .management-inventory-row,
+  .production-inventory-row,
+  .purchase-record-row,
+  .bake-record-row,
+  .finished-liquid-row,
+  .feed-history-card,
+  .feed-history-row,
+  .command-center,
+  .production-command-center,
+  .production-dashboard,
+  .command-center-card,
+  .daily-production-panel,
+  .kitchen-board,
+  .kitchen-recipe-card,
+  .kitchen-sidebar-card,
+  .kitchen-now,
+  .up-next,
+  .batch-plan,
+  .batch-plan-card,
+  .batch-list-row,
+  .inventory-check,
+  .inventory-check-card,
+  .prep-list,
+  .prep-list-card,
+  .production-day-card,
+  .starter-science-card,
+  .activity-curves-card,
+  .flour-behavior-card,
+  .true-cost-card,
+  .pricing-intelligence-card,
+  .pricing-product-row,
+  .quick-metrics,
+  .quick-metrics > div,
+  .metric-button
+) {
+  background: var(--loafers-dark-panel) !important;
+  border: 1.5px solid rgba(139, 85, 45, .72) !important;
+  color: var(--loafers-text-soft) !important;
+  -webkit-text-fill-color: var(--loafers-text-soft) !important;
+}
+
+html body .app-shell:not(.customer-storefront) :is(
+  .management-summary-strip > *,
+  .daily-checklist-row,
+  .quality-task-row,
+  .batch-record-row,
+  .batch-trace-row,
+  .inventory-row,
+  .inventory-list-row,
+  .management-inventory-row,
+  .production-inventory-row,
+  .purchase-record-row,
+  .bake-record-row,
+  .finished-liquid-row,
+  .feed-history-card,
+  .feed-history-row,
+  .batch-list-row,
+  .inventory-check-card,
+  .prep-list-card
+) {
+  box-shadow: inset 0 0 0 1px rgba(214, 161, 95, .15) !important;
+}
+
+html body .app-shell:not(.customer-storefront) :is(
+  .status-chip,
+  .status-pill,
+  .order-status-pill,
+  .ready-status,
+  .timeline-number,
+  .number-bubble,
+  .count-badge,
+  .calendar-event,
+  .calendar-item,
+  .daily-checklist-row input + span,
+  .quality-task-row input + span,
+  .production-inventory-row em
+) {
+  background: linear-gradient(135deg, rgba(78, 76, 68, .98), rgba(36, 40, 35, .99)) !important;
+  border: 1px solid rgba(214, 161, 95, .55) !important;
+  color: #f6f1ea !important;
+  -webkit-text-fill-color: #f6f1ea !important;
+}
+
+html body :is(.app-shell, .customer-portal) :is(
+  .primary-button,
+  .settings-save-button,
+  .recipe-import-primary,
+  .recipe-import-save,
+  .customer-product-add,
+  .customer-order-footer .primary-button
+) {
+  background: linear-gradient(135deg, #b8652b, #873611) !important;
+  border: 1.5px solid rgba(231, 171, 95, .55) !important;
+  color: #fff6ed !important;
+  -webkit-text-fill-color: #fff6ed !important;
+}
+
+html body :is(.app-shell, .customer-portal) :is(
+  .secondary-button,
+  .small-action-button,
+  .text-button,
+  .round-action,
+  .storage-file-button,
+  .storage-preview-button,
+  .customer-menu-tabs button,
+  .customer-checkout-steps button,
+  .customer-resource-tabs button
+) {
+  color: var(--loafers-text-soft) !important;
+  -webkit-text-fill-color: var(--loafers-text-soft) !important;
+}
+
+html body :is(.app-shell, .customer-portal) :is(
+  .selected,
+  .active,
+  .complete,
+  .customer-checkout-steps button.active,
+  .customer-checkout-steps button.complete,
+  .customer-menu-tabs button.selected,
+  .customer-resource-tabs button.selected
+) {
+  border-color: rgba(214, 161, 95, .92) !important;
+}
+
+html body :is(.app-shell, .customer-portal) :is(svg, svg *, path) {
+  stroke: currentColor !important;
+}
+
+html body :is(.app-shell, .customer-portal) :is(
+  .storage-center *,
+  .settings-command-hero *,
+  .settings-command-grid *,
+  .settings-card *,
+  .recipe-import-workspace *,
+  .owner-product-sheet *,
+  .customer-directory-panel *,
+  .order-history-panel *,
+  .customer-storefront .modal-sheet *,
+  .customer-menu-summary *,
+  .customer-checkout-steps *,
+  .customer-checkout-summary-strip *,
+  .customer-cart-panel *,
+  .customer-flow-panel *,
+  .customer-resource-page *
+):not(input):not(select):not(textarea):not(option):not(.primary-button):not(.primary-button *):not(.settings-save-button):not(.settings-save-button *) {
+  color: inherit !important;
+  -webkit-text-fill-color: inherit !important;
+}
+
+html body .customer-portal.customer-storefront :is(
+  .customer-fulfillment-strip > span,
+  .pickup-location-card,
+  .portal-preview-banner,
+  .customer-checkout-steps,
+  .customer-checkout-summary-strip span,
+  .customer-menu-tabs button,
+  .customer-product-add
+) {
+  background: var(--loafers-dark-panel-soft) !important;
+  color: var(--loafers-text-soft) !important;
+  -webkit-text-fill-color: var(--loafers-text-soft) !important;
+}
+
+html body .customer-portal.customer-storefront .customer-order-footer {
+  background:
+    radial-gradient(circle at top left, rgba(214, 161, 95, .16), transparent 45%),
+    linear-gradient(145deg, rgba(61, 38, 25, .98), rgba(25, 16, 12, .99)) !important;
+}
+
+@media (min-width: 900px) {
+  html body .customer-portal.customer-storefront {
+    box-shadow: 0 0 0 9999px #050807 !important;
+  }
+}
+
+/* dark-theme-consistency-final-v2
+   The app has accumulated a lot of feature-specific cards over time. This
+   final layer normalizes the late-added panels, sheets, tables, and customer
+   storefront bits so cream/white surfaces do not leak back into the dark brand. */
+:root {
+  --loafers-dc-black: #050807;
+  --loafers-dc-panel: #151914;
+  --loafers-dc-panel-2: #20241e;
+  --loafers-dc-panel-3: #30332c;
+  --loafers-dc-field: #3f4038;
+  --loafers-dc-border: rgba(184, 107, 44, .76);
+  --loafers-dc-border-soft: rgba(214, 161, 95, .36);
+  --loafers-dc-bronze: #d8a15f;
+  --loafers-dc-bronze-soft: #e2b878;
+  --loafers-dc-cream: #f4efe7;
+  --loafers-dc-muted: #cfc5b8;
+}
+
+html body :is(.app-shell, .customer-portal, .customer-storefront) {
+  background:
+    radial-gradient(circle at 75% 0%, rgba(71, 43, 94, .28), transparent 36%),
+    radial-gradient(circle at 28% 0%, rgba(29, 75, 60, .18), transparent 34%),
+    linear-gradient(180deg, #060907, #020303) !important;
+  color: var(--loafers-dc-cream) !important;
+  -webkit-text-fill-color: var(--loafers-dc-cream) !important;
+}
+
+html body :is(.app-shell, .customer-portal) :is(
+  .modal-sheet,
+  .modal-title-row,
+  .storage-center,
+  .storage-hero,
+  .storage-section,
+  .backup-section,
+  .restore-section,
+  .recovery-section,
+  .storage-dataset-grid,
+  .restore-preview,
+  .storage-privacy-note,
+  .storage-success,
+  .cloud-section,
+  .cloud-loading,
+  .cloud-connected,
+  .cloud-ready-card,
+  .cloud-account-line,
+  .cloud-checklist,
+  .cloud-checklist li,
+  .cloud-mode-switch,
+  .owner-security-grid > *,
+  .cloud-action-grid > *,
+  .customer-link-card,
+  .cloud-footnote,
+  .settings-hero-card,
+  .settings-command-center,
+  .settings-command-hero,
+  .settings-command-card,
+  .settings-card,
+  .settings-publish-card,
+  .settings-preview-link,
+  .settings-success,
+  .settings-number-grid > *,
+  .settings-hours-grid > *,
+  .settings-event-list,
+  .settings-provider-note,
+  .settings-test-grid > *,
+  .automation-toggle-row,
+  .settings-time-window,
+  .settings-accordion-summary,
+  .product-type-card-heading,
+  .product-type-card-body,
+  .product-type-settings-card,
+  .product-choice-toggle-line,
+  .product-package-settings,
+  .product-package-row,
+  .product-availability-card,
+  .recipe-badge-picker,
+  .recipe-import-card,
+  .recipe-import-empty,
+  .recipe-import-warnings,
+  .recipe-import-summary > *,
+  .recipe-import-duplicate,
+  .recipe-import-table,
+  .recipe-import-table > *,
+  .recipe-import-step-card,
+  .recipe-import-draft,
+  .owner-product-sheet,
+  .owner-product-grid,
+  .owner-product-detail-card,
+  .owner-product-status-control,
+  .owner-product-option-list > *,
+  .owner-product-timeline-list > *,
+  .owner-product-ingredient-table,
+  .owner-product-ingredient-table > *,
+  .owner-product-step-list > *,
+  .customer-directory-panel,
+  .customer-directory-layout,
+  .customer-directory-list,
+  .customer-directory-row,
+  .customer-profile-form,
+  .customer-profile-summary,
+  .customer-profile-stats > *,
+  .customer-profile-chips > *,
+  .customer-account-link-note,
+  .customer-order-history-list,
+  .order-history-card,
+  .order-history-facts > *,
+  .order-history-detail-grid > *,
+  .order-history-notes,
+  .customer-account-card,
+  .customer-account-card-modal,
+  .customer-account-heading,
+  .customer-account-signed-in,
+  .customer-account-sections > *,
+  .customer-account-privacy-panel,
+  .customer-history-panel,
+  .customer-history-list > *,
+  .customer-history-list article,
+  .customer-menu-summary,
+  .customer-checkout-steps,
+  .customer-checkout-summary-strip,
+  .customer-checkout-summary-strip > *,
+  .customer-flow-panel,
+  .pickup-location-card,
+  .customer-contact-sheet,
+  .customer-checkout-lock,
+  .customer-cart-panel,
+  .customer-cart-row,
+  .customer-review-panel,
+  .checkout-review-grid > *,
+  .checkout-review-total,
+  .customer-request-note,
+  .customer-review-card,
+  .customer-weekly-bakes,
+  .customer-weekly-bake-grid > *,
+  .customer-announcement,
+  .customer-resource-page,
+  .customer-resource-card,
+  .customer-resource-detail,
+  .customer-product-card,
+  .customer-product-option,
+  .customer-item-window,
+  .customer-recipe-detail,
+  .customer-recipe-summary,
+  .customer-recipe-safety-note,
+  .customer-item-order-panel,
+  .customer-modal-package-choice,
+  .customer-modal-quantity-row,
+  .customer-item-modal-total,
+  .customer-formula-table,
+  .customer-formula-table > *,
+  .customer-nutrition-grid > *,
+  .success-summary-card,
+  .cloud-inbox-banner,
+  .cloud-request-card,
+  .cloud-feedback-card,
+  .cloud-history-switch,
+  .cloud-notification-preferences,
+  .cloud-allergy-alert,
+  .cloud-comment-field,
+  .production-batch-card,
+  .production-batch-heading,
+  .production-batch-facts > *,
+  .production-inventory-check,
+  .smart-prep-panel,
+  .smart-prep-grid > *,
+  .prep-warning-strip,
+  .coreprint-copy-panel,
+  .coreprint-label-card,
+  .production-label-card,
+  .label-compliance-center,
+  .compliance-reference-cards > *,
+  .inventory-forecast-panel,
+  .inventory-forecast-list > *,
+  .weekly-production-panel,
+  .production-day-mode,
+  .production-day-timeline,
+  .production-batches,
+  .production-inventory-panel,
+  .production-inventory-summary > *,
+  .production-inventory-list > *,
+  .production-inventory-empty,
+  .production-ops-note,
+  .bake-workbench-card,
+  .planner-input-grid > *,
+  .planner-static-value,
+  .science-curve-card,
+  .formula-panel,
+  .dynamic-schedule-row,
+  .bake-side-card,
+  .bake-side-row,
+  .management-summary-strip > *,
+  .batch-record-row,
+  .batch-trace-row,
+  .inventory-row,
+  .management-inventory-row,
+  .production-inventory-row,
+  .purchase-record-row,
+  .bake-record-row,
+  .finished-liquid-row,
+  .feed-history-card,
+  .feed-history-row,
+  .resource-bench-form,
+  .resource-bench-library,
+  .resource-bench-item,
+  .resource-hero-card,
+  .resource-link-card,
+  .resource-roadmap-card,
+  .resource-small-action,
+  .resource-bench-wide-link,
+  .resource-photo-preview
+) {
+  background:
+    radial-gradient(circle at top left, rgba(123, 82, 42, .16), transparent 42%),
+    linear-gradient(145deg, rgba(48, 51, 44, .98), rgba(19, 23, 18, .99)) !important;
+  border: 1.5px solid var(--loafers-dc-border) !important;
+  color: var(--loafers-dc-cream) !important;
+  -webkit-text-fill-color: var(--loafers-dc-cream) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(244, 239, 231, .035),
+    0 14px 28px rgba(0, 0, 0, .18) !important;
+}
+
+html body :is(.app-shell, .customer-portal) :is(
+  .storage-center,
+  .storage-center *,
+  .settings-page,
+  .settings-page *,
+  .recipe-import-workspace,
+  .recipe-import-workspace *,
+  .owner-product-sheet,
+  .owner-product-sheet *,
+  .customer-directory-panel,
+  .customer-directory-panel *,
+  .order-history-card,
+  .order-history-card *,
+  .customer-account-card,
+  .customer-account-card *,
+  .customer-account-card-modal,
+  .customer-account-card-modal *,
+  .customer-history-panel,
+  .customer-history-panel *,
+  .customer-storefront,
+  .customer-storefront *,
+  .cloud-inbox-banner,
+  .cloud-request-card,
+  .cloud-request-card *,
+  .production-batch-card,
+  .production-batch-card *,
+  .production-inventory-check,
+  .production-inventory-check *,
+  .smart-prep-panel,
+  .smart-prep-panel *,
+  .weekly-production-panel,
+  .weekly-production-panel *,
+  .bake-workbench-card,
+  .bake-workbench-card *,
+  .management-page,
+  .management-page *,
+  .logbook-page,
+  .logbook-page *,
+  .resource-hub-page,
+  .resource-hub-page *
+):not(input):not(textarea):not(select):not(option):not(button):not(svg):not(path) {
+  color: inherit !important;
+  -webkit-text-fill-color: inherit !important;
+}
+
+html body :is(.app-shell, .customer-portal) :is(
+  .modal-sheet,
+  .storage-center,
+  .settings-page,
+  .recipe-import-workspace,
+  .owner-product-sheet,
+  .customer-directory-panel,
+  .customer-account-card,
+  .customer-account-card-modal,
+  .customer-storefront,
+  .cloud-request-card,
+  .production-batch-card,
+  .production-inventory-check,
+  .smart-prep-panel,
+  .weekly-production-panel,
+  .bake-workbench-card,
+  .management-page,
+  .logbook-page,
+  .resource-hub-page
+) :is(h1, h2, h3, h4, strong, b, summary, .title, .card-title) {
+  color: var(--loafers-dc-cream) !important;
+  -webkit-text-fill-color: var(--loafers-dc-cream) !important;
+}
+
+html body :is(.app-shell, .customer-portal) :is(
+  .modal-sheet,
+  .storage-center,
+  .settings-page,
+  .recipe-import-workspace,
+  .owner-product-sheet,
+  .customer-directory-panel,
+  .customer-account-card,
+  .customer-account-card-modal,
+  .customer-storefront,
+  .cloud-request-card,
+  .production-batch-card,
+  .production-inventory-check,
+  .smart-prep-panel,
+  .weekly-production-panel,
+  .bake-workbench-card,
+  .management-page,
+  .logbook-page,
+  .resource-hub-page
+) :is(p, small, span, li, td, th, label, em, .muted, .caption, .subtitle) {
+  color: var(--loafers-dc-bronze-soft) !important;
+  -webkit-text-fill-color: var(--loafers-dc-bronze-soft) !important;
+}
+
+html body :is(.app-shell, .customer-portal) :is(
+  input,
+  textarea,
+  select,
+  .search-field,
+  .segmented-control,
+  .view-switch,
+  .customer-filter,
+  .customer-menu-tabs,
+  .customer-resource-tabs,
+  .customer-checkout-steps,
+  .cloud-mode-switch,
+  .storage-file-button,
+  .storage-preview-button
+) {
+  background:
+    linear-gradient(145deg, rgba(70, 71, 63, .98), rgba(42, 45, 39, .99)) !important;
+  border: 1.5px solid var(--loafers-dc-border) !important;
+  color: var(--loafers-dc-cream) !important;
+  -webkit-text-fill-color: var(--loafers-dc-cream) !important;
+  caret-color: var(--loafers-dc-bronze-soft) !important;
+}
+
+html body :is(.app-shell, .customer-portal) :is(input, textarea)::placeholder {
+  color: var(--loafers-dc-bronze-soft) !important;
+  -webkit-text-fill-color: var(--loafers-dc-bronze-soft) !important;
+  opacity: .88 !important;
+}
+
+html body select option,
+html body optgroup {
+  background: #10140f !important;
+  color: var(--loafers-dc-cream) !important;
+  -webkit-text-fill-color: var(--loafers-dc-cream) !important;
+}
+
+html body :is(.app-shell, .customer-portal) :is(
+  .status-chip,
+  .status-pill,
+  .order-status-pill,
+  .ready-status,
+  .timeline-number,
+  .number-bubble,
+  .count-badge,
+  .calendar-event,
+  .calendar-item,
+  .customer-product-badges span,
+  .customer-profile-chips span,
+  .resource-bench-kind
+) {
+  background:
+    linear-gradient(135deg, rgba(88, 84, 75, .99), rgba(43, 46, 40, .99)) !important;
+  border: 1px solid rgba(216, 161, 95, .66) !important;
+  color: var(--loafers-dc-cream) !important;
+  -webkit-text-fill-color: var(--loafers-dc-cream) !important;
+}
+
+html body .app-shell:not(.customer-storefront) :is(
+  .settings-command-grid > *,
+  .settings-number-grid > *,
+  .settings-hours-grid > *,
+  .owner-security-grid > *,
+  .cloud-action-grid > *,
+  .storage-status-grid > *,
+  .management-summary-strip > *,
+  .production-inventory-summary > *,
+  .daily-checklist-row,
+  .quality-task-row,
+  .batch-record-row,
+  .purchase-record-row,
+  .bake-record-row,
+  .finished-liquid-row,
+  .feed-history-row,
+  .inventory-row,
+  .management-inventory-row,
+  .production-inventory-row
+) {
+  background:
+    linear-gradient(145deg, rgba(54, 51, 44, .99), rgba(30, 32, 27, .99)) !important;
+  border-color: rgba(184, 107, 44, .82) !important;
+  color: var(--loafers-dc-bronze-soft) !important;
+  -webkit-text-fill-color: var(--loafers-dc-bronze-soft) !important;
+}
+
+html body .app-shell:not(.customer-storefront) :is(
+  .settings-command-grid > *,
+  .settings-number-grid > *,
+  .settings-hours-grid > *,
+  .owner-security-grid > *,
+  .cloud-action-grid > *,
+  .storage-status-grid > *,
+  .management-summary-strip > *,
+  .production-inventory-summary > *,
+  .daily-checklist-row,
+  .quality-task-row,
+  .batch-record-row,
+  .purchase-record-row,
+  .bake-record-row,
+  .finished-liquid-row,
+  .feed-history-row,
+  .inventory-row,
+  .management-inventory-row,
+  .production-inventory-row
+) :is(h1, h2, h3, h4, strong, b, span, small, p, em, td, th) {
+  color: inherit !important;
+  -webkit-text-fill-color: inherit !important;
+}
+
+html body .customer-portal.customer-storefront {
+  background:
+    radial-gradient(circle at 50% 0%, rgba(23, 84, 62, .18), transparent 42%),
+    radial-gradient(circle at 85% 0%, rgba(58, 31, 76, .2), transparent 36%),
+    linear-gradient(180deg, #060907, #020403) !important;
+}
+
+html body .customer-portal.customer-storefront :is(
+  .customer-fulfillment-strip > span,
+  .customer-checkout-steps,
+  .customer-checkout-summary-strip > *,
+  .customer-menu-tabs,
+  .customer-menu-tabs button,
+  .customer-cart-row,
+  .customer-flow-panel,
+  .customer-contact-sheet,
+  .customer-review-card,
+  .customer-resource-card
+) {
+  background:
+    linear-gradient(145deg, rgba(54, 55, 49, .98), rgba(22, 26, 21, .99)) !important;
+  border: 1.5px solid var(--loafers-dc-border) !important;
+  color: var(--loafers-dc-cream) !important;
+  -webkit-text-fill-color: var(--loafers-dc-cream) !important;
+}
+
+html body .customer-portal.customer-storefront :is(
+  .customer-fulfillment-strip > span,
+  .customer-checkout-steps,
+  .customer-checkout-summary-strip > *,
+  .customer-menu-tabs,
+  .customer-menu-tabs button,
+  .customer-cart-row,
+  .customer-flow-panel,
+  .customer-contact-sheet,
+  .customer-review-card,
+  .customer-resource-card
+) :is(p, small, span, strong, b, h3, h4) {
+  color: inherit !important;
+  -webkit-text-fill-color: inherit !important;
+}
+
+html body .app-shell:not(.customer-storefront) :is(
+  .cloud-inbox-banner,
+  .cloud-request-card,
+  .customer-request-inbox,
+  .order-request-card,
+  .customer-queue-card
+) {
+  background:
+    linear-gradient(145deg, rgba(56, 57, 50, .98), rgba(22, 26, 21, .99)) !important;
+  border: 1.5px solid var(--loafers-dc-border) !important;
+  color: var(--loafers-dc-cream) !important;
+  -webkit-text-fill-color: var(--loafers-dc-cream) !important;
+}
+
+html body .customer-portal.customer-storefront :is(
+  .customer-weekly-bakes,
+  .customer-weekly-bake-column,
+  .customer-weekly-bake-column button,
+  .customer-weekly-bake-grid button
+) {
+  background:
+    linear-gradient(145deg, rgba(54, 55, 49, .98), rgba(20, 24, 20, .99)) !important;
+  border: 1.5px solid var(--loafers-dc-border) !important;
+  color: var(--loafers-dc-cream) !important;
+  -webkit-text-fill-color: var(--loafers-dc-cream) !important;
+}
+
+html body .customer-portal.customer-storefront :is(
+  .customer-weekly-bake-column button,
+  .customer-weekly-bake-grid button
+) :is(span, strong, small, p) {
+  color: inherit !important;
+  -webkit-text-fill-color: inherit !important;
+}
+
+html body .app-shell:not(.customer-storefront) :is(
+  .availability-toolbar button,
+  details.product-type-card,
+  .product-type-list details,
+  .settings-hours-grid label,
+  .settings-time-window label,
+  .settings-time-window,
+  .settings-hours-grid .settings-time-window
+) {
+  background:
+    linear-gradient(145deg, rgba(54, 55, 49, .99), rgba(22, 26, 21, .99)) !important;
+  border: 1.5px solid var(--loafers-dc-border) !important;
+  color: var(--loafers-dc-cream) !important;
+  -webkit-text-fill-color: var(--loafers-dc-cream) !important;
+}
+
+html body .app-shell:not(.customer-storefront) :is(
+  details.product-type-card,
+  .product-type-list details,
+  .settings-hours-grid label,
+  .settings-time-window label,
+  .settings-time-window
+) :is(span, small, strong, b, p, input, select) {
+  color: var(--loafers-dc-bronze-soft) !important;
+  -webkit-text-fill-color: var(--loafers-dc-bronze-soft) !important;
+}
+
+html body .app-shell.owner-page-production .availability-toolbar button {
+  background:
+    linear-gradient(145deg, rgba(54, 55, 49, .99), rgba(22, 26, 21, .99)) !important;
+  border: 1.5px solid var(--loafers-dc-border) !important;
+  color: var(--loafers-dc-cream) !important;
+  -webkit-text-fill-color: var(--loafers-dc-cream) !important;
+}
+
+html body .app-shell.owner-page-production .page.page .availability-toolbar.availability-toolbar button {
+  background:
+    linear-gradient(145deg, rgba(54, 55, 49, .99), rgba(22, 26, 21, .99)) !important;
+  border-color: rgba(184, 107, 44, .82) !important;
+  color: var(--loafers-dc-cream) !important;
+  -webkit-text-fill-color: var(--loafers-dc-cream) !important;
+}
+
+/* dark-theme-consistency-final-v3
+   Last polish pass for the remaining cream/white islands reported from the
+   customer storefront, owner modals, settings, storage, import, and recipe
+   workspaces. Keep it low in the cascade so old feature CSS cannot leak
+   parchment cards back into the refreshed dark shell. */
+html body :is(.app-shell, .customer-portal) :is(
+  .customer-fulfillment-strip > span,
+  .customer-fulfillment-strip > span > svg,
+  .pickup-location-card,
+  .pickup-location-card > svg,
+  .customer-menu-summary,
+  .customer-menu-summary article,
+  .customer-menu-summary a,
+  .customer-weekly-bake-types span,
+  .customer-weekly-bake-types small,
+  .tracking-lookup-form .secondary-button,
+  .customer-order-status,
+  .customer-product-detail-card,
+  .customer-checkout-steps,
+  .customer-checkout-steps button,
+  .customer-checkout-summary-strip > *,
+  .customer-profile-form,
+  .customer-profile-summary,
+  .customer-profile-stats > *,
+  .customer-profile-chips > *,
+  .order-history-card,
+  .order-history-card.compact,
+  .customer-history-panel,
+  .recipe-import-card,
+  .recipe-import-card textarea,
+  .recipe-import-card input,
+  .recipe-import-empty,
+  .settings-command-grid article,
+  .settings-command-card,
+  .settings-publish-card,
+  .settings-hero-card,
+  .settings-number-grid label,
+  .settings-hours-grid label,
+  .settings-test-grid label,
+  .settings-time-window,
+  .settings-event-list,
+  .email-delivery-history,
+  .settings-provider-note,
+  .storage-center,
+  .storage-hero,
+  .storage-hero > span,
+  .storage-status-grid div,
+  .storage-section,
+  .storage-section > *,
+  .cloud-ready-card,
+  .cloud-ready-card > svg,
+  .cloud-section,
+  .owner-product-sheet,
+  .owner-product-hero,
+  .owner-product-status-control,
+  .owner-product-grid > article,
+  .owner-product-detail-card,
+  .owner-product-option-list span,
+  .owner-product-timeline-list span,
+  .owner-product-ingredient-table > div,
+  .owner-product-step-list li,
+  .bake-recipe-preview,
+  .kitchen-recipe-card,
+  .production-batch-card,
+  .production-inventory-check,
+  .smart-prep-panel,
+  .daily-checklist-card,
+  .management-summary-strip > *,
+  .batch-record-row,
+  .inventory-row,
+  .purchase-record-row,
+  .bake-record-row,
+  .feed-history-row,
+  .resource-link-card,
+  .resource-roadmap-card
+) {
+  background:
+    radial-gradient(circle at top left, rgba(151, 92, 42, .16), transparent 38%),
+    linear-gradient(145deg, rgba(58, 59, 52, .99), rgba(18, 22, 18, .99)) !important;
+  border: 1.5px solid var(--loafers-dc-border) !important;
+  color: var(--loafers-dc-cream) !important;
+  -webkit-text-fill-color: var(--loafers-dc-cream) !important;
+}
+
+html body :is(.app-shell, .customer-portal) :is(
+  .customer-fulfillment-strip,
+  .customer-menu-summary,
+  .customer-weekly-bakes,
+  .customer-order-status,
+  .order-history-card,
+  .customer-history-panel,
+  .recipe-import-card,
+  .recipe-import-empty,
+  .settings-command-grid,
+  .settings-card,
+  .storage-center,
+  .storage-section,
+  .owner-product-sheet,
+  .owner-product-detail-card,
+  .bake-workbench-card,
+  .production-batch-card,
+  .management-panel,
+  .resource-hub-card
+) :is(h1, h2, h3, h4, h5, h6, strong, b) {
+  color: var(--loafers-dc-cream) !important;
+  -webkit-text-fill-color: var(--loafers-dc-cream) !important;
+}
+
+html body :is(.app-shell, .customer-portal) :is(
+  .customer-fulfillment-strip,
+  .customer-menu-summary,
+  .customer-weekly-bakes,
+  .customer-order-status,
+  .order-history-card,
+  .customer-history-panel,
+  .recipe-import-card,
+  .recipe-import-empty,
+  .settings-command-grid,
+  .settings-card,
+  .storage-center,
+  .storage-section,
+  .owner-product-sheet,
+  .owner-product-detail-card,
+  .bake-workbench-card,
+  .production-batch-card,
+  .management-panel,
+  .resource-hub-card
+) :is(p, small, span, label, li, td, th, em):not(button):not(button *) {
+  color: var(--loafers-dc-bronze-soft) !important;
+  -webkit-text-fill-color: var(--loafers-dc-bronze-soft) !important;
+}
+
+html body .customer-portal.customer-storefront :is(
+  .customer-fulfillment-strip strong,
+  .customer-menu-summary strong,
+  .customer-weekly-bakes strong,
+  .customer-product-card-button strong
+) {
+  color: var(--loafers-dc-cream) !important;
+  -webkit-text-fill-color: var(--loafers-dc-cream) !important;
+}
+
+html body :is(.app-shell, .customer-portal) :is(
+  .recipe-import-card textarea,
+  .recipe-import-card input,
+  .customer-profile-form input,
+  .customer-profile-form textarea,
+  .customer-profile-form select,
+  .storage-center input,
+  .storage-center textarea,
+  .settings-card input,
+  .settings-card textarea,
+  .settings-card select,
+  .owner-product-status-control select
+) {
+  background: rgba(29, 32, 27, .98) !important;
+  border: 1.5px solid var(--loafers-dc-border) !important;
+  color: var(--loafers-dc-cream) !important;
+  -webkit-text-fill-color: var(--loafers-dc-cream) !important;
+  caret-color: var(--loafers-dc-bronze) !important;
+}
+
+html body :is(.app-shell, .customer-portal) :is(
+  .recipe-import-card textarea,
+  .recipe-import-card input,
+  .customer-profile-form input,
+  .customer-profile-form textarea,
+  .storage-center input,
+  .storage-center textarea,
+  .settings-card input,
+  .settings-card textarea
+)::placeholder {
+  color: rgba(214, 166, 102, .72) !important;
+  -webkit-text-fill-color: rgba(214, 166, 102, .72) !important;
+}
+
+html body .customer-portal.customer-storefront :is(.customer-fulfillment-strip > span > svg, .pickup-location-card > svg),
+html body .app-shell:not(.customer-storefront) :is(.storage-hero > span, .cloud-ready-card > svg) {
+  background:
+    linear-gradient(145deg, rgba(68, 62, 52, .98), rgba(24, 27, 22, .99)) !important;
+  color: var(--loafers-dc-bronze) !important;
+  -webkit-text-fill-color: var(--loafers-dc-bronze) !important;
+}
+
+/* dark-theme-consistency-final-v4
+   Tiny badges and icon tiles were the last surfaces still reading as pale
+   against the dark shell. Normalize them to charcoal/bronze too. */
+html body .app-shell:not(.customer-storefront) :is(
+  .bake-side-card-dark > span,
+  .calendar-heading button,
+  .settings-hero-card > span,
+  .settings-command-grid article > span,
+  .settings-command-card > span,
+  .settings-publish-card > span,
+  .recipe-type-section .recipe-row em,
+  .recipe-type-section .recipe-row small,
+  .recipe-type-section .recipe-row .recipe-copy em,
+  .recipe-type-section .recipe-row .recipe-copy small
+) {
+  background:
+    radial-gradient(circle at 25% 15%, rgba(208, 138, 63, .16), transparent 45%),
+    linear-gradient(145deg, rgba(47, 49, 43, .99), rgba(13, 18, 15, .99)) !important;
+  border: 1.5px solid rgba(181, 102, 44, .62) !important;
+  color: var(--loafers-dc-bronze-soft) !important;
+  -webkit-text-fill-color: var(--loafers-dc-bronze-soft) !important;
+  box-shadow: none !important;
+}
+
+html body .app-shell:not(.customer-storefront) :is(
+  .bake-side-card-dark > span,
+  .calendar-heading button,
+  .settings-hero-card > span,
+  .settings-command-grid article > span,
+  .settings-command-card > span,
+  .settings-publish-card > span
+) :is(svg, path, span, small, strong) {
+  color: var(--loafers-dc-bronze-soft) !important;
+  stroke: currentColor !important;
+  fill: none !important;
+  -webkit-text-fill-color: var(--loafers-dc-bronze-soft) !important;
+}
+
+html body .app-shell:not(.customer-storefront) .recipe-type-section .recipe-row :is(em, small) {
+  display: inline-flex !important;
+  align-items: center !important;
+  width: fit-content !important;
+  max-width: 100% !important;
+  padding: .18rem .5rem !important;
+  border-radius: 999px !important;
+  line-height: 1.1 !important;
+}
+
+/* dark-theme-consistency-final-v5
+   Modal headers/hero blocks need their own tail override because feature
+   modal CSS loads very specific parchment strips. */
+html body :is(.app-shell, .customer-portal) .modal-backdrop .modal-sheet :is(
+  .modal-title-row,
+  .storage-hero,
+  .storage-summary,
+  .storage-status-grid > *,
+  .storage-section,
+  .cloud-ready-card,
+  .cloud-feature-card,
+  .cloud-section
+) {
+  background:
+    radial-gradient(circle at top left, rgba(174, 105, 42, .14), transparent 42%),
+    linear-gradient(145deg, rgba(54, 55, 49, .99), rgba(17, 21, 18, .99)) !important;
+  border: 1.5px solid var(--loafers-dc-border) !important;
+  color: var(--loafers-dc-cream) !important;
+  -webkit-text-fill-color: var(--loafers-dc-cream) !important;
+  box-shadow: none !important;
+}
+
+html body :is(.app-shell, .customer-portal) .modal-backdrop .modal-sheet :is(
+  .modal-title-row,
+  .storage-hero,
+  .storage-summary,
+  .storage-status-grid > *,
+  .storage-section,
+  .cloud-ready-card,
+  .cloud-feature-card,
+  .cloud-section
+) :is(p, small, span, label, li, strong, b, h1, h2, h3, h4, svg, path) {
+  color: var(--loafers-dc-cream) !important;
+  -webkit-text-fill-color: var(--loafers-dc-cream) !important;
+  stroke: currentColor !important;
+}
+
+/* dark-theme-consistency-final-v6
+   App-level modal portals and the embedded recipe import form sit outside a
+   few older owner-shell selectors, so they get an explicit dark pass. */
+html body .app-stage .modal-backdrop .modal-sheet :is(
+  .storage-hero,
+  .storage-summary,
+  .storage-status-grid > *,
+  .storage-section,
+  .cloud-ready-card,
+  .cloud-feature-card,
+  .cloud-section
+),
+html body .app-shell .menu-embedded-workspace.recipe-import-workspace :is(
+  .recipe-import-card,
+  .recipe-import-source,
+  .recipe-import-empty,
+  input,
+  textarea
+) {
+  background:
+    radial-gradient(circle at top left, rgba(174, 105, 42, .14), transparent 42%),
+    linear-gradient(145deg, rgba(54, 55, 49, .99), rgba(17, 21, 18, .99)) !important;
+  border: 1.5px solid var(--loafers-dc-border) !important;
+  color: var(--loafers-dc-cream) !important;
+  -webkit-text-fill-color: var(--loafers-dc-cream) !important;
+  box-shadow: none !important;
+}
+
+html body .app-stage .modal-backdrop .modal-sheet :is(
+  .storage-hero,
+  .storage-summary,
+  .storage-status-grid > *,
+  .storage-section,
+  .cloud-ready-card,
+  .cloud-feature-card,
+  .cloud-section
+) :is(p, small, span, label, li, strong, b, h1, h2, h3, h4, svg, path),
+html body .app-shell .menu-embedded-workspace.recipe-import-workspace :is(
+  .recipe-import-card,
+  .recipe-import-source,
+  .recipe-import-empty,
+  input,
+  textarea
+) :is(p, small, span, label, li, strong, b, h1, h2, h3, h4, svg, path) {
+  color: var(--loafers-dc-cream) !important;
+  -webkit-text-fill-color: var(--loafers-dc-cream) !important;
+  stroke: currentColor !important;
+}
+
+html body .app-shell .menu-embedded-workspace.recipe-import-workspace :is(input, textarea)::placeholder {
+  color: rgba(214, 166, 102, .74) !important;
+  -webkit-text-fill-color: rgba(214, 166, 102, .74) !important;
+}
+
+/* dark-theme-consistency-final-v7
+   Some old form/table rules set background-color separately from background.
+   These explicit colors keep computed surfaces dark for contrast checks. */
+html body .app-stage .modal-backdrop .modal-sheet :is(
+  .storage-hero,
+  .storage-summary,
+  .storage-status-grid > *,
+  .storage-section,
+  .storage-dataset-grid > *,
+  .cloud-ready-card,
+  .cloud-feature-card,
+  .cloud-section
+),
+html body .app-shell .menu-embedded-workspace.recipe-import-workspace :is(
+  .recipe-import-card,
+  .recipe-import-source,
+  .recipe-import-empty,
+  input,
+  textarea
+) {
+  background-color: rgba(25, 29, 25, .98) !important;
+  background-image:
+    radial-gradient(circle at top left, rgba(174, 105, 42, .14), transparent 42%),
+    linear-gradient(145deg, rgba(54, 55, 49, .99), rgba(17, 21, 18, .99)) !important;
+  color: var(--loafers-dc-cream) !important;
+  -webkit-text-fill-color: var(--loafers-dc-cream) !important;
+}
+
+html body .app-shell .menu-embedded-workspace.recipe-import-workspace :is(input, textarea) {
+  background-color: rgba(28, 32, 28, .99) !important;
+  background-image: none !important;
+}
+
+/* dark-theme-consistency-final-v8
+   Beat the older, highly-specific import form rule that still painted the URL
+   and pasted-recipe fields parchment in the Menu > Import workspace. */
+html body .app-shell:not(.customer-storefront) .recipe-import-workspace.recipe-import-workspace :is(input, select, textarea),
+html body .app-shell:not(.customer-storefront) .menu-embedded-workspace.recipe-import-workspace.recipe-import-workspace :is(input, select, textarea) {
+  background-color: rgba(28, 32, 28, .99) !important;
+  background-image: none !important;
+  border: 1.5px solid var(--loafers-dc-border) !important;
+  color: var(--loafers-dc-cream) !important;
+  -webkit-text-fill-color: var(--loafers-dc-cream) !important;
+  caret-color: var(--loafers-dc-bronze) !important;
+}
+
+html body .app-shell:not(.customer-storefront) .recipe-import-workspace.recipe-import-workspace :is(input, textarea)::placeholder,
+html body .app-shell:not(.customer-storefront) .menu-embedded-workspace.recipe-import-workspace.recipe-import-workspace :is(input, textarea)::placeholder {
+  color: rgba(214, 166, 102, .76) !important;
+  -webkit-text-fill-color: rgba(214, 166, 102, .76) !important;
+}
+
+/* dark-theme-consistency-final-v9
+   Final bright-surface sweep for the owner/resource shell: no parchment icon
+   tiles or modal stat/list panels should survive the dark theme. */
+html body .app-shell:not(.customer-storefront) :is(
+  .hub-heading-icon,
+  .resource-hub-page .hub-heading-icon,
+  .settings-command-hero > span,
+  .order-history-card,
+  .order-history-facts span,
+  .order-history-detail-grid span,
+  .order-history-notes,
+  .customer-order-history-list .order-history-card,
+  .settings-command-grid article,
+  .settings-command-card,
+  .settings-command-hero,
+  .settings-command-grid article,
+  .settings-hero-card,
+  .settings-summary-card,
+  .recipe-import-card,
+  .recipe-import-empty,
+  .storage-center,
+  .storage-center .storage-section,
+  .storage-center .storage-dataset-grid > div,
+  .storage-center .storage-status-grid > div,
+  .modal-sheet .storage-center,
+  .modal-sheet .storage-center .storage-section,
+  .modal-sheet .storage-center .storage-dataset-grid > div,
+  .modal-sheet .storage-center .storage-status-grid > div
+) {
+  background-color: rgba(27, 31, 27, .98) !important;
+  background-image:
+    radial-gradient(circle at top left, rgba(186, 111, 44, .12), transparent 42%),
+    linear-gradient(145deg, rgba(54, 55, 49, .98), rgba(14, 19, 16, .99)) !important;
+  border: 1.5px solid var(--loafers-dc-border) !important;
+  color: var(--loafers-dc-cream) !important;
+  -webkit-text-fill-color: var(--loafers-dc-cream) !important;
+  box-shadow: none !important;
+}
+
+html body .app-shell:not(.customer-storefront) :is(
+  .hub-heading-icon,
+  .resource-hub-page .hub-heading-icon,
+  .settings-command-hero > span,
+  .order-history-card,
+  .order-history-facts span,
+  .order-history-detail-grid span,
+  .order-history-notes,
+  .customer-order-history-list .order-history-card,
+  .settings-command-grid article,
+  .settings-command-card,
+  .settings-command-hero,
+  .settings-hero-card,
+  .settings-summary-card,
+  .recipe-import-card,
+  .recipe-import-empty,
+  .storage-center,
+  .storage-section,
+  .storage-dataset-grid > div,
+  .storage-status-grid > div
+) :is(h1, h2, h3, h4, strong, b, p, small, label, span, em, li, td, th, button, a, svg, path) {
+  color: var(--loafers-dc-cream) !important;
+  -webkit-text-fill-color: var(--loafers-dc-cream) !important;
+  stroke: currentColor !important;
+}

@@ -1108,3 +1108,143 @@
     -webkit-text-fill-color: #fffaf0 !important;
   }
 }
+
+/* mobile-dark-theme-consistency-v1
+   Mobile CSS loads after the desktop theme file, so keep a small final override
+   here to prevent bright inherited cards from returning on phones. */
+@media (max-width: 759px) {
+  html body :is(.app-shell, .customer-portal) :is(
+    .modal-sheet,
+    .storage-center,
+    .storage-section,
+    .cloud-section,
+    .cloud-ready-card,
+    .settings-card,
+    .settings-command-card,
+    .settings-publish-card,
+    .recipe-import-card,
+    .recipe-import-empty,
+    .owner-product-sheet,
+    .owner-product-detail-card,
+    .customer-directory-panel,
+    .customer-profile-form,
+    .order-history-card,
+    .customer-account-card,
+    .customer-history-panel,
+    .customer-fulfillment-strip > span,
+    .customer-checkout-steps,
+    .customer-checkout-summary-strip > *,
+    .customer-flow-panel,
+    .customer-cart-row,
+    .customer-resource-card,
+    .cloud-request-card,
+    .production-batch-card,
+    .production-inventory-check,
+    .smart-prep-panel,
+    .weekly-production-panel,
+    .bake-workbench-card,
+    .management-summary-strip > *,
+    .batch-record-row,
+    .inventory-row,
+    .purchase-record-row,
+    .bake-record-row,
+    .feed-history-row,
+    .resource-link-card,
+    .resource-roadmap-card
+  ) {
+    background:
+      radial-gradient(circle at top left, rgba(117, 80, 43, 0.16), transparent 42%),
+      linear-gradient(145deg, rgba(54, 56, 50, 0.99), rgba(18, 22, 18, 0.99)) !important;
+    border: 1.5px solid rgba(210, 137, 65, 0.78) !important;
+    color: var(--mobile-cream) !important;
+    -webkit-text-fill-color: var(--mobile-cream) !important;
+  }
+
+  html body :is(.app-shell, .customer-portal) :is(
+    input,
+    textarea,
+    select,
+    .search-field,
+    .segmented-control,
+    .view-switch,
+    .customer-filter,
+    .customer-menu-tabs,
+    .customer-checkout-steps,
+    .cloud-mode-switch
+  ) {
+    background: var(--mobile-card-grey-deep) !important;
+    border: 1.5px solid rgba(210, 137, 65, 0.78) !important;
+    color: var(--mobile-cream) !important;
+    -webkit-text-fill-color: var(--mobile-cream) !important;
+  }
+
+  html body :is(.app-shell, .customer-portal) :is(
+    .modal-sheet,
+    .storage-center,
+    .settings-card,
+    .recipe-import-card,
+    .owner-product-sheet,
+    .customer-directory-panel,
+    .customer-account-card,
+    .customer-storefront,
+    .cloud-request-card,
+    .bake-workbench-card
+  ) :is(p, small, span, label, li, td, th, strong, b, h1, h2, h3, h4) {
+    color: inherit !important;
+    -webkit-text-fill-color: inherit !important;
+  }
+
+  html body :is(.app-shell, .customer-portal) :is(
+    .customer-fulfillment-strip > span,
+    .customer-fulfillment-strip > span > svg,
+    .pickup-location-card,
+    .pickup-location-card > svg,
+    .customer-menu-summary,
+    .customer-menu-summary article,
+    .customer-menu-summary a,
+    .customer-weekly-bake-types span,
+    .customer-weekly-bake-types small,
+    .tracking-lookup-form .secondary-button,
+    .customer-order-status,
+    .customer-product-detail-card,
+    .recipe-import-card textarea,
+    .recipe-import-card input,
+    .storage-hero,
+    .storage-hero > span,
+    .storage-status-grid div,
+    .settings-command-grid article,
+    .settings-number-grid label,
+    .settings-hours-grid label,
+    .settings-test-grid label,
+    .owner-product-hero,
+    .owner-product-status-control,
+    .owner-product-grid > article,
+    .owner-product-detail-card,
+    .owner-product-option-list span,
+    .owner-product-timeline-list span,
+    .owner-product-ingredient-table > div,
+    .owner-product-step-list li
+  ) {
+    background:
+      radial-gradient(circle at top left, rgba(151, 92, 42, .16), transparent 38%),
+      linear-gradient(145deg, rgba(58, 59, 52, .99), rgba(18, 22, 18, .99)) !important;
+    border: 1.5px solid rgba(210, 137, 65, 0.78) !important;
+    color: var(--mobile-cream) !important;
+    -webkit-text-fill-color: var(--mobile-cream) !important;
+  }
+
+  html body :is(.app-shell, .customer-portal) :is(
+    .customer-fulfillment-strip,
+    .customer-menu-summary,
+    .customer-weekly-bakes,
+    .customer-order-status,
+    .recipe-import-card,
+    .storage-center,
+    .settings-card,
+    .owner-product-sheet,
+    .owner-product-detail-card
+  ) :is(p, small, span, label, li, td, th, em, strong, b, h1, h2, h3, h4) {
+    color: inherit !important;
+    -webkit-text-fill-color: inherit !important;
+  }
+}
