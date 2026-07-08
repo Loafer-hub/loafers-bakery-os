@@ -156,6 +156,205 @@ function calendarDaySummary(events) {
   return events.map((event) => `${event.label} ${event.timeLabel}: ${event.detail}`).join("; ");
 }
 
+const HOUR_MS = 60 * 60 * 1000;
+
+function clampNumber(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function formatDuration(hours) {
+  const value = Number(hours);
+  if (!Number.isFinite(value)) return "—";
+  if (Math.abs(value) < 1) return `${Math.max(1, Math.round(Math.abs(value) * 60))}m`;
+  if (Math.abs(value) >= 24) return `${(value / 24).toFixed(1)}d`;
+  return `${value.toFixed(1)}h`;
+}
+
+function formatScheduleTime(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function formatBlend(blend = []) {
+  if (!blend?.length) return "No flour logged";
+  return blend.map((item) => {
+    const profile = getFlourProfile(item.type || "Bread flour");
+    return `${item.percent ?? 100}% ${profile.name || item.type}`;
+  }).join(" · ");
+}
+
+function logFlourLabel(log, starter) {
+  return formatBlend(log?.flourBlend?.length ? log.flourBlend : starter?.flourBlend);
+}
+
+function average(values) {
+  const usable = values.map(Number).filter((value) => Number.isFinite(value));
+  if (!usable.length) return null;
+  return usable.reduce((sum, value) => sum + value, 0) / usable.length;
+}
+
+function buildStarterReadiness(logs, starter, calibration) {
+  const feedLogs = logs.filter((log) => log.entryType !== "rise");
+  const latestFeed = feedLogs[0];
+
+  if (!latestFeed) {
+    return {
+      status: "Needs first feed",
+      tone: "quiet",
+      stageLabel: "No feed baseline",
+      progress: 0,
+      summary: "Log one feed with ratio, flour, temperature, and rise notes so the app can start timing this starter.",
+      nextAction: "Tap Log feed after your next feeding.",
+      meta: [
+        { label: "Calibration", value: "Waiting" },
+        { label: "Best use", value: "Log a feed first" },
+        { label: "Flour", value: formatBlend(starter?.flourBlend) },
+      ],
+    };
+  }
+
+  const feedAt = new Date(latestFeed.dateTime);
+  const now = new Date();
+  const peakEstimate = peakHoursForLog(latestFeed, starter, calibration);
+  const feedAgainHours = feedAgainWindowHours(peakEstimate.hours, latestFeed.temperature);
+  const peakAt = addHours(feedAt, peakEstimate.hours);
+  const feedAgainAt = addHours(feedAt, peakEstimate.hours + feedAgainHours);
+  const elapsed = (now.getTime() - feedAt.getTime()) / HOUR_MS;
+  const progress = clampNumber((elapsed / peakEstimate.hours) * 100, 0, 100);
+  const latestRiseAfterFeed = logs.find((log) => {
+    if (!Number(log.rise) && !Number(log.peakHours)) return false;
+    const logDate = new Date(log.dateTime);
+    return !Number.isNaN(logDate.getTime()) && logDate >= feedAt;
+  });
+  const loggedRise = Number(latestRiseAfterFeed?.rise);
+  const loggedPeak = Number(latestRiseAfterFeed?.peakHours);
+  const temp = Number(latestRiseAfterFeed?.temperature ?? latestFeed.temperature ?? 76);
+  const hasStrongRise = Number.isFinite(loggedRise) && loggedRise >= 1.8;
+  const hasPeakLog = Number.isFinite(loggedPeak) && loggedPeak > 0;
+
+  let status = "Still building";
+  let tone = "building";
+  let stageLabel = `${Math.round(progress)}% to expected peak`;
+  let nextAction = peakAt ? `Check again near ${formatScheduleTime(peakAt)}.` : "Check rise and aroma again soon.";
+
+  if (elapsed < -0.25) {
+    status = "Scheduled feed";
+    tone = "quiet";
+    stageLabel = "Feed is in the future";
+    nextAction = `Feed at ${formatScheduleTime(feedAt)}.`;
+  } else if (hasStrongRise || hasPeakLog || (elapsed >= peakEstimate.hours * 0.82 && elapsed <= peakEstimate.hours + feedAgainHours * 0.55)) {
+    status = "Ready window";
+    tone = "ready";
+    stageLabel = hasStrongRise ? `${loggedRise.toFixed(1)}× rise logged` : "Expected peak window";
+    nextAction = "Use for dough now, chill it, or feed again if you are not baking.";
+  } else if (elapsed > peakEstimate.hours + feedAgainHours) {
+    status = "Past peak";
+    tone = "past";
+    stageLabel = `${formatDuration(elapsed - peakEstimate.hours)} past peak`;
+    nextAction = "Feed again for strength, or use for a tangier lower-lift bake.";
+  } else if (elapsed >= peakEstimate.hours + feedAgainHours * 0.55) {
+    status = "Feed again soon";
+    tone = "caution";
+    stageLabel = "Leaving peak window";
+    nextAction = feedAgainAt ? `Feed again by about ${formatScheduleTime(feedAgainAt)}.` : "Feed again soon.";
+  } else if ((temp <= 68 || calibration > 1.15) && elapsed >= peakEstimate.hours * 0.55) {
+    status = "Slow build";
+    tone = "caution";
+    stageLabel = temp <= 68 ? `${temp}°F is cool` : `${calibration.toFixed(2)}× slower than base`;
+    nextAction = "Give it warmth or more time before using it as your main leaven.";
+  }
+
+  const summary = `${starter?.name || "Starter"} was fed ${formatDuration(elapsed)} ago with ${latestFeed.ratio || "a saved ratio"}. Expected peak is ${formatDuration(peakEstimate.hours)} after feeding.`;
+
+  return {
+    status,
+    tone,
+    stageLabel,
+    progress: Math.round(progress),
+    summary,
+    nextAction,
+    meta: [
+      { label: "Fed", value: formatScheduleTime(feedAt) },
+      { label: "Expected peak", value: formatScheduleTime(peakAt) },
+      { label: "Feed again", value: formatScheduleTime(feedAgainAt) },
+      { label: "Flour", value: logFlourLabel(latestFeed, starter) },
+    ],
+  };
+}
+
+function buildStarterCalibrationSummary(logs, starter, calibration) {
+  const peakSamples = logs.filter((log) => Number(log.peakHours) > 0).slice(0, 8);
+  const riseSamples = logs.filter((log) => Number(log.rise) > 0).slice(0, 12);
+  const avgPeak = average(peakSamples.map((log) => log.peakHours));
+  const peakSpread = avgPeak
+    ? average(peakSamples.map((log) => Math.abs(Number(log.peakHours) - avgPeak)))
+    : null;
+  const strongRiseCount = riseSamples.filter((log) => Number(log.rise) >= 1.8).length;
+
+  const flourGroups = new Map();
+  logs.filter((log) => Number(log.rise) > 0 || Number(log.peakHours) > 0).forEach((log) => {
+    const label = logFlourLabel(log, starter);
+    const group = flourGroups.get(label) || { label, count: 0, rises: [], peaks: [] };
+    group.count += 1;
+    if (Number(log.rise) > 0) group.rises.push(Number(log.rise));
+    if (Number(log.peakHours) > 0) group.peaks.push(Number(log.peakHours));
+    flourGroups.set(label, group);
+  });
+  const bestFlour = [...flourGroups.values()].sort((a, b) => {
+    const aRise = average(a.rises) || 0;
+    const bRise = average(b.rises) || 0;
+    return bRise - aRise || b.count - a.count;
+  })[0];
+
+  const warmPeak = average(peakSamples.filter((log) => Number(log.temperature) >= 76).map((log) => log.peakHours));
+  const coolPeak = average(peakSamples.filter((log) => Number(log.temperature) <= 72).map((log) => log.peakHours));
+  const confidence = clampNumber(
+    peakSamples.length * 12 + riseSamples.length * 5 + (peakSpread !== null && peakSpread <= 1.25 ? 14 : 0),
+    0,
+    100,
+  );
+  const confidenceLabel = confidence >= 72 ? "High confidence" : confidence >= 38 ? "Medium confidence" : "Low confidence";
+  const calibrationNote = calibration > 1.12
+    ? `${starter?.name || "This starter"} trends slower than the base model, so the app stretches peak timing.`
+    : calibration < 0.9
+      ? `${starter?.name || "This starter"} trends faster than the base model, so the app shortens peak timing.`
+      : `${starter?.name || "This starter"} is close to the base model; more peak logs will sharpen it.`;
+
+  return {
+    confidence,
+    confidenceLabel,
+    note: calibrationNote,
+    metrics: [
+      {
+        label: "Peak logs",
+        value: `${peakSamples.length}/8`,
+        detail: avgPeak ? `${avgPeak.toFixed(1)}h average peak${peakSpread !== null ? ` · ${peakSpread.toFixed(1)}h drift` : ""}` : "Add peak hours when you log rise.",
+      },
+      {
+        label: "Rise reliability",
+        value: riseSamples.length ? `${strongRiseCount}/${riseSamples.length}` : "0 checks",
+        detail: riseSamples.length ? "Rise checks at 1.8× or higher count as ready signals." : "Log rise checks between feed and peak.",
+      },
+      {
+        label: "Flour response",
+        value: bestFlour ? `${bestFlour.count} logs` : "No data",
+        detail: bestFlour ? `${bestFlour.label}${average(bestFlour.rises) ? ` · ${average(bestFlour.rises).toFixed(1)}× avg rise` : ""}` : "Pick flour type with each feed.",
+      },
+      {
+        label: "Temperature effect",
+        value: warmPeak && coolPeak ? `${(coolPeak - warmPeak).toFixed(1)}h swing` : "Learning",
+        detail: warmPeak && coolPeak ? `Warm logs average ${warmPeak.toFixed(1)}h; cool logs average ${coolPeak.toFixed(1)}h.` : "Log both cool and warm kitchen days to learn your house curve.",
+      },
+    ],
+  };
+}
+
 function emptyProfile() {
   return {
     id: `starter-${Date.now()}`,
@@ -201,6 +400,8 @@ export function StarterLab({
     .filter((log) => log.starterId === selected?.id || (!log.starterId && selected?.id === starters[0]?.id))
     .sort((a, b) => new Date(b.dateTime || 0) - new Date(a.dateTime || 0)), [selected?.id, starterLogs, starters]);
   const latest = logs[0];
+  const latestFeed = useMemo(() => logs.find((log) => log.entryType !== "rise"), [logs]);
+  const latestRise = useMemo(() => logs.find((log) => Number(log.rise) > 0 || log.entryType === "rise"), [logs]);
   const calibration = starterCalibration(starterLogs, selected?.id);
   const calibrationLogCount = useMemo(() => starterLogs
     .filter((log) => log.starterId === selected?.id && Number(log.peakHours) > 0)
@@ -210,12 +411,14 @@ export function StarterLab({
     ? `${calibrationLogCount} peak log${calibrationLogCount === 1 ? "" : "s"} · ${calibration.toFixed(2)}× calibrated`
     : "0 peak logs · default curve";
   const peak = estimateStarterPeak({
-    ratio: latest?.ratio || "1:2:2",
-    temperature: latest?.temperature || 76,
-    flourBlend: latest?.flourBlend || selected?.flourBlend,
+    ratio: latestFeed?.ratio || latest?.ratio || "1:2:2",
+    temperature: latest?.temperature || latestFeed?.temperature || 76,
+    flourBlend: latestFeed?.flourBlend || latest?.flourBlend || selected?.flourBlend,
     hydration: selected?.hydration,
     calibration,
   });
+  const readiness = useMemo(() => buildStarterReadiness(logs, selected, calibration), [logs, selected, calibration]);
+  const calibrationSummary = useMemo(() => buildStarterCalibrationSummary(logs, selected, calibration), [logs, selected, calibration]);
   const starterCurve = curvePath(peak.hours, "starter");
   const cells = feedCalendarCells(calendarMonth);
   const eventsByDate = useMemo(() => buildFeedCalendarEvents(logs, selected, calibration), [logs, selected, calibration]);
@@ -228,11 +431,11 @@ export function StarterLab({
       mode,
       starterId: selected?.id,
       dateTime,
-      ratio: latest?.ratio || "1:2:2",
-      temperature: latest?.temperature || 76,
+      ratio: latestFeed?.ratio || latest?.ratio || "1:2:2",
+      temperature: latest?.temperature || latestFeed?.temperature || 76,
       rise: "",
       peakHours: "",
-      flourType: latest?.flourBlend?.[0]?.type || selected?.flourBlend?.[0]?.type || "Bread flour",
+      flourType: latestFeed?.flourBlend?.[0]?.type || latest?.flourBlend?.[0]?.type || selected?.flourBlend?.[0]?.type || "Bread flour",
       note: "",
     });
   }
@@ -319,7 +522,7 @@ export function StarterLab({
       {selected.notes ? <p className="starter-profile-note">{selected.notes}</p> : null}
 
       <div className="starter-reading-grid">
-        <div><TrendingUp /><strong>{latest?.rise ? `${latest.rise}×` : "—"}</strong><span>last logged rise</span></div>
+        <div><TrendingUp /><strong>{latestRise?.rise ? `${latestRise.rise}×` : "—"}</strong><span>last logged rise</span></div>
         <div><Thermometer /><strong>{latest?.temperature ? `${latest.temperature}°F` : "—"}</strong><span>last jar temp</span></div>
         <div><Clock3 /><strong>{peak.hours.toFixed(1)}h</strong><span>estimated peak</span></div>
       </div>
@@ -332,10 +535,57 @@ export function StarterLab({
         </button>
       </div>
 
+      <div className="starter-insight-grid">
+        <section className={`starter-readiness-card ${readiness.tone}`} aria-label={`${selected.name} readiness`}>
+          <div className="starter-insight-header">
+            <span>Starter readiness</span>
+            <em>{readiness.stageLabel}</em>
+          </div>
+          <h3>{readiness.status}</h3>
+          <p>{readiness.summary}</p>
+          <div className="starter-readiness-meter" aria-label={`${readiness.progress}% to expected peak`}>
+            <span style={{ width: `${readiness.progress}%` }} />
+          </div>
+          <div className="starter-readiness-next">
+            <Clock3 size={16} />
+            <span>{readiness.nextAction}</span>
+          </div>
+          <div className="starter-readiness-grid">
+            {readiness.meta.map((item) => (
+              <span key={item.label}>
+                <small>{item.label}</small>
+                <strong>{item.value}</strong>
+              </span>
+            ))}
+          </div>
+        </section>
+
+        <section className="starter-calibration-card" aria-label={`${selected.name} calibration`}>
+          <div className="starter-insight-header">
+            <span>Calibration view</span>
+            <em>{calibration.toFixed(2)}× model</em>
+          </div>
+          <h3>{calibrationSummary.confidenceLabel}</h3>
+          <div className="starter-confidence-bar" aria-label={`${Math.round(calibrationSummary.confidence)}% calibrated`}>
+            <span style={{ width: `${calibrationSummary.confidence}%` }} />
+          </div>
+          <div className="starter-calibration-grid">
+            {calibrationSummary.metrics.map((item) => (
+              <span key={item.label}>
+                <small>{item.label}</small>
+                <strong>{item.value}</strong>
+                <em>{item.detail}</em>
+              </span>
+            ))}
+          </div>
+          <p className="starter-calibration-note">{calibrationSummary.note}</p>
+        </section>
+      </div>
+
       <div className="starter-curve">
         <div className="section-title-line">
           <h3>Rise estimate</h3>
-          <span>{latest?.ratio || "1:2:2"} feed · {calibrationLabel}</span>
+          <span>{latestFeed?.ratio || latest?.ratio || "1:2:2"} feed · {calibrationLabel}</span>
         </div>
         <svg viewBox="0 0 300 100" role="img" aria-label={`Estimated starter rise peaking in ${peak.hours.toFixed(1)} hours`}>
           <path className="chart-fill starter-estimate-fill" d={starterCurve.fill} />

@@ -1978,6 +1978,55 @@ html body .app-shell:not(.customer-storefront) .page.page .starter-history-butto
   stroke: currentColor !important;
 }
 
+html body .app-shell:not(.customer-storefront) .page.page .starter-insight-grid {
+  border-bottom-color: rgba(139, 85, 45, .72) !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .starter-readiness-card,
+html body .app-shell:not(.customer-storefront) .page.page .starter-calibration-card,
+html body .app-shell:not(.customer-storefront) .page.page .starter-readiness-next,
+html body .app-shell:not(.customer-storefront) .page.page .starter-readiness-grid span,
+html body .app-shell:not(.customer-storefront) .page.page .starter-calibration-grid span,
+html body .app-shell:not(.customer-storefront) .page.page .starter-calibration-note {
+  color: #d6a15f !important;
+  -webkit-text-fill-color: #d6a15f !important;
+  border-color: rgba(139, 85, 45, .78) !important;
+  background:
+    linear-gradient(145deg, rgba(44, 46, 41, .99), rgba(16, 20, 18, .99)) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 239, 210, .08) !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .starter-readiness-card.ready {
+  border-color: rgba(98, 141, 101, .85) !important;
+  background:
+    radial-gradient(circle at top left, rgba(98, 141, 101, .16), transparent 35%),
+    linear-gradient(145deg, rgba(38, 50, 39, .99), rgba(16, 20, 18, .99)) !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .starter-readiness-card :is(h3, strong),
+html body .app-shell:not(.customer-storefront) .page.page .starter-calibration-card :is(h3, strong),
+html body .app-shell:not(.customer-storefront) .page.page .starter-readiness-next span {
+  color: #fffaf0 !important;
+  -webkit-text-fill-color: #fffaf0 !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .starter-readiness-card :is(p, small, em, span),
+html body .app-shell:not(.customer-storefront) .page.page .starter-calibration-card :is(p, small, em, span) {
+  color: #d6a15f !important;
+  -webkit-text-fill-color: #d6a15f !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .starter-confidence-bar,
+html body .app-shell:not(.customer-storefront) .page.page .starter-readiness-meter {
+  border-color: rgba(139, 85, 45, .82) !important;
+  background: rgba(4, 8, 7, .88) !important;
+}
+
+html body .app-shell:not(.customer-storefront) .page.page .starter-confidence-bar span,
+html body .app-shell:not(.customer-storefront) .page.page .starter-readiness-meter span {
+  background: linear-gradient(90deg, #8b552d, #d6a15f) !important;
+}
+
 @media (max-width: 900px) {
   html body .app-shell:not(.customer-storefront) .resource-hub-page {
     max-width: 100%;
