@@ -1333,3 +1333,392 @@ html body .app-stage .app-shell:not(.customer-storefront) .modal-backdrop .modal
   color: #e2b878 !important;
   -webkit-text-fill-color: #e2b878 !important;
 }
+
+/* mobile-polish-pass-v1
+   Final phone-only cleanup. Keep desktop/tablet locked while catching
+   component islands that still inherit light desktop cards or black text. */
+@media (max-width: 759px) {
+  html body .app-stage .app-shell:not(.customer-storefront) .page :is(
+    .bake-workbench-card select,
+    .bake-workbench-card input,
+    .bake-workbench-card textarea,
+    .bake-work-card select,
+    .kitchen-board select,
+    .kitchen-board input,
+    .kitchen-board textarea
+  ) {
+    background:
+      radial-gradient(circle at top left, rgba(184, 107, 44, .12), transparent 38%),
+      linear-gradient(145deg, rgba(75, 76, 68, .99), rgba(43, 47, 40, .99)) !important;
+    border: 1.5px solid rgba(210, 137, 65, .82) !important;
+    color: var(--mobile-cream) !important;
+    -webkit-text-fill-color: var(--mobile-cream) !important;
+    caret-color: var(--mobile-bronze-soft) !important;
+  }
+
+  html body .app-stage .app-shell:not(.customer-storefront) .page :is(
+    .bake-workbench-card select option,
+    .bake-work-card select option,
+    .kitchen-board select option
+  ) {
+    background: #151915 !important;
+    color: var(--mobile-cream) !important;
+    -webkit-text-fill-color: var(--mobile-cream) !important;
+  }
+
+  html body .app-stage .app-shell:not(.customer-storefront) .page .menu-workbench-card {
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+
+  html body .app-stage .app-shell:not(.customer-storefront) .page .menu-view-switch.menu-view-switch {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    display: flex !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    overscroll-behavior-x: contain !important;
+    scroll-snap-type: x proximity !important;
+  }
+
+  html body .app-stage .app-shell:not(.customer-storefront) .page .menu-view-switch.menu-view-switch button {
+    flex: 0 0 auto !important;
+    min-width: 108px !important;
+    scroll-snap-align: start !important;
+  }
+
+  html body .app-stage .app-shell:not(.customer-storefront) .page .menu-type-strip.menu-type-strip {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    display: flex !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    overscroll-behavior-x: contain !important;
+    scrollbar-width: none !important;
+  }
+
+  html body .app-stage .app-shell:not(.customer-storefront) .page .menu-type-strip.menu-type-strip::-webkit-scrollbar,
+  html body .app-stage .app-shell:not(.customer-storefront) .page .menu-view-switch.menu-view-switch::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  html body .app-stage .app-shell:not(.customer-storefront) .page .menu-type-strip.menu-type-strip > span {
+    flex: 0 0 112px !important;
+    min-width: 112px !important;
+    max-width: 112px !important;
+    background:
+      radial-gradient(circle at top left, rgba(151, 92, 42, .14), transparent 38%),
+      linear-gradient(145deg, rgba(58, 59, 52, .99), rgba(28, 32, 27, .99)) !important;
+    border: 1.5px solid rgba(210, 137, 65, .78) !important;
+    color: var(--mobile-bronze-soft) !important;
+    -webkit-text-fill-color: var(--mobile-bronze-soft) !important;
+  }
+
+  html body .app-stage .app-shell:not(.customer-storefront) .page .menu-product-card.menu-product-card > b {
+    background:
+      linear-gradient(145deg, rgba(47, 75, 38, .96), rgba(31, 46, 29, .98)) !important;
+    border: 1.5px solid rgba(210, 137, 65, .72) !important;
+    color: var(--mobile-cream) !important;
+    -webkit-text-fill-color: var(--mobile-cream) !important;
+  }
+
+  html body .app-stage .app-shell:not(.customer-storefront) .page .menu-product-card.menu-product-card.hidden > b {
+    background:
+      linear-gradient(145deg, rgba(84, 76, 65, .96), rgba(45, 45, 39, .98)) !important;
+  }
+
+  html body .app-stage .app-shell:not(.customer-storefront) .page .owner-report-grid.owner-report-grid article {
+    background:
+      radial-gradient(circle at top left, rgba(151, 92, 42, .15), transparent 40%),
+      linear-gradient(145deg, rgba(57, 59, 52, .99), rgba(23, 27, 23, .99)) !important;
+    border: 1.5px solid rgba(210, 137, 65, .78) !important;
+    color: var(--mobile-bronze-soft) !important;
+    -webkit-text-fill-color: var(--mobile-bronze-soft) !important;
+  }
+
+  html body .app-stage .app-shell:not(.customer-storefront) .page .owner-report-grid.owner-report-grid article :is(small, span) {
+    color: var(--mobile-bronze-soft) !important;
+    -webkit-text-fill-color: var(--mobile-bronze-soft) !important;
+  }
+
+  html body .app-stage .app-shell:not(.customer-storefront) .page .owner-report-grid.owner-report-grid article :is(strong, b) {
+    color: var(--mobile-cream) !important;
+    -webkit-text-fill-color: var(--mobile-cream) !important;
+  }
+
+  html body .app-stage .app-shell:not(.customer-storefront) .page .customer-directory-panel.customer-directory-panel,
+  html body .app-stage .app-shell:not(.customer-storefront) .page .customer-directory-panel.customer-directory-panel :is(
+    .customer-directory-toolbar,
+    .customer-directory-layout,
+    .customer-directory-list,
+    .customer-filter,
+    .customer-filter button,
+    .customer-filter span,
+    .empty-state,
+    .small-action-button
+  ) {
+    background:
+      radial-gradient(circle at top left, rgba(151, 92, 42, .13), transparent 38%),
+      linear-gradient(145deg, rgba(55, 57, 50, .99), rgba(18, 22, 18, .99)) !important;
+    border-color: rgba(210, 137, 65, .78) !important;
+    color: var(--mobile-bronze-soft) !important;
+    -webkit-text-fill-color: var(--mobile-bronze-soft) !important;
+  }
+
+  html body .app-stage .app-shell:not(.customer-storefront) .page .customer-directory-panel.customer-directory-panel :is(h1, h2, h3, h4, strong, b) {
+    color: var(--mobile-cream) !important;
+    -webkit-text-fill-color: var(--mobile-cream) !important;
+  }
+
+  html body .app-stage .app-shell:not(.customer-storefront) .page .customer-directory-panel.customer-directory-panel :is(p, small, span, em, label, button) {
+    color: var(--mobile-bronze-soft) !important;
+    -webkit-text-fill-color: var(--mobile-bronze-soft) !important;
+  }
+
+  html body .app-stage .app-shell:not(.customer-storefront) .page .customer-directory-panel.customer-directory-panel .customer-filter button.selected {
+    background:
+      linear-gradient(145deg, rgba(121, 76, 39, .98), rgba(80, 51, 30, .99)) !important;
+    color: var(--mobile-cream) !important;
+    -webkit-text-fill-color: var(--mobile-cream) !important;
+  }
+
+  html body .app-stage .app-shell:not(.customer-storefront) .page.settings-page .settings-hero-card.settings-hero-card,
+  html body .app-stage .app-shell:not(.customer-storefront) .page.settings-page .settings-hero-card.settings-hero-card > div,
+  html body .app-stage .app-shell:not(.customer-storefront) .page.settings-page .settings-hero-card.settings-hero-card > span:first-child {
+    background:
+      radial-gradient(circle at top left, rgba(151, 92, 42, .15), transparent 38%),
+      linear-gradient(145deg, rgba(57, 59, 52, .99), rgba(21, 25, 21, .99)) !important;
+    border-color: rgba(210, 137, 65, .78) !important;
+    color: var(--mobile-bronze-soft) !important;
+    -webkit-text-fill-color: var(--mobile-bronze-soft) !important;
+  }
+
+  html body .app-stage .app-shell:not(.customer-storefront) .page.settings-page .settings-hero-card.settings-hero-card :is(strong, p, span, small) {
+    color: var(--mobile-bronze-soft) !important;
+    -webkit-text-fill-color: var(--mobile-bronze-soft) !important;
+  }
+
+  html body .app-stage .app-shell:not(.customer-storefront) .page.settings-page .settings-hero-card.settings-hero-card strong {
+    color: var(--mobile-cream) !important;
+    -webkit-text-fill-color: var(--mobile-cream) !important;
+  }
+}
+
+/* mobile-polish-pass-v2
+   Second sweep after phone audit: remove the last bright islands and dark text
+   from owner-only mobile cards without changing desktop/tablet. */
+@media (max-width: 759px) {
+  html body .app-stage .app-shell:not(.customer-storefront) .page :is(
+    .bake-timeline.empty-timeline,
+    .ready-shelf-panel .section-title-line,
+    .shelf-cloud-note,
+    .quick-metrics,
+    .quick-metrics > div,
+    .quick-metrics button,
+    .pricing-intelligence-card,
+    .pricing-intelligence-summary,
+    .pricing-intelligence-summary article,
+    .pricing-intelligence-list,
+    .pricing-intelligence-list article,
+    .settings-card.settings-accordion,
+    .settings-accordion-summary,
+    .settings-accordion-body,
+    .settings-accordion-body > label
+  ) {
+    background:
+      radial-gradient(circle at top left, rgba(184, 107, 44, .13), transparent 40%),
+      linear-gradient(145deg, rgba(58, 59, 52, .99), rgba(19, 23, 19, .99)) !important;
+    border: 1.5px solid rgba(210, 137, 65, .76) !important;
+    color: var(--mobile-bronze-soft) !important;
+    -webkit-text-fill-color: var(--mobile-bronze-soft) !important;
+  }
+
+  html body .app-stage .app-shell:not(.customer-storefront) .page :is(
+    .bake-timeline.empty-timeline,
+    .ready-shelf-panel .section-title-line,
+    .shelf-cloud-note,
+    .quick-metrics,
+    .pricing-intelligence-card,
+    .pricing-intelligence-summary,
+    .pricing-intelligence-summary article,
+    .pricing-intelligence-list,
+    .pricing-intelligence-list article,
+    .settings-card.settings-accordion,
+    .settings-accordion-summary,
+    .settings-accordion-body
+  ) :is(h1, h2, h3, h4, strong, b) {
+    color: var(--mobile-cream) !important;
+    -webkit-text-fill-color: var(--mobile-cream) !important;
+  }
+
+  html body .app-stage .app-shell:not(.customer-storefront) .page :is(
+    .bake-timeline.empty-timeline,
+    .ready-shelf-panel .section-title-line,
+    .shelf-cloud-note,
+    .quick-metrics,
+    .pricing-intelligence-card,
+    .pricing-intelligence-summary,
+    .pricing-intelligence-summary article,
+    .pricing-intelligence-list,
+    .pricing-intelligence-list article,
+    .settings-card.settings-accordion,
+    .settings-accordion-summary,
+    .settings-accordion-body
+  ) :is(p, small, span, em, label, li, div:not([class*="icon"])) {
+    color: var(--mobile-bronze-soft) !important;
+    -webkit-text-fill-color: var(--mobile-bronze-soft) !important;
+  }
+
+  html body .app-stage .app-shell:not(.customer-storefront) .page .bake-timeline.empty-timeline {
+    color: var(--mobile-cream) !important;
+    -webkit-text-fill-color: var(--mobile-cream) !important;
+  }
+
+  html body .app-stage .app-shell:not(.customer-storefront) .page .inline-stepper.inline-stepper,
+  html body .app-stage .app-shell:not(.customer-storefront) .page .inline-stepper.inline-stepper button,
+  html body .app-stage .app-shell:not(.customer-storefront) .page .inline-stepper.inline-stepper b,
+  html body .app-stage .app-shell:not(.customer-storefront) .page .compact-stepper.compact-stepper,
+  html body .app-stage .app-shell:not(.customer-storefront) .page .compact-stepper.compact-stepper button,
+  html body .app-stage .app-shell:not(.customer-storefront) .page .compact-stepper.compact-stepper span,
+  html body .app-stage .app-shell:not(.customer-storefront) .page .stepper.stepper,
+  html body .app-stage .app-shell:not(.customer-storefront) .page .stepper.stepper button,
+  html body .app-stage .app-shell:not(.customer-storefront) .page .stepper.stepper span {
+    background:
+      linear-gradient(145deg, rgba(65, 67, 61, .99), rgba(28, 32, 27, .99)) !important;
+    border-color: rgba(210, 137, 65, .82) !important;
+    color: var(--mobile-cream) !important;
+    -webkit-text-fill-color: var(--mobile-cream) !important;
+  }
+
+  html body .app-stage .app-shell:not(.customer-storefront) .page .inline-stepper.inline-stepper svg,
+  html body .app-stage .app-shell:not(.customer-storefront) .page .compact-stepper.compact-stepper svg,
+  html body .app-stage .app-shell:not(.customer-storefront) .page .stepper.stepper svg {
+    color: var(--mobile-bronze-soft) !important;
+    stroke: var(--mobile-bronze-soft) !important;
+  }
+
+  html body .app-stage .app-shell:not(.customer-storefront) .page .pricing-intelligence-summary article.warning {
+    background:
+      radial-gradient(circle at top left, rgba(198, 93, 42, .16), transparent 40%),
+      linear-gradient(145deg, rgba(78, 60, 47, .99), rgba(31, 27, 23, .99)) !important;
+  }
+
+  html body .app-stage .app-shell:not(.customer-storefront) .page .settings-card.settings-accordion > summary {
+    min-height: 70px !important;
+  }
+
+  html body .app-stage .app-shell:not(.customer-storefront) .page .settings-accordion-chevron,
+  html body .app-stage .app-shell:not(.customer-storefront) .page .settings-accordion-icon {
+    color: var(--mobile-bronze-soft) !important;
+    stroke: var(--mobile-bronze-soft) !important;
+  }
+}
+
+/* mobile-polish-pass-v3
+   Last targeted phone overrides from the audit: recipe rows, metric buttons,
+   pricing rows, and settings form controls. */
+@media (max-width: 759px) {
+  html body .app-stage .app-shell:not(.customer-storefront) .page .recipe-row.recipe-row,
+  html body .app-stage .app-shell:not(.customer-storefront) .page .recipe-row.recipe-row *,
+  html body .app-stage .app-shell:not(.customer-storefront) .page .metric-button.metric-button,
+  html body .app-stage .app-shell:not(.customer-storefront) .page .metric-button.metric-button *,
+  html body .app-stage .app-shell:not(.customer-storefront) .page .pricing-product-row.pricing-product-row,
+  html body .app-stage .app-shell:not(.customer-storefront) .page .pricing-product-row.pricing-product-row :not(button):not(svg):not(path) {
+    color: var(--mobile-bronze-soft) !important;
+    -webkit-text-fill-color: var(--mobile-bronze-soft) !important;
+  }
+
+  html body .app-stage .app-shell:not(.customer-storefront) .page .recipe-row.recipe-row,
+  html body .app-stage .app-shell:not(.customer-storefront) .page .metric-button.metric-button,
+  html body .app-stage .app-shell:not(.customer-storefront) .page .pricing-product-row.pricing-product-row {
+    background:
+      radial-gradient(circle at top left, rgba(184, 107, 44, .13), transparent 40%),
+      linear-gradient(145deg, rgba(58, 59, 52, .99), rgba(18, 22, 18, .99)) !important;
+    border: 1.5px solid rgba(210, 137, 65, .78) !important;
+  }
+
+  html body .app-stage .app-shell:not(.customer-storefront) .page .pricing-product-row.warning.warning {
+    background:
+      radial-gradient(circle at top left, rgba(198, 93, 42, .17), transparent 40%),
+      linear-gradient(145deg, rgba(78, 60, 47, .99), rgba(31, 27, 23, .99)) !important;
+  }
+
+  html body .app-stage .app-shell:not(.customer-storefront) .page .recipe-row.recipe-row :is(strong, b, h3),
+  html body .app-stage .app-shell:not(.customer-storefront) .page .metric-button.metric-button :is(strong, b),
+  html body .app-stage .app-shell:not(.customer-storefront) .page .pricing-product-row.pricing-product-row :is(strong, b) {
+    color: var(--mobile-cream) !important;
+    -webkit-text-fill-color: var(--mobile-cream) !important;
+  }
+
+  html body .app-stage .app-shell:not(.customer-storefront) .page.settings-page :is(
+    input,
+    select,
+    textarea,
+    .settings-card textarea,
+    .settings-card select,
+    .settings-card input,
+    .product-type-fields textarea,
+    .product-choice-fields textarea
+  ),
+  html body .app-stage .app-shell:not(.customer-storefront) .page.settings-page :is(input, textarea)::placeholder {
+    background:
+      radial-gradient(circle at top left, rgba(184, 107, 44, .10), transparent 38%),
+      linear-gradient(145deg, rgba(65, 67, 61, .99), rgba(28, 32, 27, .99)) !important;
+    border: 1.5px solid rgba(210, 137, 65, .82) !important;
+    color: var(--mobile-cream) !important;
+    -webkit-text-fill-color: var(--mobile-cream) !important;
+    caret-color: var(--mobile-bronze-soft) !important;
+  }
+
+  html body .app-stage .app-shell:not(.customer-storefront) .page.settings-page select option {
+    background: #151915 !important;
+    color: var(--mobile-cream) !important;
+    -webkit-text-fill-color: var(--mobile-cream) !important;
+  }
+}
+
+/* mobile-polish-pass-v4
+   Broad owner-shell fixes for cards rendered by focus panels that sit just
+   outside the normal .page selector. */
+@media (max-width: 759px) {
+  html body .app-stage .app-shell:not(.customer-storefront) .metric-button.metric-button,
+  html body .app-stage .app-shell:not(.customer-storefront) .metric-button.metric-button *,
+  html body .app-stage .app-shell:not(.customer-storefront) .settings-publish-card.settings-publish-card,
+  html body .app-stage .app-shell:not(.customer-storefront) .settings-publish-card.settings-publish-card :not(svg):not(path),
+  html body .app-stage .app-shell:not(.customer-storefront) .settings-publish-card.settings-publish-card .secondary-button,
+  html body .app-stage .app-shell:not(.customer-storefront) .settings-publish-card.settings-publish-card .secondary-button * {
+    color: var(--mobile-bronze-soft) !important;
+    -webkit-text-fill-color: var(--mobile-bronze-soft) !important;
+  }
+
+  html body .app-stage .app-shell:not(.customer-storefront) .metric-button.metric-button,
+  html body .app-stage .app-shell:not(.customer-storefront) .settings-publish-card.settings-publish-card,
+  html body .app-stage .app-shell:not(.customer-storefront) .settings-publish-card.settings-publish-card .secondary-button {
+    background:
+      radial-gradient(circle at top left, rgba(184, 107, 44, .13), transparent 40%),
+      linear-gradient(145deg, rgba(58, 59, 52, .99), rgba(18, 22, 18, .99)) !important;
+    border: 1.5px solid rgba(210, 137, 65, .78) !important;
+  }
+
+  html body .app-stage .app-shell:not(.customer-storefront) .metric-button.metric-button :is(strong, b),
+  html body .app-stage .app-shell:not(.customer-storefront) .settings-publish-card.settings-publish-card :is(h1, h2, h3, h4, strong, b) {
+    color: var(--mobile-cream) !important;
+    -webkit-text-fill-color: var(--mobile-cream) !important;
+  }
+}
+
+/* mobile-polish-pass-v5
+   Make the mobile root readable by default so any newly added owner/customer
+   text does not inherit the old dark brown desktop color. */
+@media (max-width: 759px) {
+  html body,
+  html body > div,
+  html body #root,
+  html body .app-stage {
+    color: var(--mobile-cream) !important;
+    -webkit-text-fill-color: var(--mobile-cream) !important;
+  }
+}
