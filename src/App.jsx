@@ -55,6 +55,7 @@ import ResourceHubPage from "./pages/ResourceHubPage";
 import SettingsPage from "./pages/SettingsPage";
 import TodayPage from "./pages/TodayPage";
 import HelpPage from "./pages/HelpPage";
+import CookbookPage from "./pages/CookbookPage";
 
 // customer-options-v1
 // checkout-flow-v1
@@ -68,6 +69,7 @@ const pages = {
   settings: SettingsPage,
   help: HelpPage,
   resources: ResourceHubPage,
+  cookbook: CookbookPage,
 };
 
 const pageAliases = {

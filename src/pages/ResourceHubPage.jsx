@@ -4,6 +4,7 @@ import {
   BookOpen,
   ClipboardList,
   Download,
+  CookingPot,
   ExternalLink,
   FileText,
   FolderKanban,
@@ -208,6 +209,13 @@ export default function ResourceHubPage({
   ];
 
   const systemCards = [
+    {
+      title: "Cookbook workspace",
+      body: "Keep private recipes, photos, notes, meal plans, and exportable shopping lists in one place.",
+      icon: CookingPot,
+      action: "Open Cookbook",
+      onClick: () => setActive?.("cookbook", { navKey: "resources" }),
+    },
     {
       title: "Product systems",
       body: "Build future systems for labels, recipe packs, product sheets, classes, preorder drops, and downloadable guides.",
