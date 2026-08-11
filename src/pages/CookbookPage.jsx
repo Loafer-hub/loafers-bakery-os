@@ -77,29 +77,154 @@ function starterCookbook(recipes = []) {
   };
 }
 
+const UNICODE_FRACTIONS = {
+  "¼": "1/4",
+  "½": "1/2",
+  "¾": "3/4",
+  "⅓": "1/3",
+  "⅔": "2/3",
+  "⅛": "1/8",
+  "⅜": "3/8",
+  "⅝": "5/8",
+  "⅞": "7/8",
+};
+
+const UNIT_ALIASES = [
+  [/^(?:cups?|c\.?)(?=\s|$)/i, "cup"],
+  [/^(?:tablespoons?|tbsp\.?|tbs\.?)(?=\s|$)/i, "tbsp"],
+  [/^(?:teaspoons?|tsp\.?)(?=\s|$)/i, "tsp"],
+  [/^(?:ounces?|oz\.?)(?=\s|$)/i, "oz"],
+  [/^(?:pounds?|lbs?\.?)(?=\s|$)/i, "lb"],
+  [/^(?:kilograms?|kgs?|kg)(?=\s|$)/i, "kg"],
+  [/^(?:grams?|g)(?=\s|$)/i, "g"],
+  [/^(?:millilit(?:ers?|res?)|ml)(?=\s|$)/i, "ml"],
+  [/^(?:lit(?:ers?|res?)|l)(?=\s|$)/i, "l"],
+  [/^(?:cloves?)(?=\s|$)/i, "clove"],
+  [/^(?:cans?)(?=\s|$)/i, "can"],
+  [/^(?:jars?)(?=\s|$)/i, "jar"],
+  [/^(?:bottles?)(?=\s|$)/i, "bottle"],
+  [/^(?:packages?|pkgs?\.?|packs?)(?=\s|$)/i, "package"],
+  [/^(?:containers?)(?=\s|$)/i, "container"],
+  [/^(?:sticks?)(?=\s|$)/i, "stick"],
+  [/^(?:slices?)(?=\s|$)/i, "slice"],
+  [/^(?:pieces?)(?=\s|$)/i, "piece"],
+  [/^(?:pinch(?:es)?)(?=\s|$)/i, "pinch"],
+  [/^(?:bunch(?:es)?)(?=\s|$)/i, "bunch"],
+  [/^(?:heads?)(?=\s|$)/i, "head"],
+  [/^(?:dozen|doz\.?)(?=\s|$)/i, "dozen"],
+  [/^(?:each|ea\.?)(?=\s|$)/i, "each"],
+];
+
+const WORD_NUMBERS = {
+  a: 1,
+  an: 1,
+  one: 1,
+  two: 2,
+  three: 3,
+  four: 4,
+  five: 5,
+  six: 6,
+  seven: 7,
+  eight: 8,
+  nine: 9,
+  ten: 10,
+};
+
+function normalizeFractionText(value) {
+  return String(value || "")
+    .replace(/(\d)([¼½¾⅓⅔⅛⅜⅝⅞])/g, "$1 $2")
+    .replace(/[¼½¾⅓⅔⅛⅜⅝⅞]/g, (fraction) => UNICODE_FRACTIONS[fraction] || fraction)
+    .replace(/(\d)\s*-\s*(\d+\/\d+)/g, "$1 $2")
+    .replace(/[–—]/g, "-")
+    .trim();
+}
+
+function fractionToNumber(value) {
+  const text = String(value || "").trim();
+  if (!text) return 0;
+  return text.split(/\s+/).reduce((total, part) => {
+    if (!part.includes("/")) return total + Number(part || 0);
+    const [numerator, denominator] = part.split("/").map(Number);
+    return total + (denominator ? numerator / denominator : 0);
+  }, 0);
+}
+
+function parseIngredientLine(line) {
+  const cleaned = normalizeFractionText(line)
+    .replace(/^[-*•]\s*/, "")
+    .replace(/^\d+[.)]\s*/, "")
+    .replace(/^ingredients?\s*:\s*/i, "")
+    .trim();
+  if (!cleaned) return null;
+
+  // Covers 500g flour, 1 1/2 cups flour, 1-1/2 tsp salt, and "a pinch of salt".
+  // The space before the unit is optional because copied web recipes often use "500g".
+  const quantityMatch = cleaned.match(/^(?:(a|an|one|two|three|four|five|six|seven|eight|nine|ten)\s+|((?:(?:\d+(?:\.\d+)?\s+)?\d+\/\d+|\d+(?:\.\d+)?)(?:\s*-\s*(?:(?:\d+(?:\.\d+)?\s+)?\d+\/\d+|\d+(?:\.\d+)?))?)\s*)(.*)$/i);
+  if (!quantityMatch) return normalizeIngredient({ name: cleaned, amount: 0, unit: "" });
+
+  const amount = quantityMatch[1] ? WORD_NUMBERS[quantityMatch[1].toLowerCase()] : fractionToNumber(quantityMatch[2].split("-")[0]);
+  let remainder = quantityMatch[3].trim();
+  let unit = "";
+  const parentheticalNotes = [];
+
+  // Move copied metric equivalents and optional notes out of the ingredient name.
+  // Examples: "2 cups (480g) flour" and "1 tsp vanilla (optional)".
+  remainder = remainder.replace(/\(([^)]+)\)/g, (match, note) => {
+    parentheticalNotes.push(note.trim());
+    return " ";
+  }).replace(/\s{2,}/g, " ").trim();
+
+  for (const [pattern, normalizedUnit] of UNIT_ALIASES) {
+    const match = remainder.match(pattern);
+    if (match) {
+      unit = normalizedUnit;
+      remainder = remainder.slice(match[0].length).trim();
+      break;
+    }
+  }
+
+  // Treat ordinary produce/counts as a quantity, not as part of the ingredient name.
+  if (!unit && /^(?:eggs?|lemons?|limes?|apples?|bananas?|avocados?|onions?|potatoes?|carrots?|peppers?)\b/i.test(remainder)) unit = "each";
+  remainder = remainder.replace(/^of\s+/i, "").trim();
+
+  const [namePart, ...noteParts] = remainder.split(/[,;]/).map((part) => part.trim()).filter(Boolean);
+  return normalizeIngredient({
+    name: namePart || cleaned,
+    amount: Number.isFinite(amount) ? amount : 0,
+    unit,
+    note: [...parentheticalNotes, ...noteParts].filter(Boolean).join(" · "),
+  });
+}
+
 function parseRecipe(text, sourceUrl = "") {
   const raw = String(text || "").trim();
   const lines = raw.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-  const ingredientHeading = lines.findIndex((line) => /^ingredients?\b/i.test(line));
-  const instructionHeading = lines.findIndex((line) => /^(instructions?|method|directions?)\b/i.test(line));
+  const ingredientHeading = lines.findIndex((line) => /^(?:#+\s*)?ingredients?\b/i.test(line));
+  const instructionHeading = lines.findIndex((line) => /^(?:#+\s*)?(instructions?|method|directions?|steps?)\b/i.test(line));
+  const ingredientHeadingTail = ingredientHeading >= 0
+    ? lines[ingredientHeading].replace(/^(?:#+\s*)?ingredients?\s*:?\s*/i, "").trim()
+    : "";
   const ingredientLines = ingredientHeading >= 0
-    ? lines.slice(ingredientHeading + 1, instructionHeading >= 0 ? instructionHeading : undefined)
-    : lines.filter((line) => /^[-*•]?\s*\d/.test(line));
+    ? [ingredientHeadingTail, ...lines.slice(ingredientHeading + 1, instructionHeading >= 0 ? instructionHeading : undefined)]
+    : lines.filter((line) => {
+      const normalized = normalizeFractionText(line).replace(/^[-*•]\s*/, "").trim();
+      // Keep numbered ingredient rows such as "1. 200 g flour", but do not turn
+      // a method line such as "1. Heat the oven" into an ingredient.
+      return /^(?:(?:\d|[¼½¾⅓⅔⅛⅜⅝⅞])|(?:a|an|one|two|three)\s+)/i.test(normalized)
+        && !/^\d+[.)]\s+[A-Za-z]/.test(normalized);
+    });
   const stepLines = instructionHeading >= 0
     ? lines.slice(instructionHeading + 1)
     : lines.filter((line) => /^(step\s*\d+|\d+[.)])\s*/i.test(line));
 
-  const ingredients = ingredientLines.map((line) => {
-    const cleaned = line.replace(/^[-*•]\s*/, "").replace(/^\d+[.)]\s*/, "");
-    const match = cleaned.match(/^(\d+(?:[./]\d+)?(?:\s+\d+\/\d+)?)\s*(g|kg|ml|l|oz|lb|cups?|tbsp|tsp|cloves?|cans?|pieces?|each)?\s*(.*)$/i);
-    const amountText = match?.[1] || "";
-    const fraction = amountText.includes("/") ? amountText.split("/").reduce((total, part, index) => index === 0 ? Number(part) : total / Number(part), 1) : Number(amountText);
-    return normalizeIngredient({
-      name: match?.[3] || cleaned,
-      amount: Number.isFinite(fraction) ? fraction : 0,
-      unit: match?.[2] || "",
-    });
-  }).filter((ingredient) => ingredient.name);
+  const ingredients = ingredientLines
+    .filter((line) => {
+      const normalized = normalizeFractionText(line).replace(/^[-*•]\s*/, "").trim();
+      // Section labels such as "For the sauce:" belong in the recipe structure, not the ingredient list.
+      return normalized && !/^[A-Za-z][A-Za-z &/()-]{0,50}:\s*$/.test(normalized);
+    })
+    .map(parseIngredientLine)
+    .filter((ingredient) => ingredient?.name);
 
   return {
     id: nextId("recipe"),
