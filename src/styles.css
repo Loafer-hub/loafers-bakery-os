@@ -1583,6 +1583,13 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   gap: 8px;
 }
 
+.menu-product-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: stretch;
+  gap: 8px;
+}
+
 .menu-product-card {
   display: grid;
   grid-template-columns: 48px minmax(0, 1fr) auto;
@@ -1654,6 +1661,33 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   background: var(--accent-soft);
   font-size: 8px;
   white-space: nowrap;
+}
+
+.menu-product-edit-button {
+  min-width: 68px;
+  display: grid;
+  place-content: center;
+  gap: 5px;
+  padding: 10px;
+  color: #f2ece1;
+  border: 1.5px solid rgba(210, 137, 65, .72);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at top left, rgba(210, 137, 65, .2), transparent 48%),
+    linear-gradient(145deg, #363630, #1f241f);
+  font: inherit;
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.menu-product-edit-button:hover,
+.menu-product-edit-button:focus-visible {
+  color: #fff7e9;
+  border-color: #d6a15f;
+  background: linear-gradient(145deg, #8f481f, #5f2d16);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, .24);
+  transform: translateY(-1px);
 }
 
 .menu-mode-board {
@@ -15400,6 +15434,10 @@ button.owner-alert-row {
     gap: 9px;
   }
 
+  .menu-product-row {
+    gap: 10px;
+  }
+
   .menu-product-card {
     grid-template-columns: 118px minmax(0, 1fr) minmax(132px, auto);
     gap: 18px;
@@ -15449,6 +15487,13 @@ button.owner-alert-row {
     color: rgba(255, 238, 205, .75);
     border-color: rgba(236, 208, 164, .18);
     background: rgba(255,255,255,.08);
+  }
+
+  .menu-product-edit-button {
+    min-width: 84px;
+    border-radius: 14px;
+    color: #fff0d2;
+    font-size: 12px;
   }
 
   .menu-side-panel {

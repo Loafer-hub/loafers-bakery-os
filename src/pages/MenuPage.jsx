@@ -6,6 +6,7 @@ import {
   Globe2,
   Image as ImageIcon,
   PackageCheck,
+  Pencil,
   Search,
   Settings2,
   ShoppingBag,
@@ -325,16 +326,14 @@ function ProductInfoSheet({
   );
 }
 
-function MenuProductBoard({ onAddProduct, onSelectRecipe, productTypes, recipes }) {
+function MenuProductBoard({ onAddProduct, onEditProduct, onSelectRecipe, productTypes, recipes }) {
   const typeLeaders = productTypes
     .map((type) => recipes.find((recipe) => (recipe.productType || "bread") === type.value))
     .filter(Boolean);
   const featuredRecipes = [
     ...typeLeaders,
     ...recipes.filter((recipe) => !typeLeaders.some((leader) => leader.id === recipe.id)),
-  ]
-    .sort((a, b) => Number(a.hiddenThisWeek === true) - Number(b.hiddenThisWeek === true))
-    .slice(0, 8);
+  ].sort((a, b) => Number(a.hiddenThisWeek === true) - Number(b.hiddenThisWeek === true));
   return (
     <section className="menu-product-board">
       <div className="menu-product-toolbar">
@@ -361,23 +360,33 @@ function MenuProductBoard({ onAddProduct, onSelectRecipe, productTypes, recipes 
         {featuredRecipes.map((recipe) => {
           const type = productTypeFor(recipe.productType || "bread");
           return (
-            <button
-              type="button"
-              className={recipe.hiddenThisWeek ? "menu-product-card hidden" : "menu-product-card"}
-              key={recipe.id}
-              onClick={() => onSelectRecipe?.(recipe)}
-              aria-label={`Open ${recipe.name} product details`}
-            >
-              <span className={recipe.photoUrl ? "menu-product-photo" : "menu-product-photo empty"}>
-                {recipe.photoUrl ? <img src={recipe.photoUrl} alt={recipe.photoAlt || recipe.name} /> : <ImageIcon size={17} />}
-              </span>
-              <span>
-                <small>{type.label}</small>
-                <strong>{recipe.name}</strong>
-                <em>{priceLabel(recipe)}</em>
-              </span>
-              <b>{statusForRecipe(recipe)}</b>
-            </button>
+            <div className="menu-product-row" key={recipe.id}>
+              <button
+                type="button"
+                className={recipe.hiddenThisWeek ? "menu-product-card hidden" : "menu-product-card"}
+                onClick={() => onSelectRecipe?.(recipe)}
+                aria-label={`Open ${recipe.name} product details`}
+              >
+                <span className={recipe.photoUrl ? "menu-product-photo" : "menu-product-photo empty"}>
+                  {recipe.photoUrl ? <img src={recipe.photoUrl} alt={recipe.photoAlt || recipe.name} /> : <ImageIcon size={17} />}
+                </span>
+                <span>
+                  <small>{type.label}</small>
+                  <strong>{recipe.name}</strong>
+                  <em>{priceLabel(recipe)}</em>
+                </span>
+                <b>{statusForRecipe(recipe)}</b>
+              </button>
+              <button
+                type="button"
+                className="menu-product-edit-button"
+                onClick={() => onEditProduct?.(recipe)}
+                aria-label={`Edit ${recipe.name}`}
+              >
+                <Pencil size={16} />
+                <span>Edit</span>
+              </button>
+            </div>
           );
         })}
       </div>
@@ -385,8 +394,8 @@ function MenuProductBoard({ onAddProduct, onSelectRecipe, productTypes, recipes 
   );
 }
 
-function MenuModeBoard({ activeView, bakerySettings, onAddProduct, onSelectRecipe, productTypes, recipes, readyShelfItems }) {
-  if (activeView === "recipes") return <MenuProductBoard onAddProduct={onAddProduct} onSelectRecipe={onSelectRecipe} productTypes={productTypes} recipes={recipes} />;
+function MenuModeBoard({ activeView, bakerySettings, onAddProduct, onEditProduct, onSelectRecipe, productTypes, recipes, readyShelfItems }) {
+  if (activeView === "recipes") return <MenuProductBoard onAddProduct={onAddProduct} onEditProduct={onEditProduct} onSelectRecipe={onSelectRecipe} productTypes={productTypes} recipes={recipes} />;
   if (activeView === "storefront") {
     return (
       <section className="menu-mode-board">
@@ -501,7 +510,7 @@ function MenuEmbeddedWorkspace({
 export default function MenuPage(props) {
   const [view, setView] = useState(props.menuView || "recipes");
   const [readyShelfItems, setReadyShelfItems] = useState([]);
-  const [addProductSignal, setAddProductSignal] = useState(0);
+  const [productEditorSignal, setProductEditorSignal] = useState(null);
   const [selectedProductId, setSelectedProductId] = useState("");
   const heroBannerStyle = useMemo(() => {
     let bannerUrl = LOAFERS_BRAND.bannerSrc;
@@ -566,7 +575,14 @@ export default function MenuPage(props) {
 
   function requestAddProduct() {
     changeView("recipes");
-    setAddProductSignal((current) => current + 1);
+    setProductEditorSignal({ nonce: Date.now(), recipeId: null });
+  }
+
+  function requestEditProduct(recipe) {
+    if (!recipe) return;
+    changeView("recipes");
+    closeProductSheet();
+    setProductEditorSignal({ nonce: Date.now(), recipeId: recipe.id });
   }
 
   function closeProductSheet() {
@@ -645,6 +661,7 @@ export default function MenuPage(props) {
                 activeView={view}
                 bakerySettings={props.bakerySettings}
                 onAddProduct={requestAddProduct}
+                onEditProduct={requestEditProduct}
                 onSelectRecipe={(recipe) => setSelectedProductId(recipe.id)}
                 productTypes={productTypes}
                 readyShelfItems={readyShelfItems}
@@ -700,7 +717,7 @@ export default function MenuPage(props) {
         </section>
       </section>
 
-      {view === "recipes" ? <RecipesPage {...props} embeddedContext="menu" openEditorSignal={addProductSignal} /> : null}
+      {view === "recipes" ? <RecipesPage {...props} embeddedContext="menu" openEditorSignal={productEditorSignal} /> : null}
       {selectedProduct ? (
         <ProductInfoSheet
           recipe={selectedProduct}

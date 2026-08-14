@@ -1430,6 +1430,23 @@ html body .app-stage .app-shell:not(.customer-storefront) .modal-backdrop .modal
       linear-gradient(145deg, rgba(84, 76, 65, .96), rgba(45, 45, 39, .98)) !important;
   }
 
+  html body .app-stage .app-shell:not(.customer-storefront) .page .menu-product-row.menu-product-row {
+    grid-template-columns: minmax(0, 1fr) 64px !important;
+    gap: 7px !important;
+  }
+
+  html body .app-stage .app-shell:not(.customer-storefront) .page .menu-product-edit-button.menu-product-edit-button {
+    min-width: 64px !important;
+    padding: 8px 6px !important;
+    border: 1.5px solid rgba(210, 137, 65, .78) !important;
+    border-radius: 14px !important;
+    background:
+      radial-gradient(circle at top left, rgba(151, 92, 42, .2), transparent 42%),
+      linear-gradient(145deg, rgba(58, 59, 52, .99), rgba(24, 28, 24, .99)) !important;
+    color: var(--mobile-cream) !important;
+    -webkit-text-fill-color: var(--mobile-cream) !important;
+  }
+
   html body .app-stage .app-shell:not(.customer-storefront) .page .owner-report-grid.owner-report-grid article {
     background:
       radial-gradient(circle at top left, rgba(151, 92, 42, .15), transparent 40%),

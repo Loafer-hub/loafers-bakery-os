@@ -664,7 +664,10 @@ export default function RecipesPage({ bakerySettings, embeddedContext, inventory
   }
 
   useEffect(() => {
-    if (openEditorSignal) openEditor();
+    if (!openEditorSignal) return;
+    const recipeId = typeof openEditorSignal === "object" ? openEditorSignal.recipeId : null;
+    const requestedRecipe = recipeId ? recipes.find((recipe) => recipe.id === recipeId) : null;
+    openEditor(requestedRecipe);
   }, [openEditorSignal]);
 
   function updateIngredient(id, changes) {
