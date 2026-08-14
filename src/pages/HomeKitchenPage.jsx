@@ -14,6 +14,11 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { recipeUsesStarter } from "../lib/recipeTimeline";
+import {
+  RECIPE_SCALE_OPTIONS,
+  normalizeRecipeScale,
+  recipeScaleLabel,
+} from "../lib/cookbookScaling";
 
 const FILTERS = ["all", "planned", "active", "completed"];
 
@@ -63,7 +68,7 @@ export default function HomeKitchenPage({
   const [selectedJobId, setSelectedJobId] = useState("");
   const [recipeId, setRecipeId] = useState("");
   const [scheduledDate, setScheduledDate] = useState(localDateKey());
-  const [servings, setServings] = useState(1);
+  const [multiplier, setMultiplier] = useState(1);
 
   const library = useMemo(() => {
     const cookbookRecipes = (cookbook?.recipes || []).map((recipe) => normalizedLibraryRecipe(recipe, "cookbook"));
@@ -82,7 +87,7 @@ export default function HomeKitchenPage({
   useEffect(() => {
     if (!recipeId && library[0]) {
       setRecipeId(library[0].id);
-      setServings(Math.max(1, Number(library[0].servings || 1)));
+      setMultiplier(1);
     }
   }, [library, recipeId]);
 
@@ -109,7 +114,7 @@ export default function HomeKitchenPage({
     if (!selectedRecipe) return;
     onScheduleCookbookRecipe?.(selectedRecipe, {
       date: scheduledDate,
-      servings: Math.max(1, Number(servings || 1)),
+      multiplier: normalizeRecipeScale(multiplier),
       source: selectedRecipe.source,
     });
   }
@@ -151,10 +156,10 @@ export default function HomeKitchenPage({
             const nextId = event.target.value;
             const nextRecipe = library.find((recipe) => recipe.id === nextId);
             setRecipeId(nextId);
-            setServings(Math.max(1, Number(nextRecipe?.servings || 1)));
+            setMultiplier(1);
           }}>{library.map((recipe) => <option value={recipe.id} key={recipe.id}>{recipe.name} · {recipe.source === "catalog" ? "Bakery recipe" : "Cookbook"}</option>)}</select></label>
           <label>Cooking date<input type="date" min={today} value={scheduledDate} onChange={(event) => setScheduledDate(event.target.value)} /></label>
-          <label>Servings / items<input type="number" min="1" value={servings} onChange={(event) => setServings(event.target.value)} /></label>
+          <label>Recipe scale<select value={multiplier} onChange={(event) => setMultiplier(normalizeRecipeScale(event.target.value))}>{RECIPE_SCALE_OPTIONS.map((option) => <option value={option} key={option}>{option}× · {recipeScaleLabel(option)}</option>)}</select></label>
           <button className="primary-button" type="button" disabled={!selectedRecipe} onClick={scheduleRecipe}><CalendarDays size={17} /> Add to calendar</button>
         </div>
         {!library.length ? <p className="home-kitchen-empty">Add a recipe in the Cookbook or save a non-starter recipe in Menu first.</p> : null}
@@ -176,7 +181,7 @@ export default function HomeKitchenPage({
               <article className={`home-kitchen-job ${job.status}`} key={job.id}>
                 <button className="home-kitchen-job-summary" type="button" onClick={() => setSelectedJobId(open ? "" : job.id)}>
                   <span className="home-kitchen-job-photo">{job.photo ? <img src={job.photo} alt="" /> : <UtensilsCrossed size={22} />}</span>
-                  <span><small>{dateLabel(job.scheduledDate)} · {job.servings || 1} servings</small><strong>{job.recipeName}</strong><em>{job.status === "active" ? `${completeSteps}/${job.steps?.length || 0} steps complete` : job.source === "catalog" ? "Bakery recipe" : "Cookbook recipe"}</em></span>
+                  <span><small>{dateLabel(job.scheduledDate)} · {recipeScaleLabel(job.scaleMultiplier || 1, { compact: true })}</small><strong>{job.recipeName}</strong><em>{job.status === "active" ? `${completeSteps}/${job.steps?.length || 0} steps complete` : job.source === "catalog" ? "Bakery recipe" : "Cookbook recipe"}</em></span>
                   <b>{job.status === "active" ? "Cooking" : job.status}</b>
                   <ChevronDown className={open ? "open" : ""} size={19} />
                 </button>

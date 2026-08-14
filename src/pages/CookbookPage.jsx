@@ -10,7 +10,6 @@ import {
   FileText,
   Link2,
   ListPlus,
-  Minus,
   PackagePlus,
   Pencil,
   Plus,
@@ -21,6 +20,12 @@ import {
   Upload,
   X,
 } from "lucide-react";
+import {
+  RECIPE_SCALE_OPTIONS,
+  normalizeRecipeScale,
+  recipeScaleLabel,
+  scaleInstructionText,
+} from "../lib/cookbookScaling";
 const TYPES = ["All types", "Bread", "Yeast bread", "Breakfast", "Main", "Side", "Dessert", "Sauce", "Drink", "Other"];
 const CATEGORIES = ["All categories", "Baking", "Weeknight", "Family", "Seasonal", "Holiday", "Pantry", "Favorites"];
 
@@ -234,7 +239,12 @@ function parseRecipe(text, sourceUrl = "") {
     notes: "Imported from pasted recipe. Review amounts, yields, and instructions before cooking.",
     temps: "",
     ingredients: ingredients.length ? ingredients : [normalizeIngredient({ name: "Add ingredients from source", amount: 0 })],
-    steps: stepLines.length ? stepLines.map((step) => step.replace(/^\d+[.)]\s*/, "")) : ["Add cooking instructions from the source recipe."],
+    steps: stepLines.length ? stepLines
+      .flatMap((step) => step.split(/(?=\s+\d+[.)]\s+)/))
+      .map((step) => step.trim().replace(/^(?:step\s*)?\d+[.):\-]?\s*/i, "").replace(/\s+/g, " ").trim())
+      .filter(Boolean)
+      .map((step) => `${step.charAt(0).toUpperCase()}${step.slice(1)}`)
+    : ["Add cooking instructions from the source recipe."],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
@@ -321,7 +331,7 @@ export default function CookbookPage({
     (cookbook.plans || []).filter((plan) => plan.date?.startsWith(month)).forEach((plan) => {
       const recipe = cookbookRecipes.find((item) => item.id === plan.recipeId);
       if (!recipe) return;
-      const factor = toNumber(plan.servings, recipe.servings || 1) / Math.max(1, toNumber(recipe.servings, 1));
+      const factor = normalizeRecipeScale(plan.multiplier ?? (toNumber(plan.servings, recipe.servings || 1) / Math.max(1, toNumber(recipe.servings, 1))));
       recipe.ingredients.forEach((ingredient) => {
         const key = `${ingredient.name.toLowerCase()}|${ingredient.unit}`;
         const current = totals.get(key) || { name: ingredient.name, unit: ingredient.unit, amount: 0, recipes: [] };
@@ -362,9 +372,9 @@ export default function CookbookPage({
   const addToPlan = (recipe = selected) => {
     if (!recipe) return;
     const id = nextId("meal");
-    const servings = Math.max(1, Math.round(Number(recipe.servings || 1) * scale));
-    updateCookbook((current) => ({ ...current, plans: [...current.plans, { id, date: selectedDay, recipeId: recipe.id, servings }] }));
-    onScheduleCookbookRecipe?.(recipe, { date: selectedDay, servings, cookbookPlanId: id });
+    const multiplier = normalizeRecipeScale(scale);
+    updateCookbook((current) => ({ ...current, plans: [...current.plans, { id, date: selectedDay, recipeId: recipe.id, multiplier }] }));
+    onScheduleCookbookRecipe?.(recipe, { date: selectedDay, multiplier, cookbookPlanId: id });
   };
 
   const importRecipe = () => {
@@ -447,10 +457,10 @@ export default function CookbookPage({
               <div><span className="eyebrow">{selected.type} · {selected.category}</span><h2>{selected.name}</h2><p>{selected.notes || "Add a note to describe this recipe."}</p><div className="cookbook-tags">{selected.temps ? <span>🌡 {selected.temps}</span> : null}{selected.sourceUrl ? <a href={selected.sourceUrl} target="_blank" rel="noreferrer"><Link2 size={14} /> Source</a> : null}</div></div>
               <div className="cookbook-actions"><button type="button" className="icon-button" aria-label="Edit recipe" onClick={() => openEditor(selected)}><Pencil size={18} /></button><button type="button" className="icon-button danger" aria-label="Remove recipe" onClick={() => removeRecipe(selected)}><Trash2 size={18} /></button></div>
             </div>
-            <div className="cookbook-scale"><span><strong>Scale recipe</strong><small>All quantities adjust below.</small></span><button type="button" onClick={() => setScale((value) => Math.max(.25, value - .25))}><Minus size={16} /></button><strong>{formatAmount(scale)}×</strong><button type="button" onClick={() => setScale((value) => Math.min(20, value + .25))}><Plus size={16} /></button><span className="cookbook-serving-note">Makes {formatAmount((selected.servings || 1) * scale)} servings</span></div>
+            <div className="cookbook-scale"><span><strong>Scale recipe</strong><small>Choose the original, double, triple, or quadruple batch.</small></span><div className="cookbook-scale-options">{RECIPE_SCALE_OPTIONS.map((option) => <button type="button" className={scale === option ? "selected" : ""} aria-pressed={scale === option} onClick={() => setScale(option)} key={option}>{option}×</button>)}</div><span className="cookbook-serving-note">{recipeScaleLabel(scale)}</span></div>
             <div className="cookbook-content-grid">
               <section className="cookbook-card"><div className="cookbook-card-title"><ShoppingBasket size={18} /><h3>Ingredients</h3></div><ul className="cookbook-ingredients">{selected.ingredients.map((ingredient) => <li key={ingredient.id}><span>{ingredient.name}{ingredient.note ? <small>{ingredient.note}</small> : null}</span><b>{formatAmount(ingredient.amount * scale)} {ingredient.unit}</b></li>)}</ul></section>
-              <section className="cookbook-card"><div className="cookbook-card-title"><ClipboardList size={18} /><h3>Method</h3></div><ol className="cookbook-steps">{selected.steps.map((step, index) => <li key={`${step}-${index}`}><span>{index + 1}</span><p>{step}</p></li>)}</ol></section>
+              <section className="cookbook-card"><div className="cookbook-card-title"><ClipboardList size={18} /><h3>Method</h3></div><ol className="cookbook-steps">{selected.steps.map((step, index) => <li key={`${step}-${index}`}><span>{index + 1}</span><p>{scaleInstructionText(step, scale)}</p></li>)}</ol></section>
             </div>
             <section className="cookbook-plan-quick"><CalendarDays size={19} /><span><b>Plan this recipe</b><small>Add {selected.name} to Production and Home Kitchen on {new Date(`${selectedDay}T12:00`).toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}.</small></span><input type="date" value={selectedDay} min={new Date().toLocaleDateString("en-CA")} onChange={(event) => setSelectedDay(event.target.value)} /><button className="primary-button" type="button" onClick={() => addToPlan(selected)}><ListPlus size={17} /> Add to Production</button></section>
           </> : isEditing && draft ? <RecipeEditor draft={draft} setDraft={setDraft} photoInput={photoInput} onPhotoUpload={onPhotoUpload} onSave={saveDraft} onCancel={() => { setIsEditing(false); setDraft(null); }} /> : <div className="cookbook-empty">Choose a recipe or create a new one.</div>}
@@ -459,12 +469,12 @@ export default function CookbookPage({
         <aside className="cookbook-planner">
           <div className="cookbook-section-heading"><span><CalendarDays size={19} /><strong>Monthly meals</strong></span><small>{monthLabel(plannerMonth)}</small></div>
           <div className="cookbook-month-controls"><button type="button" onClick={() => setPlannerMonth((date) => new Date(date.getFullYear(), date.getMonth() - 1, 1))}><ChevronLeft size={17} /></button><strong>{monthLabel(plannerMonth)}</strong><button type="button" onClick={() => setPlannerMonth((date) => new Date(date.getFullYear(), date.getMonth() + 1, 1))}><ChevronRight size={17} /></button></div>
-          <div className="cookbook-calendar"><div className="cookbook-weekdays">{["S", "M", "T", "W", "T", "F", "S"].map((day, index) => <span key={`${day}-${index}`}>{day}</span>)}</div><div className="cookbook-days">{calendarDays.map((day) => { const date = day.toISOString().slice(0, 10); const meals = (cookbook.plans || []).filter((plan) => plan.date === date); return <button key={date} type="button" className={`${day.getMonth() === plannerMonth.getMonth() ? "" : "muted "}${selectedDay === date ? "selected" : ""}`} onClick={() => setSelectedDay(date)}><b>{day.getDate()}</b>{meals.slice(0, 2).map((meal) => <small key={meal.id}>{cookbookRecipes.find((recipe) => recipe.id === meal.recipeId)?.name || "Saved meal"}</small>)}</button>; })}</div></div>
+          <div className="cookbook-calendar"><div className="cookbook-weekdays">{["S", "M", "T", "W", "T", "F", "S"].map((day, index) => <span key={`${day}-${index}`}>{day}</span>)}</div><div className="cookbook-days">{calendarDays.map((day) => { const date = day.toISOString().slice(0, 10); const meals = (cookbook.plans || []).filter((plan) => plan.date === date); return <button key={date} type="button" className={`${day.getMonth() === plannerMonth.getMonth() ? "" : "muted "}${selectedDay === date ? "selected" : ""}`} onClick={() => setSelectedDay(date)}><b>{day.getDate()}</b>{meals.slice(0, 2).map((meal) => { const name = cookbookRecipes.find((recipe) => recipe.id === meal.recipeId)?.name || "Saved meal"; const multiplier = normalizeRecipeScale(meal.multiplier || 1); return <small key={meal.id}>{name}{multiplier > 1 ? ` · ${recipeScaleLabel(multiplier, { compact: true })}` : ""}</small>; })}</button>; })}</div></div>
           <div className="cookbook-shopping"><div className="cookbook-card-title"><ShoppingBasket size={18} /><h3>Shopping list</h3><button type="button" className="icon-button" aria-label="Export shopping list" onClick={exportShopping}><Download size={16} /></button></div><p>{shoppingLines.length} items for {monthLabel(plannerMonth)}.</p><div className="cookbook-shopping-add"><input value={manualItem} onChange={(event) => setManualItem(event.target.value)} onKeyDown={(event) => event.key === "Enter" && addManualItem()} placeholder="Add a manual item" /><button type="button" onClick={addManualItem}><Plus size={16} /></button></div><ul>{shoppingLines.slice(0, 10).map((item, index) => <li key={`${item.name}-${index}`}><span>{item.name}<small>{item.recipes.join(", ")}</small></span><b>{formatAmount(item.amount)} {item.unit}</b></li>)}</ul><button type="button" className="secondary-button cookbook-export" onClick={exportShopping}><Download size={16} /> Export shopping list</button></div>
         </aside>
       </section>
 
-      <section className="cookbook-import-panel"><div><span className="eyebrow">RECIPE IMPORT</span><h2>Paste a recipe, keep the source.</h2><p>Paste the full recipe from a website, then review and edit the imported card. Website links are saved as a source reference.</p></div><label><span><Link2 size={16} /> Original recipe link (optional)</span><input value={importUrl} onChange={(event) => setImportUrl(event.target.value)} placeholder="https://example.com/recipe" /></label><label><span><FileText size={16} /> Full recipe text</span><textarea value={importText} onChange={(event) => setImportText(event.target.value)} placeholder={"Recipe title\n\nIngredients\n500 g flour\n350 g water\n\nInstructions\n1. Mix ingredients.\n2. Rest and bake."} /></label><button className="primary-button" type="button" onClick={importRecipe}><Sparkles size={17} /> Import pasted recipe</button></section>
+      <section className="cookbook-import-panel"><div><span className="eyebrow">RECIPE IMPORT</span><h2>Paste a recipe, keep the source.</h2><p>Paste the full recipe from a website, then review and edit the imported card. Numbering and spacing are cleaned automatically, and ingredient quantities inside the method scale with the recipe.</p></div><label><span><Link2 size={16} /> Original recipe link (optional)</span><input value={importUrl} onChange={(event) => setImportUrl(event.target.value)} placeholder="https://example.com/recipe" /></label><label><span><FileText size={16} /> Full recipe text</span><textarea value={importText} onChange={(event) => setImportText(event.target.value)} placeholder={"Recipe title\n\nIngredients\n500 g flour\n350 g water\n\nInstructions\n1. Mix ingredients.\n2. Rest and bake."} /></label><button className="primary-button" type="button" onClick={importRecipe}><Sparkles size={17} /> Import pasted recipe</button></section>
     </main>
   );
 }

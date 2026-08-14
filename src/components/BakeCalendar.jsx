@@ -1,4 +1,5 @@
 import { CalendarOff, ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { normalizeRecipeScale, recipeScaleLabel } from "../lib/cookbookScaling";
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -12,10 +13,26 @@ function todayKey() {
 }
 
 function quantityLabel(entry) {
+  if (entry.source === "cookbook") {
+    return recipeScaleLabel(entry.scaleMultiplier || 1);
+  }
   const quantity = Number(entry.quantity ?? entry.loaves ?? 1);
   const unit = entry.unitName || "loaf";
   const label = quantity === 1 ? unit : `${unit}${unit.endsWith("s") ? "" : "s"}`;
   return `${quantity} ${label}`;
+}
+
+function calendarPlanLabel(entry) {
+  if (entry.source !== "cookbook") return `${entry.loaves} · ${entry.recipeName}`;
+  const multiplier = normalizeRecipeScale(entry.scaleMultiplier || 1);
+  return multiplier === 1
+    ? entry.recipeName
+    : `${entry.recipeName} · ${recipeScaleLabel(multiplier, { compact: true })}`;
+}
+
+function calendarPlanAriaLabel(entry) {
+  if (entry.source !== "cookbook") return `${entry.loaves} loaf ${entry.recipeName} bake`;
+  return `${entry.recipeName}, ${recipeScaleLabel(entry.scaleMultiplier || 1).toLowerCase()}`;
 }
 
 export function BakeCalendar({
@@ -132,7 +149,7 @@ export function BakeCalendar({
                 : availabilityMode
                 ? `${date}: ${unavailable ? "reopen customer orders" : "block customer orders"}`
                 : firstPlan
-                ? `${date}: ${firstPlan.loaves} loaf ${firstPlan.recipeName} bake`
+                ? `${date}: ${calendarPlanAriaLabel(firstPlan)}`
                 : firstOrder
                   ? `${date}: accepted order for ${firstOrder.customer}; add a bake plan`
                 : `${date}: add a bake`}
@@ -140,7 +157,7 @@ export function BakeCalendar({
               <span>{day}</span>
               {isPast ? <span className="calendar-past-stamp" aria-hidden="true">PAST</span> : null}
               {firstPlan ? (
-                <small>{firstPlan.loaves} · {firstPlan.recipeName}</small>
+                <small>{calendarPlanLabel(firstPlan)}</small>
               ) : firstOrder ? (
                 <small>{firstOrder.loaves} · {firstOrder.customer}</small>
               ) : unavailable ? (

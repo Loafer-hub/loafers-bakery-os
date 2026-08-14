@@ -32,6 +32,12 @@ import {
   uploadCloudSnapshot,
 } from "./lib/cloud";
 import { createBackup } from "./lib/storage";
+import {
+  normalizeRecipeScale,
+  recipeScaleLabel,
+  scaledRecipeIngredients,
+  scaledRecipeSteps,
+} from "./lib/cookbookScaling";
 import { DEFAULT_BAKERY_SETTINGS, normalizedBakerySettings } from "./lib/bakerySettings";
 import { BAKE_PHASES, normalizedBakeProgress } from "./lib/bakeProgress";
 import {
@@ -1085,7 +1091,10 @@ export default function App() {
     if (!recipe?.id) return;
     const today = localDateKey(new Date());
     const date = options.date && options.date >= today ? options.date : today;
-    const servings = Math.max(1, Number(options.servings || recipe.servings || recipe.yield || 1));
+    const baseServings = Math.max(1, Number(recipe.servings || recipe.yield || 1));
+    const multiplier = normalizeRecipeScale(options.multiplier ?? (
+      options.servings ? Number(options.servings) / baseServings : 1
+    ));
     const suffix = `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
     const planId = `cookbook-plan-${suffix}`;
     const jobId = `home-kitchen-${suffix}`;
@@ -1096,14 +1105,18 @@ export default function App() {
       : recipe.instructions?.length
         ? recipe.instructions
         : ["Review the saved recipe and add the cooking steps you want to track."];
+    const scaledIngredients = scaledRecipeIngredients(recipe.ingredients || [], multiplier);
+    const scaledSteps = scaledRecipeSteps(steps, multiplier);
     const plan = {
       id: planId,
       date,
       recipeId: `cookbook:${sourceRecipeId}`,
       recipeName: recipe.name,
-      quantity: servings,
-      loaves: servings,
-      unitName: "serving",
+      quantity: 1,
+      loaves: 1,
+      unitName: "recipe",
+      scaleMultiplier: multiplier,
+      scaleLabel: recipeScaleLabel(multiplier, { compact: true }),
       source: "cookbook",
       homeKitchenJobId: jobId,
       cookbookPlanId: options.cookbookPlanId || "",
@@ -1117,12 +1130,15 @@ export default function App() {
       recipeId: sourceRecipeId,
       recipeName: recipe.name,
       scheduledDate: date,
-      servings,
+      baseServings,
+      servings: baseServings * multiplier,
+      scaleMultiplier: multiplier,
+      scaleLabel: recipeScaleLabel(multiplier, { compact: true }),
       photo: recipe.photo || recipe.image || "",
       notes: recipe.notes || recipe.note || "",
       temps: recipe.temps || "",
-      ingredients: recipe.ingredients || [],
-      steps,
+      ingredients: scaledIngredients,
+      steps: scaledSteps,
       checks: {},
       status: "planned",
       createdAt: new Date().toISOString(),
