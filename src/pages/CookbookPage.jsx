@@ -21,9 +21,6 @@ import {
   Upload,
   X,
 } from "lucide-react";
-import { usePersistentState } from "../hooks/usePersistentState";
-
-const STORAGE_KEY = "loafers-cookbook-v1";
 const TYPES = ["All types", "Bread", "Yeast bread", "Breakfast", "Main", "Side", "Dessert", "Sauce", "Drink", "Other"];
 const CATEGORIES = ["All categories", "Baking", "Weeknight", "Family", "Seasonal", "Holiday", "Pantry", "Favorites"];
 
@@ -54,7 +51,7 @@ function normalizeIngredient(ingredient = {}) {
   };
 }
 
-function starterCookbook(recipes = []) {
+export function createStarterCookbook(recipes = []) {
   const bakeryRecipes = recipes.slice(0, 12).map((recipe) => ({
     id: `bakery-${recipe.id}`,
     name: recipe.name,
@@ -256,6 +253,28 @@ function formatAmount(value) {
   return Number.isInteger(value) ? String(value) : value.toFixed(value < 10 ? 2 : 1).replace(/\.0$/, "");
 }
 
+function prepareCookbookPhoto(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("This photo could not be read."));
+    reader.onload = () => {
+      const image = new Image();
+      image.onerror = () => reject(new Error("This photo format is not supported."));
+      image.onload = () => {
+        const maxSide = 1400;
+        const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(image.width * scale));
+        canvas.height = Math.max(1, Math.round(image.height * scale));
+        canvas.getContext("2d").drawImage(image, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/jpeg", 0.82));
+      };
+      image.src = String(reader.result || "");
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 function emptyRecipe() {
   return {
     id: nextId("recipe"), name: "New recipe", type: "Other", category: "Pantry", servings: 4,
@@ -264,8 +283,15 @@ function emptyRecipe() {
   };
 }
 
-export default function CookbookPage({ recipes: bakeryRecipes = [], setActive, onScheduleCookbookRecipe }) {
-  const [cookbook, setCookbook] = usePersistentState(STORAGE_KEY, starterCookbook(bakeryRecipes));
+export default function CookbookPage({
+  recipes: bakeryRecipes = [],
+  cookbook,
+  setCookbook,
+  recipeCloudStatus = "local",
+  recipeCloudError = "",
+  setActive,
+  onScheduleCookbookRecipe,
+}) {
   const [selectedId, setSelectedId] = useState("");
   const [query, setQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("All types");
@@ -307,7 +333,7 @@ export default function CookbookPage({ recipes: bakeryRecipes = [], setActive, o
     return [...totals.values(), ...(cookbook.manualShopping || []).map((item) => ({ ...item, manual: true }))];
   }, [cookbook, cookbookRecipes, month]);
 
-  const updateCookbook = (updater) => setCookbook((current) => updater(current || starterCookbook(bakeryRecipes)));
+  const updateCookbook = (updater) => setCookbook((current) => updater(current || createStarterCookbook(bakeryRecipes)));
   const chooseRecipe = (recipe) => { setSelectedId(recipe.id); setScale(1); setIsEditing(false); setDraft(null); };
   const openEditor = (recipe = selected || emptyRecipe()) => { setDraft(structuredClone(recipe)); setIsEditing(true); };
 
@@ -348,12 +374,17 @@ export default function CookbookPage({ recipes: bakeryRecipes = [], setActive, o
     setSelectedId(imported.id); setImportText(""); setImportUrl(""); setIsEditing(false);
   };
 
-  const onPhotoUpload = (event) => {
+  const onPhotoUpload = async (event) => {
     const file = event.target.files?.[0];
     if (!file || !draft) return;
-    const reader = new FileReader();
-    reader.onload = () => setDraft((current) => ({ ...current, photo: String(reader.result || "") }));
-    reader.readAsDataURL(file);
+    try {
+      const photo = await prepareCookbookPhoto(file);
+      setDraft((current) => ({ ...current, photo }));
+    } catch (error) {
+      window.alert(error.message || "This photo could not be added.");
+    } finally {
+      event.target.value = "";
+    }
   };
 
   const addManualItem = () => {
@@ -383,6 +414,7 @@ export default function CookbookPage({ recipes: bakeryRecipes = [], setActive, o
             <h1>Cookbook</h1>
             <p>Your personal recipe shelf for baking, meals, notes, and the next shopping run.</p>
           </div>
+          <span className={`cookbook-cloud-status ${recipeCloudStatus}`} title={recipeCloudError || "Cookbook cloud status"}>{recipeCloudStatus === "saving" || recipeCloudStatus === "loading" ? "Saving to cloud…" : recipeCloudStatus === "synced" ? "Cloud synced" : recipeCloudStatus === "error" ? "Cloud retry needed" : "Saved on this device"}</span>
           <button className="primary-button cookbook-new" type="button" onClick={() => openEditor(emptyRecipe())}><Plus size={18} /> Add recipe</button>
         </div>
       </section>

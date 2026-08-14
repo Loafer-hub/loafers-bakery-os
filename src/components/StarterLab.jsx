@@ -104,8 +104,9 @@ function buildFeedCalendarEvents(logs, starter, calibration) {
         label: "Rise check",
         time: feedDate,
         timeLabel: formatShortTime(feedDate),
-        detail: log.peakHours ? `${log.peakHours}h peak observed` : log.rise ? `${log.rise}× rise` : `${log.temperature}°F check`,
+        detail: log.peakHours ? `${log.peakHours}h peak observed` : log.rise ? `${formatRisePercent(log.rise)} rise` : `${log.temperature}°F check`,
         sort: feedDate.getTime(),
+        ...(log.rise && !log.peakHours ? { detail: `${formatRisePercent(log.rise)} rise` } : {}),
       });
       return;
     }
@@ -199,6 +200,33 @@ function average(values) {
   return usable.reduce((sum, value) => sum + value, 0) / usable.length;
 }
 
+function risePercentFromMultiplier(value) {
+  const multiplier = Number(value);
+  if (!Number.isFinite(multiplier) || multiplier <= 0) return null;
+  return Math.max(0, (multiplier - 1) * 100);
+}
+
+function riseMultiplierFromPercent(value) {
+  const percent = Number(value);
+  if (!Number.isFinite(percent) || percent < 0) return null;
+  return 1 + percent / 100;
+}
+
+function formatRisePercent(value) {
+  const percent = risePercentFromMultiplier(value);
+  if (percent === null) return "—";
+  return `${Math.round(percent)}%`;
+}
+
+function formatElapsedSinceFeed(hours) {
+  const totalMinutes = Math.max(0, Math.round(Number(hours) * 60));
+  const wholeHours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (!wholeHours) return `${minutes} minutes`;
+  if (!minutes) return `${wholeHours} hour${wholeHours === 1 ? "" : "s"}`;
+  return `${wholeHours}h ${minutes}m`;
+}
+
 function buildStarterReadiness(logs, starter, calibration) {
   const feedLogs = logs.filter((log) => log.entryType !== "rise");
   const latestFeed = feedLogs[0];
@@ -251,8 +279,9 @@ function buildStarterReadiness(logs, starter, calibration) {
   } else if (hasStrongRise || hasPeakLog || (elapsed >= peakEstimate.hours * 0.82 && elapsed <= peakEstimate.hours + feedAgainHours * 0.55)) {
     status = "Ready window";
     tone = "ready";
-    stageLabel = hasStrongRise ? `${loggedRise.toFixed(1)}× rise logged` : "Expected peak window";
+    stageLabel = hasStrongRise ? `${formatRisePercent(loggedRise)} rise logged` : "Expected peak window";
     nextAction = "Use for dough now, chill it, or feed again if you are not baking.";
+    if (hasStrongRise) stageLabel = `${formatRisePercent(loggedRise)} rise logged`;
   } else if (elapsed > peakEstimate.hours + feedAgainHours) {
     status = "Past peak";
     tone = "past";
@@ -339,12 +368,12 @@ function buildStarterCalibrationSummary(logs, starter, calibration) {
       {
         label: "Rise reliability",
         value: riseSamples.length ? `${strongRiseCount}/${riseSamples.length}` : "0 checks",
-        detail: riseSamples.length ? "Rise checks at 1.8× or higher count as ready signals." : "Log rise checks between feed and peak.",
+        detail: riseSamples.length ? "Rise checks at 80% or higher count as ready signals." : "Log rise checks between feed and peak.",
       },
       {
         label: "Flour response",
         value: bestFlour ? `${bestFlour.count} logs` : "No data",
-        detail: bestFlour ? `${bestFlour.label}${average(bestFlour.rises) ? ` · ${average(bestFlour.rises).toFixed(1)}× avg rise` : ""}` : "Pick flour type with each feed.",
+        detail: bestFlour ? `${bestFlour.label}${average(bestFlour.rises) ? ` · ${formatRisePercent(average(bestFlour.rises))} avg rise` : ""}` : "Pick flour type with each feed.",
       },
       {
         label: "Temperature effect",
@@ -402,6 +431,21 @@ export function StarterLab({
   const latest = logs[0];
   const latestFeed = useMemo(() => logs.find((log) => log.entryType !== "rise"), [logs]);
   const latestRise = useMemo(() => logs.find((log) => Number(log.rise) > 0 || log.entryType === "rise"), [logs]);
+  const recentFeedForRise = useMemo(() => {
+    if (feedModal?.mode !== "rise") return null;
+    const checkAt = new Date(feedModal.dateTime);
+    if (Number.isNaN(checkAt.getTime())) return null;
+    const priorFeed = logs.find((log) => {
+      if (log.entryType === "rise") return false;
+      const fedAt = new Date(log.dateTime);
+      return !Number.isNaN(fedAt.getTime()) && fedAt <= checkAt;
+    });
+    if (!priorFeed) return null;
+    const fedAt = new Date(priorFeed.dateTime);
+    const hours = (checkAt.getTime() - fedAt.getTime()) / HOUR_MS;
+    if (hours < 0 || hours > 12) return null;
+    return { feed: priorFeed, fedAt, hours };
+  }, [feedModal?.dateTime, feedModal?.mode, logs]);
   const calibration = starterCalibration(starterLogs, selected?.id);
   const calibrationLogCount = useMemo(() => starterLogs
     .filter((log) => log.starterId === selected?.id && Number(log.peakHours) > 0)
@@ -475,7 +519,7 @@ export function StarterLab({
       entryType: mode === "rise" ? "rise" : "feed",
       flourBlend: [{ type: flourType || "Bread flour", percent: 100 }],
       temperature: Number(feedModal.temperature),
-      rise: feedModal.rise === "" ? null : Number(feedModal.rise),
+      rise: feedModal.rise === "" ? null : riseMultiplierFromPercent(feedModal.rise),
       peakHours: feedModal.peakHours === "" ? null : Number(feedModal.peakHours),
       dateTime: new Date(feedModal.dateTime).toISOString(),
     });
@@ -522,7 +566,7 @@ export function StarterLab({
       {selected.notes ? <p className="starter-profile-note">{selected.notes}</p> : null}
 
       <div className="starter-reading-grid">
-        <div><TrendingUp /><strong>{latestRise?.rise ? `${latestRise.rise}×` : "—"}</strong><span>last logged rise</span></div>
+        <div><TrendingUp /><strong>{latestRise?.rise ? formatRisePercent(latestRise.rise) : "—"}</strong><span>last logged rise</span></div>
         <div><Thermometer /><strong>{latest?.temperature ? `${latest.temperature}°F` : "—"}</strong><span>last jar temp</span></div>
         <div><Clock3 /><strong>{peak.hours.toFixed(1)}h</strong><span>estimated peak</span></div>
       </div>
@@ -681,7 +725,7 @@ export function StarterLab({
                 </small>
               </span>
               <span className="feed-history-actions">
-                <small>{log.peakHours ? `${log.peakHours}h peak` : log.rise ? `${log.rise}× rise` : `${log.temperature}°F`}</small>
+                <small>{log.peakHours ? `${log.peakHours}h peak` : log.rise ? `${formatRisePercent(log.rise)} rise` : `${log.temperature}°F`}</small>
                 {onDeleteStarterLog ? (
                   <button
                     className="feed-log-delete-button"
@@ -730,19 +774,38 @@ export function StarterLab({
                 : "Use this when you feed the starter. The app will mark expected peak and feed-again times on the calendar."}
             </p>
             <label>{feedModal.mode === "rise" ? "Check date and time" : "Feed date and time"}<input type="datetime-local" value={feedModal.dateTime} onChange={(event) => setFeedModal({ ...feedModal, dateTime: event.target.value })} /></label>
+            {recentFeedForRise ? (
+              <div className="starter-rise-elapsed" role="status">
+                <span>
+                  <Clock3 size={18} />
+                  <span>
+                    <small>Time since last feed</small>
+                    <strong>{formatElapsedSinceFeed(recentFeedForRise.hours)}</strong>
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setFeedModal({ ...feedModal, peakHours: recentFeedForRise.hours.toFixed(1) })}
+                >
+                  Use {recentFeedForRise.hours.toFixed(1)}h as peak
+                </button>
+              </div>
+            ) : null}
             <div className="form-grid">
               <label>{feedModal.mode === "rise" ? "Last feed ratio" : "Feed ratio"}<input value={feedModal.ratio} onChange={(event) => setFeedModal({ ...feedModal, ratio: event.target.value })} placeholder="1:2:2" /></label>
               <label>{feedModal.mode === "rise" ? "Last feed flour type" : "Feed flour type"}<select value={feedModal.flourType} onChange={(event) => setFeedModal({ ...feedModal, flourType: event.target.value })}>{FLOUR_TYPES.map((type) => <option key={type}>{type}</option>)}</select></label>
             </div>
             <div className="form-grid">
               <label>Jar temp °F<input type="number" min="45" max="105" value={feedModal.temperature} onChange={(event) => setFeedModal({ ...feedModal, temperature: event.target.value })} /></label>
-              <label>Rise multiple<input type="number" min="0" step="0.1" value={feedModal.rise} onChange={(event) => setFeedModal({ ...feedModal, rise: event.target.value })} placeholder="2.1" /></label>
+              <label>Rise %<input type="number" min="0" max="500" step="5" value={feedModal.rise} onChange={(event) => setFeedModal({ ...feedModal, rise: event.target.value })} placeholder="100" /><small className="field-help">100% means the starter doubled in height.</small></label>
             </div>
             <div className="form-grid">
               <label>Hours to peak<input type="number" min="0" step="0.1" value={feedModal.peakHours} onChange={(event) => setFeedModal({ ...feedModal, peakHours: event.target.value })} placeholder="Optional" /></label>
               <span className="starter-feed-science-note">
                 {feedModal.mode === "rise"
-                  ? "If this was the peak, enter hours from feeding to peak. That calibrates the starter curve."
+                  ? recentFeedForRise
+                    ? "Use the calculated time above if this is the peak. Saving peak hours calibrates the starter curve."
+                    : "If this was the peak, enter hours from feeding to peak. Recent feeds within 12 hours are calculated automatically."
                   : "The saved flour type calibrates the expected peak and feed-again markers."}
               </span>
             </div>

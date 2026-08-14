@@ -4072,3 +4072,34 @@ html body .app-shell:not(.customer-storefront) .modal-backdrop .modal-sheet:has(
   color: #ffb08a !important;
   -webkit-text-fill-color: #ffb08a !important;
 }
+
+/* Starter rise logging: calculated feed age and percentage guidance. */
+html body .app-shell:not(.customer-storefront) .modal-backdrop .starter-rise-elapsed {
+  border: 1.5px solid var(--loafers-dc-border) !important;
+  background:
+    linear-gradient(145deg, rgba(48, 50, 44, .99), rgba(19, 23, 20, .99)) !important;
+}
+
+html body .app-shell:not(.customer-storefront) .modal-backdrop .starter-rise-elapsed :is(svg, small) {
+  color: var(--loafers-dc-bronze-soft) !important;
+  -webkit-text-fill-color: var(--loafers-dc-bronze-soft) !important;
+  stroke: currentColor !important;
+}
+
+html body .app-shell:not(.customer-storefront) .modal-backdrop .starter-rise-elapsed strong {
+  color: var(--loafers-dc-cream) !important;
+  -webkit-text-fill-color: var(--loafers-dc-cream) !important;
+}
+
+html body .app-shell:not(.customer-storefront) .modal-backdrop .starter-rise-elapsed button {
+  border: 1px solid rgba(214, 161, 95, .82) !important;
+  background:
+    linear-gradient(135deg, rgba(154, 75, 31, .98), rgba(89, 42, 19, .99)) !important;
+  color: var(--loafers-dc-cream) !important;
+  -webkit-text-fill-color: var(--loafers-dc-cream) !important;
+}
+
+html body .app-shell:not(.customer-storefront) .modal-backdrop .field-help {
+  color: var(--loafers-dc-bronze-soft) !important;
+  -webkit-text-fill-color: var(--loafers-dc-bronze-soft) !important;
+}

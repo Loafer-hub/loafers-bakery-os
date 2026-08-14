@@ -6,7 +6,7 @@ import {
   Settings2,
   Wheat,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { BottomNav, GlobalQuickAction } from "./components/AppChrome";
 import { InstallAppPrompt } from "./components/InstallAppPrompt";
 import { Modal, Toast } from "./components/Primitives";
@@ -23,12 +23,15 @@ import { useCloudAccount } from "./hooks/useCloudAccount";
 import {
   cancelCustomerOrderCapacity,
   completeCustomerOrder,
+  downloadCloudSnapshot,
   listBakeryCustomerProfiles,
   loadBakerySettings,
   saveBakerySettings,
   syncBakerCapacityReservations,
   updateCustomerOrderBakeProgress,
+  uploadCloudSnapshot,
 } from "./lib/cloud";
+import { createBackup } from "./lib/storage";
 import { DEFAULT_BAKERY_SETTINGS, normalizedBakerySettings } from "./lib/bakerySettings";
 import { BAKE_PHASES, normalizedBakeProgress } from "./lib/bakeProgress";
 import {
@@ -55,7 +58,7 @@ import ResourceHubPage from "./pages/ResourceHubPage";
 import SettingsPage from "./pages/SettingsPage";
 import TodayPage from "./pages/TodayPage";
 import HelpPage from "./pages/HelpPage";
-import CookbookPage from "./pages/CookbookPage";
+import CookbookPage, { createStarterCookbook } from "./pages/CookbookPage";
 import HomeKitchenPage from "./pages/HomeKitchenPage";
 
 // customer-options-v1
@@ -327,7 +330,11 @@ export default function App() {
   const [selectedOrderId, setSelectedOrderId] = useState(null);
   const [orders, setOrders] = usePersistentState("loafers-orders-v1", seedOrders);
   const [customerProfiles, setCustomerProfiles] = usePersistentState("loafers-customer-profiles-v1", []);
-  const [recipes, setRecipes] = usePersistentState("loafers-recipes-v1", seedRecipes);
+  const [recipes, setRecipes, recipesHydrated] = usePersistentState("loafers-recipes-v1", seedRecipes);
+  const [cookbook, setCookbook, cookbookHydrated] = usePersistentState(
+    "loafers-cookbook-v1",
+    createStarterCookbook(seedRecipes),
+  );
   const [inventory, setInventory] = usePersistentState("loafers-inventory-v1", seedInventory);
   const [expenses, setExpenses] = usePersistentState("loafers-expenses-v1", seedExpenses);
   const [bakePlans, setBakePlans] = usePersistentState("loafers-bake-plans-v1", []);
@@ -351,6 +358,13 @@ export default function App() {
     lastCloudBackupAt: null,
   });
   const [recoveryBackup, setRecoveryBackup] = usePersistentState("loafers-recovery-v1", null);
+  const [recipeCloudStatus, setRecipeCloudStatus] = useState("local");
+  const [recipeCloudError, setRecipeCloudError] = useState("");
+  const recipeCloudHydrationRef = useRef("");
+  const recipeCloudSaveTimerRef = useRef(null);
+  const recipeCloudSaveChainRef = useRef(Promise.resolve());
+  const recipeCloudSaveSequenceRef = useRef(0);
+  const cloudBackupDataRef = useRef(null);
   const [toast, setToast] = useState("");
   const [quickStarter, setQuickStarter] = useState(false);
   const [quickActionsOpen, setQuickActionsOpen] = useState(false);
@@ -365,7 +379,7 @@ export default function App() {
     starterId: "mabel",
     ratio: "1:2:2",
     temperature: 76,
-    rise: 2,
+    rise: 100,
     note: "",
   });
   const currentPage = canonicalPage(active);
@@ -380,6 +394,22 @@ export default function App() {
     ...(storedProductionAutomation || {}),
   };
   const orderSlug = new URLSearchParams(window.location.search).get("order");
+
+  cloudBackupDataRef.current = {
+    orders,
+    customerProfiles,
+    recipes,
+    cookbook,
+    inventory,
+    expenses,
+    bakePlans,
+    kitchenBakes,
+    homeKitchenJobs,
+    batchTraceRecords,
+    liquidSafetyLogs,
+    starters,
+    starterLogs,
+  };
 
   useEffect(() => {
     if (!toast) return undefined;
@@ -421,6 +451,119 @@ export default function App() {
       active = false;
     };
   }, [cloudAccount.workspace?.bakeryId, setCustomerProfiles]);
+
+  useEffect(() => {
+    const bakeryId = cloudAccount.workspace?.bakeryId;
+    const userId = cloudAccount.session?.user?.id;
+    if (!bakeryId || !userId || !recipesHydrated || !cookbookHydrated) {
+      if (!bakeryId) {
+        recipeCloudHydrationRef.current = "";
+        setRecipeCloudStatus("local");
+      }
+      return undefined;
+    }
+
+    const cloudKey = `${bakeryId}:${userId}`;
+    if (recipeCloudHydrationRef.current === cloudKey || recipeCloudHydrationRef.current === `loading:${cloudKey}`) {
+      return undefined;
+    }
+
+    let cancelled = false;
+    recipeCloudHydrationRef.current = `loading:${cloudKey}`;
+    setRecipeCloudStatus("loading");
+    setRecipeCloudError("");
+
+    downloadCloudSnapshot(bakeryId)
+      .then(async (snapshot) => {
+        if (cancelled) return;
+        const remoteData = snapshot?.data?.data;
+        const cloudCollectionsReady = Boolean(
+          remoteData
+          && Object.prototype.hasOwnProperty.call(remoteData, "cookbook"),
+        );
+
+        recipeCloudHydrationRef.current = cloudKey;
+        if (cloudCollectionsReady) {
+          if (Array.isArray(remoteData.recipes)) setRecipes(remoteData.recipes);
+          if (remoteData.cookbook && typeof remoteData.cookbook === "object") {
+            setCookbook({
+              recipes: Array.isArray(remoteData.cookbook.recipes) ? remoteData.cookbook.recipes : [],
+              plans: Array.isArray(remoteData.cookbook.plans) ? remoteData.cookbook.plans : [],
+              manualShopping: Array.isArray(remoteData.cookbook.manualShopping) ? remoteData.cookbook.manualShopping : [],
+            });
+          }
+          setRecipeCloudStatus("synced");
+          if (snapshot?.updated_at) {
+            setStorageMeta((current) => ({ ...current, lastCloudBackupAt: snapshot.updated_at }));
+          }
+          return;
+        }
+
+        const result = await uploadCloudSnapshot(
+          bakeryId,
+          createBackup(cloudBackupDataRef.current),
+          userId,
+        );
+        if (cancelled) return;
+        setRecipeCloudStatus("synced");
+        setStorageMeta((current) => ({ ...current, lastCloudBackupAt: result.updated_at }));
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        recipeCloudHydrationRef.current = "";
+        setRecipeCloudStatus("error");
+        setRecipeCloudError(error.message || "Cookbook cloud sync failed.");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    cloudAccount.session?.user?.id,
+    cloudAccount.workspace?.bakeryId,
+    cookbookHydrated,
+    recipesHydrated,
+    setCookbook,
+    setRecipes,
+    setStorageMeta,
+  ]);
+
+  useEffect(() => {
+    const bakeryId = cloudAccount.workspace?.bakeryId;
+    const userId = cloudAccount.session?.user?.id;
+    const cloudKey = bakeryId && userId ? `${bakeryId}:${userId}` : "";
+    if (!cloudKey || recipeCloudHydrationRef.current !== cloudKey) return undefined;
+
+    const sequence = recipeCloudSaveSequenceRef.current + 1;
+    recipeCloudSaveSequenceRef.current = sequence;
+    setRecipeCloudStatus("saving");
+    setRecipeCloudError("");
+    window.clearTimeout(recipeCloudSaveTimerRef.current);
+    recipeCloudSaveTimerRef.current = window.setTimeout(() => {
+      const backup = createBackup(cloudBackupDataRef.current);
+      recipeCloudSaveChainRef.current = recipeCloudSaveChainRef.current
+        .catch(() => {})
+        .then(() => uploadCloudSnapshot(bakeryId, backup, userId))
+        .then((result) => {
+          if (recipeCloudSaveSequenceRef.current !== sequence) return;
+          setRecipeCloudStatus("synced");
+          setStorageMeta((current) => ({ ...current, lastCloudBackupAt: result.updated_at }));
+        })
+        .catch((error) => {
+          if (recipeCloudSaveSequenceRef.current !== sequence) return;
+          setRecipeCloudStatus("error");
+          setRecipeCloudError(error.message || "Cookbook cloud sync failed.");
+        });
+    }, 800);
+
+    return () => window.clearTimeout(recipeCloudSaveTimerRef.current);
+  }, [
+    cloudAccount.session?.user?.id,
+    cloudAccount.workspace?.bakeryId,
+    cookbook,
+    recipes,
+    setStorageMeta,
+  ]);
 
   function addOrder(form) {
     const initials = form.customer
@@ -1064,6 +1207,7 @@ export default function App() {
     setOrders(data.orders);
     setCustomerProfiles(data.customerProfiles || []);
     setRecipes(data.recipes);
+    setCookbook(data.cookbook || { recipes: [], plans: [], manualShopping: [] });
     setInventory(data.inventory);
     setExpenses(data.expenses);
     setBakePlans(data.bakePlans);
@@ -1095,6 +1239,10 @@ export default function App() {
     productionAutomation,
     orders,
     recipes,
+    cookbook,
+    setCookbook,
+    recipeCloudStatus,
+    recipeCloudError,
     bakePlans,
     kitchenBakes,
     homeKitchenJobs,
@@ -1235,7 +1383,7 @@ export default function App() {
         <Modal title="Quick starter check" onClose={() => setQuickStarter(false)}>
           <form className="form-stack" onSubmit={(event) => {
             event.preventDefault();
-            logStarter(quickFeed);
+            logStarter({ ...quickFeed, rise: 1 + Number(quickFeed.rise || 0) / 100 });
             setQuickFeed((current) => ({ ...current, note: "" }));
             setQuickStarter(false);
           }}>
@@ -1249,7 +1397,7 @@ export default function App() {
               <label>Feed ratio<input value={quickFeed.ratio} onChange={(event) => setQuickFeed({ ...quickFeed, ratio: event.target.value })} /></label>
               <label>Jar temp °F<input type="number" value={quickFeed.temperature} onChange={(event) => setQuickFeed({ ...quickFeed, temperature: Number(event.target.value) })} /></label>
             </div>
-            <label>Rise multiple<input type="number" step="0.1" min="0" value={quickFeed.rise} onChange={(event) => setQuickFeed({ ...quickFeed, rise: Number(event.target.value) })} /></label>
+            <label>Rise %<input type="number" step="5" min="0" max="500" value={quickFeed.rise} onChange={(event) => setQuickFeed({ ...quickFeed, rise: Number(event.target.value) })} /><small className="field-help">100% means the starter doubled in height.</small></label>
             <label>Quick note<textarea value={quickFeed.note} onChange={(event) => setQuickFeed({ ...quickFeed, note: event.target.value })} placeholder="Bubbles, aroma, texture…" /></label>
             <button className="primary-button" type="submit">Log starter check</button>
           </form>
@@ -1262,6 +1410,7 @@ export default function App() {
             orders,
             customerProfiles,
             recipes,
+            cookbook,
             inventory,
             expenses,
             bakePlans,

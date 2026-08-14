@@ -6985,6 +6985,58 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   line-height: 1.35;
 }
 
+.starter-rise-elapsed {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--paper-soft);
+}
+
+.starter-rise-elapsed > span {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.starter-rise-elapsed small,
+.starter-rise-elapsed strong {
+  display: block;
+}
+
+.starter-rise-elapsed small {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+.starter-rise-elapsed strong {
+  margin-top: 2px;
+  font-size: 17px;
+}
+
+.starter-rise-elapsed button {
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-weight: 800;
+}
+
+.field-help {
+  display: block;
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
 .section-title-line {
   display: flex;
   align-items: center;

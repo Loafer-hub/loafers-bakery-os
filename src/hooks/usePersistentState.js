@@ -12,6 +12,7 @@ export function usePersistentState(key, initialValue) {
     }
   });
   const isHydrated = useRef(false);
+  const [hydrated, setHydrated] = useState(false);
   const changedBeforeHydration = useRef(false);
   const latestValue = useRef(value);
 
@@ -31,11 +32,13 @@ export function usePersistentState(key, initialValue) {
   useEffect(() => {
     let isActive = true;
     isHydrated.current = false;
+    setHydrated(false);
     changedBeforeHydration.current = false;
 
     readStoredValue(key, initialValue).then((storedValue) => {
       if (!isActive) return;
       isHydrated.current = true;
+      setHydrated(true);
       if (changedBeforeHydration.current) {
         writeStoredValue(key, latestValue.current).catch(() => {
           window.localStorage.setItem(key, JSON.stringify(latestValue.current));
@@ -57,5 +60,5 @@ export function usePersistentState(key, initialValue) {
     });
   }, [key, value]);
 
-  return [value, setValue];
+  return [value, setValue, hydrated];
 }

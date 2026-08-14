@@ -1,11 +1,12 @@
 import { Preferences } from "@capacitor/preferences";
 
 const STORAGE_PREFIX = "loafers.v1.";
-export const BACKUP_SCHEMA_VERSION = 6;
+export const BACKUP_SCHEMA_VERSION = 7;
 export const STORAGE_DATASETS = [
   { id: "orders", label: "Orders" },
   { id: "customerProfiles", label: "Customer profiles" },
   { id: "recipes", label: "Recipes" },
+  { id: "cookbook", label: "Cookbook", type: "object" },
   { id: "inventory", label: "Inventory" },
   { id: "expenses", label: "Expenses" },
   { id: "bakePlans", label: "Bake plans" },
@@ -60,9 +61,11 @@ export function createBackup(data) {
     format: "loafers-bakery-os-backup",
     schemaVersion: BACKUP_SCHEMA_VERSION,
     createdAt: new Date().toISOString(),
-    data: Object.fromEntries(STORAGE_DATASETS.map(({ id }) => [
+    data: Object.fromEntries(STORAGE_DATASETS.map(({ id, type }) => [
       id,
-      Array.isArray(data[id]) ? data[id] : [],
+      type === "object"
+        ? (data[id] && typeof data[id] === "object" && !Array.isArray(data[id]) ? data[id] : {})
+        : (Array.isArray(data[id]) ? data[id] : []),
     ])),
   };
 }
@@ -87,7 +90,18 @@ export function parseBackup(text) {
     throw new Error("This backup is missing its bakery records.");
   }
   const normalizedData = {};
-  STORAGE_DATASETS.forEach(({ id }) => {
+  STORAGE_DATASETS.forEach(({ id, type }) => {
+    if (id === "cookbook" && backup.data[id] === undefined) {
+      normalizedData[id] = { recipes: [], plans: [], manualShopping: [] };
+      return;
+    }
+    if (type === "object") {
+      if (!backup.data[id] || typeof backup.data[id] !== "object" || Array.isArray(backup.data[id])) {
+        throw new Error(`The ${id} records in this backup are damaged.`);
+      }
+      normalizedData[id] = backup.data[id];
+      return;
+    }
     if (["customerProfiles", "kitchenBakes", "homeKitchenJobs", "batchTraceRecords", "liquidSafetyLogs"].includes(id) && backup.data[id] === undefined) {
       normalizedData[id] = [];
       return;

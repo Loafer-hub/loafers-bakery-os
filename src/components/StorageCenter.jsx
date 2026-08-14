@@ -40,6 +40,14 @@ function dateLabel(value) {
   });
 }
 
+function datasetRecordCount(value) {
+  if (Array.isArray(value)) return value.length;
+  if (!value || typeof value !== "object") return 0;
+  return Object.values(value).reduce((sum, collection) => (
+    sum + (Array.isArray(collection) ? collection.length : 0)
+  ), 0);
+}
+
 function downloadJson(backup) {
   const text = JSON.stringify(backup, null, 2);
   const blob = new Blob([text], { type: "application/json" });
@@ -74,7 +82,7 @@ export function StorageCenter({
   const fileInput = useRef(null);
   const backup = useMemo(() => createBackup(data), [data]);
   const size = backupSizeBytes(backup);
-  const totalRecords = STORAGE_DATASETS.reduce((sum, { id }) => sum + data[id].length, 0);
+  const totalRecords = STORAGE_DATASETS.reduce((sum, { id }) => sum + datasetRecordCount(data[id]), 0);
   const native = Capacitor.isNativePlatform();
   const cloudConnected = Boolean(cloudAccount.configured && cloudAccount.workspace);
 
@@ -161,7 +169,7 @@ export function StorageCenter({
           </div>
           <div className="storage-dataset-grid">
             {STORAGE_DATASETS.map(({ id, label }) => (
-              <div key={id}><span>{label}</span><strong>{data[id].length}</strong></div>
+              <div key={id}><span>{label}</span><strong>{datasetRecordCount(data[id])}</strong></div>
             ))}
           </div>
         </section>
@@ -171,7 +179,7 @@ export function StorageCenter({
             <div><span className="eyebrow-label dark">Recommended</span><h3>Make a backup</h3></div>
             <Download size={18} />
           </div>
-          <p>Download one file containing orders, customer profiles, recipes, inventory, expenses, bake plans, kitchen bakes, batch trace records, liquid safety logs, starters, and feed logs.</p>
+          <p>Download one file containing orders, customer profiles, bakery recipes, Cookbook recipes and plans, inventory, expenses, bake plans, kitchen bakes, batch trace records, liquid safety logs, starters, and feed logs.</p>
           <button className="primary-button" type="button" onClick={exportBackup}><Download size={17} /> Download backup</button>
           <small>Last backup: {dateLabel(lastBackupAt)}</small>
         </section>
@@ -195,7 +203,7 @@ export function StorageCenter({
               <div><CheckCircle2 size={18} /><span><strong>Valid Loafers backup</strong><small>Created {dateLabel(preview.createdAt)}</small></span></div>
               <div className="storage-dataset-grid compact">
                 {STORAGE_DATASETS.map(({ id, label }) => (
-                  <div key={id}><span>{label}</span><strong>{preview.data[id].length}</strong></div>
+                  <div key={id}><span>{label}</span><strong>{datasetRecordCount(preview.data[id])}</strong></div>
                 ))}
               </div>
               <p><b>This replaces the records currently on this device.</b> Download a backup first if you need to preserve them.</p>

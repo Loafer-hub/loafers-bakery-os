@@ -13,10 +13,8 @@ import {
   UtensilsCrossed,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { usePersistentState } from "../hooks/usePersistentState";
 import { recipeUsesStarter } from "../lib/recipeTimeline";
 
-const COOKBOOK_KEY = "loafers-cookbook-v1";
 const FILTERS = ["all", "planned", "active", "completed"];
 
 function localDateKey(date = new Date()) {
@@ -54,13 +52,13 @@ function normalizedLibraryRecipe(recipe, source = "cookbook") {
 
 export default function HomeKitchenPage({
   recipes = [],
+  cookbook = { recipes: [], plans: [], manualShopping: [] },
   homeKitchenJobs = [],
   homeKitchenFocus,
   onScheduleCookbookRecipe,
   onSaveHomeKitchenJob,
   onDeleteHomeKitchenJob,
 }) {
-  const [cookbook] = usePersistentState(COOKBOOK_KEY, { recipes: [], plans: [], manualShopping: [] });
   const [filter, setFilter] = useState("all");
   const [selectedJobId, setSelectedJobId] = useState("");
   const [recipeId, setRecipeId] = useState("");
