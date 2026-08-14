@@ -22631,3 +22631,119 @@ html body .app-shell:not(.customer-storefront) .page.page .search-row .search-fi
   }
 }
 
+/* Owner dialog form contrast -------------------------------------------------
+   Keep native controls and their popup option menus readable inside the dark
+   owner workspace. This intentionally lives at the end of the cascade so old
+   paper-theme label/card rules cannot repaint individual form rows. */
+html body .app-shell:not(.customer-storefront) .modal-sheet {
+  color-scheme: dark;
+}
+
+html body .app-shell:not(.customer-storefront) .modal-sheet .form-stack > label,
+html body .app-shell:not(.customer-storefront) .modal-sheet .form-grid > label,
+html body .app-shell:not(.customer-storefront) .modal-sheet .payment-tracking-panel label {
+  color: #dfa65f !important;
+  border-color: transparent !important;
+  background: transparent !important;
+  -webkit-text-fill-color: #dfa65f !important;
+}
+
+html body .app-shell:not(.customer-storefront) .modal-sheet :is(
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea
+) {
+  color: #f2eee8 !important;
+  border: 1.5px solid rgba(196, 126, 54, .82) !important;
+  background: #555851 !important;
+  caret-color: #efb66f;
+  -webkit-text-fill-color: #f2eee8 !important;
+  opacity: 1 !important;
+}
+
+html body .app-shell:not(.customer-storefront) .modal-sheet :is(input, textarea)::placeholder {
+  color: rgba(242, 238, 232, .68) !important;
+  -webkit-text-fill-color: rgba(242, 238, 232, .68) !important;
+  opacity: 1 !important;
+}
+
+html body .app-shell:not(.customer-storefront) :is(select, .owner-product-status-control select) {
+  color-scheme: dark !important;
+}
+
+html body .app-shell:not(.customer-storefront) :is(select, .owner-product-status-control select) :is(option, optgroup),
+html body .app-shell:not(.customer-storefront) .modal-sheet :is(option, optgroup) {
+  color: #f4eee6 !important;
+  background-color: #171b18 !important;
+  -webkit-text-fill-color: #f4eee6 !important;
+}
+
+html body .app-shell:not(.customer-storefront) select option:checked,
+html body .app-shell:not(.customer-storefront) .owner-product-status-control select option:checked {
+  color: #ffffff !important;
+  background: #756d62 !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+html body .app-shell:not(.customer-storefront) .modal-sheet :is(
+  input:not([type="checkbox"]):not([type="radio"]):disabled,
+  input:not([type="checkbox"]):not([type="radio"])[readonly],
+  select:disabled,
+  textarea:disabled,
+  textarea[readonly]
+) {
+  color: #ddd5ca !important;
+  background: #454942 !important;
+  -webkit-text-fill-color: #ddd5ca !important;
+  opacity: 1 !important;
+}
+
+html body .app-shell:not(.customer-storefront) .modal-sheet :is(
+  .local-notification-options > label,
+  .checkbox-line,
+  .order-package-summary,
+  .order-capacity-note,
+  .payment-tracking-panel
+) {
+  color: #f1ece5 !important;
+  border: 1px solid rgba(196, 126, 54, .72) !important;
+  background: #343832 !important;
+  -webkit-text-fill-color: #f1ece5 !important;
+}
+
+html body .app-shell:not(.customer-storefront) .modal-sheet :is(
+  .order-package-summary,
+  .order-capacity-note,
+  .payment-tracking-panel
+) :is(strong, span, small, label, div) {
+  color: inherit !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+
+html body .app-shell:not(.customer-storefront) .modal-sheet .payment-tracking-panel .section-title-line strong,
+html body .app-shell:not(.customer-storefront) .modal-sheet .payment-tracking-panel .section-title-line svg {
+  color: #f1ece5 !important;
+}
+
+html body .app-shell:not(.customer-storefront) .modal-sheet .payment-tracking-panel .section-title-line small,
+html body .app-shell:not(.customer-storefront) .modal-sheet .order-package-summary small,
+html body .app-shell:not(.customer-storefront) .modal-sheet .order-capacity-note span {
+  color: #d8d1c7 !important;
+  -webkit-text-fill-color: #d8d1c7 !important;
+  opacity: 1 !important;
+}
+
+html body .app-shell:not(.customer-storefront) .modal-sheet .order-capacity-note.locked {
+  color: #f0b39f !important;
+  border-color: rgba(214, 112, 78, .88) !important;
+  background: #4a302a !important;
+  -webkit-text-fill-color: #f0b39f !important;
+}
+
+html body .app-shell:not(.customer-storefront) .modal-sheet .owner-product-status-control select {
+  color: #f6f0e8 !important;
+  border-color: rgba(214, 161, 95, .9) !important;
+  background: #151a16 !important;
+  -webkit-text-fill-color: #f6f0e8 !important;
+}
+
