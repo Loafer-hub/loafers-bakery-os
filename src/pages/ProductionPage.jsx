@@ -96,6 +96,7 @@ function ProductionOperations({
   area,
   onChangeArea,
   onOpenBakeDesk,
+  onOpenHomeKitchenPlan,
   bakerySettings,
   bakePlans = [],
   cloudAccount,
@@ -198,7 +199,9 @@ function ProductionOperations({
           onToggleUnavailable={toggleUnavailableDate}
           onChangeMonth={(amount) => setCalendarMonth((current) => new Date(current.getFullYear(), current.getMonth() + amount, 1))}
           onSelectDate={(date) => onOpenBakeDesk({ date })}
-          onOpenPlan={(plan) => onOpenBakeDesk({ plan })}
+          onOpenPlan={(plan) => plan.source === "cookbook"
+            ? onOpenHomeKitchenPlan?.(plan)
+            : onOpenBakeDesk({ plan })}
         />
       ) : null}
 

@@ -264,7 +264,7 @@ function emptyRecipe() {
   };
 }
 
-export default function CookbookPage({ recipes: bakeryRecipes = [], setActive }) {
+export default function CookbookPage({ recipes: bakeryRecipes = [], setActive, onScheduleCookbookRecipe }) {
   const [cookbook, setCookbook] = usePersistentState(STORAGE_KEY, starterCookbook(bakeryRecipes));
   const [selectedId, setSelectedId] = useState("");
   const [query, setQuery] = useState("");
@@ -336,7 +336,9 @@ export default function CookbookPage({ recipes: bakeryRecipes = [], setActive })
   const addToPlan = (recipe = selected) => {
     if (!recipe) return;
     const id = nextId("meal");
-    updateCookbook((current) => ({ ...current, plans: [...current.plans, { id, date: selectedDay, recipeId: recipe.id, servings: recipe.servings || 1 }] }));
+    const servings = Math.max(1, Math.round(Number(recipe.servings || 1) * scale));
+    updateCookbook((current) => ({ ...current, plans: [...current.plans, { id, date: selectedDay, recipeId: recipe.id, servings }] }));
+    onScheduleCookbookRecipe?.(recipe, { date: selectedDay, servings, cookbookPlanId: id });
   };
 
   const importRecipe = () => {
@@ -418,7 +420,7 @@ export default function CookbookPage({ recipes: bakeryRecipes = [], setActive })
               <section className="cookbook-card"><div className="cookbook-card-title"><ShoppingBasket size={18} /><h3>Ingredients</h3></div><ul className="cookbook-ingredients">{selected.ingredients.map((ingredient) => <li key={ingredient.id}><span>{ingredient.name}{ingredient.note ? <small>{ingredient.note}</small> : null}</span><b>{formatAmount(ingredient.amount * scale)} {ingredient.unit}</b></li>)}</ul></section>
               <section className="cookbook-card"><div className="cookbook-card-title"><ClipboardList size={18} /><h3>Method</h3></div><ol className="cookbook-steps">{selected.steps.map((step, index) => <li key={`${step}-${index}`}><span>{index + 1}</span><p>{step}</p></li>)}</ol></section>
             </div>
-            <section className="cookbook-plan-quick"><CalendarDays size={19} /><span><b>Plan this recipe</b><small>Add {selected.name} to {new Date(`${selectedDay}T12:00`).toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}.</small></span><input type="date" value={selectedDay} onChange={(event) => setSelectedDay(event.target.value)} /><button className="primary-button" type="button" onClick={() => addToPlan(selected)}><ListPlus size={17} /> Add to planner</button></section>
+            <section className="cookbook-plan-quick"><CalendarDays size={19} /><span><b>Plan this recipe</b><small>Add {selected.name} to Production and Home Kitchen on {new Date(`${selectedDay}T12:00`).toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}.</small></span><input type="date" value={selectedDay} min={new Date().toLocaleDateString("en-CA")} onChange={(event) => setSelectedDay(event.target.value)} /><button className="primary-button" type="button" onClick={() => addToPlan(selected)}><ListPlus size={17} /> Add to Production</button></section>
           </> : isEditing && draft ? <RecipeEditor draft={draft} setDraft={setDraft} photoInput={photoInput} onPhotoUpload={onPhotoUpload} onSave={saveDraft} onCancel={() => { setIsEditing(false); setDraft(null); }} /> : <div className="cookbook-empty">Choose a recipe or create a new one.</div>}
         </section>
 

@@ -6,6 +6,18 @@ function dateKey(year, month, day) {
   return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
+function todayKey() {
+  const today = new Date();
+  return dateKey(today.getFullYear(), today.getMonth(), today.getDate());
+}
+
+function quantityLabel(entry) {
+  const quantity = Number(entry.quantity ?? entry.loaves ?? 1);
+  const unit = entry.unitName || "loaf";
+  const label = quantity === 1 ? unit : `${unit}${unit.endsWith("s") ? "" : "s"}`;
+  return `${quantity} ${label}`;
+}
+
 export function BakeCalendar({
   month,
   plans,
@@ -32,6 +44,7 @@ export function BakeCalendar({
   const plansByDate = new Map();
   const ordersByDate = new Map();
   const unavailableByDate = new Map(unavailableDays.map((day) => [day.unavailable_date, day]));
+  const currentDate = todayKey();
 
   plans.forEach((plan) => {
     const items = plansByDate.get(plan.date) || [];
@@ -95,6 +108,7 @@ export function BakeCalendar({
           const firstOrder = dateOrders[0];
           const totalEntries = datePlans.length + dateOrders.length;
           const unavailable = unavailableByDate.get(date);
+          const isPast = date < currentDate;
           return (
             <button
               className={[
@@ -103,15 +117,19 @@ export function BakeCalendar({
                 dateOrders.length ? "has-accepted-order" : "",
                 unavailable ? "unavailable-bake-day" : "",
                 availabilityMode ? "availability-editing" : "",
+                isPast ? "past-calendar-day" : "",
               ].filter(Boolean).join(" ")}
               key={date}
               type="button"
+              disabled={isPast}
               onClick={() => availabilityMode
                 ? onToggleUnavailable(date)
                 : firstPlan
                   ? onOpenPlan(firstPlan)
                   : onSelectDate(date)}
-              aria-label={availabilityMode
+              aria-label={isPast
+                ? `${date}: past date`
+                : availabilityMode
                 ? `${date}: ${unavailable ? "reopen customer orders" : "block customer orders"}`
                 : firstPlan
                 ? `${date}: ${firstPlan.loaves} loaf ${firstPlan.recipeName} bake`
@@ -120,6 +138,7 @@ export function BakeCalendar({
                 : `${date}: add a bake`}
             >
               <span>{day}</span>
+              {isPast ? <span className="calendar-past-stamp" aria-hidden="true">PAST</span> : null}
               {firstPlan ? (
                 <small>{firstPlan.loaves} · {firstPlan.recipeName}</small>
               ) : firstOrder ? (
@@ -158,7 +177,7 @@ export function BakeCalendar({
               </span>
               <span>
                 <strong>{entry.recipeName}</strong>
-                <small>{entry.loaves} {entry.loaves === 1 ? "loaf" : "loaves"}</small>
+                <small>{quantityLabel(entry)}</small>
               </span>
               <ChevronRight size={17} />
             </button>

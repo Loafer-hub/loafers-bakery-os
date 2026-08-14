@@ -1,0 +1,315 @@
+/* home-kitchen-production-v1
+   A dedicated cooking workspace plus a strong, non-interactive past-day treatment. */
+
+.home-kitchen-page {
+  width: min(100%, 1760px);
+  margin: 0 auto;
+  padding: 28px 28px 80px;
+  color: #ece6dc;
+}
+
+.home-kitchen-hero,
+.home-kitchen-scheduler,
+.home-kitchen-board {
+  border: 1px solid rgba(183, 119, 55, .58);
+  background: linear-gradient(145deg, rgba(47, 49, 45, .98), rgba(20, 24, 21, .99));
+  box-shadow: inset 0 0 0 1px rgba(220, 158, 85, .05);
+}
+
+.home-kitchen-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  min-height: 210px;
+  padding: 34px 38px;
+  overflow: hidden;
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 82% 18%, rgba(120, 69, 35, .34), transparent 28%),
+    linear-gradient(135deg, rgba(45, 48, 43, .99), rgba(14, 19, 17, .99));
+}
+
+.home-kitchen-hero h1 {
+  margin: 6px 0 10px;
+  color: #f2eee7;
+  font-family: var(--display-font, Georgia, serif);
+  font-size: clamp(46px, 5vw, 78px);
+  font-weight: 500;
+  line-height: .95;
+}
+
+.home-kitchen-hero p {
+  max-width: 780px;
+  margin: 0;
+  color: #c9c4bc;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.home-kitchen-hero > svg {
+  width: 74px;
+  height: 74px;
+  padding: 18px;
+  color: #e0a45c;
+  border: 1px solid rgba(224, 164, 92, .5);
+  border-radius: 22px;
+  background: rgba(86, 54, 32, .62);
+}
+
+.home-kitchen-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.home-kitchen-metrics article {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 92px;
+  padding: 18px 20px;
+  color: #eee9e1;
+  border: 1px solid rgba(178, 124, 70, .42);
+  border-radius: 18px;
+  background: linear-gradient(145deg, rgba(59, 61, 56, .96), rgba(32, 36, 32, .99));
+}
+
+.home-kitchen-metrics svg { color: #d49448; }
+.home-kitchen-metrics span { display: flex; flex-direction: column; gap: 3px; }
+.home-kitchen-metrics small { color: #c9a36e; font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.home-kitchen-metrics strong { color: #f2eee7; font-family: var(--display-font, Georgia, serif); font-size: 29px; font-weight: 500; }
+
+.home-kitchen-scheduler,
+.home-kitchen-board {
+  padding: 26px;
+  border-radius: 22px;
+}
+
+.home-kitchen-scheduler { margin-bottom: 16px; }
+.home-kitchen-section-title,
+.home-kitchen-board-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.home-kitchen-section-title > span {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  color: #e1a65e;
+  border: 1px solid rgba(225, 166, 94, .45);
+  border-radius: 13px;
+  background: rgba(95, 62, 37, .56);
+}
+
+.home-kitchen-section-title small,
+.home-kitchen-board-heading .eyebrow-label {
+  color: #c48a49 !important;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .11em;
+  text-transform: uppercase;
+}
+
+.home-kitchen-section-title h2,
+.home-kitchen-board-heading h2 {
+  margin: 2px 0 0;
+  color: #f2eee7;
+  font-family: var(--display-font, Georgia, serif);
+  font-size: 28px;
+  font-weight: 500;
+}
+
+.home-kitchen-schedule-grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 1.8fr) minmax(180px, .8fr) minmax(140px, .55fr) auto;
+  align-items: end;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.home-kitchen-schedule-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  color: #d8ad76;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.home-kitchen-schedule-grid :is(input, select) {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 13px;
+  color: #f3eee7;
+  -webkit-text-fill-color: #f3eee7;
+  border: 1px solid rgba(190, 126, 58, .68);
+  border-radius: 12px;
+  background: #30332f;
+  color-scheme: dark;
+}
+
+.home-kitchen-schedule-grid .primary-button { min-height: 48px; white-space: nowrap; }
+.home-kitchen-board-heading { justify-content: space-between; margin-bottom: 18px; }
+
+.home-kitchen-filters {
+  display: flex;
+  gap: 5px;
+  padding: 4px;
+  border: 1px solid rgba(181, 121, 62, .45);
+  border-radius: 13px;
+  background: #292c29;
+}
+
+.home-kitchen-filters button {
+  min-height: 35px;
+  padding: 7px 13px;
+  color: #d8ad76;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  font-weight: 750;
+}
+
+.home-kitchen-filters button.selected {
+  color: #fff;
+  border-color: rgba(229, 173, 101, .62);
+  background: linear-gradient(135deg, #a55220, #6b2e12);
+}
+
+.home-kitchen-job-list { display: grid; gap: 10px; }
+.home-kitchen-job {
+  overflow: hidden;
+  border: 1px solid rgba(180, 121, 62, .58);
+  border-radius: 17px;
+  background: linear-gradient(145deg, #41433e, #2e312d);
+}
+
+.home-kitchen-job.active { border-color: rgba(216, 145, 69, .9); }
+.home-kitchen-job.completed { opacity: .78; }
+.home-kitchen-job-summary {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr) auto 24px;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 15px;
+  color: #f1ece4;
+  text-align: left;
+  border: 0;
+  background: transparent;
+}
+
+.home-kitchen-job-photo {
+  width: 58px;
+  height: 58px;
+  display: grid;
+  overflow: hidden;
+  place-items: center;
+  color: #d89a50;
+  border: 1px solid rgba(211, 147, 74, .45);
+  border-radius: 12px;
+  background: #2a2d29;
+}
+
+.home-kitchen-job-photo img { width: 100%; height: 100%; object-fit: cover; }
+.home-kitchen-job-summary > span:nth-child(2) { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.home-kitchen-job-summary small { color: #d0a36d; font-size: 11px; }
+.home-kitchen-job-summary strong { overflow: hidden; color: #f4f0e9; font-family: var(--display-font, Georgia, serif); font-size: 22px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
+.home-kitchen-job-summary em { color: #c5c1ba; font-size: 11px; font-style: normal; }
+.home-kitchen-job-summary > b { padding: 6px 10px; color: #e2b170; border: 1px solid rgba(201, 138, 68, .48); border-radius: 999px; background: #333630; font-size: 10px; text-transform: uppercase; }
+.home-kitchen-job-summary > svg { color: #d59b54; transition: transform .18s ease; }
+.home-kitchen-job-summary > svg.open { transform: rotate(180deg); }
+
+.home-kitchen-job-detail { padding: 5px 15px 16px; border-top: 1px solid rgba(183, 119, 55, .45); }
+.home-kitchen-recipe-grid { display: grid; grid-template-columns: minmax(240px, .75fr) minmax(320px, 1.25fr); gap: 12px; margin-top: 12px; }
+.home-kitchen-recipe-grid > section { padding: 15px; border: 1px solid rgba(185, 124, 63, .46); border-radius: 13px; background: #292c29; }
+.home-kitchen-recipe-grid h3 { margin: 0 0 11px; color: #e2ae6c; font-size: 15px; }
+.home-kitchen-recipe-grid ul,
+.home-kitchen-recipe-grid ol { margin: 0; padding: 0; list-style: none; }
+.home-kitchen-recipe-grid ul li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; color: #e8e2d9; border-bottom: 1px solid rgba(185, 124, 63, .25); }
+.home-kitchen-recipe-grid ul li:last-child { border-bottom: 0; }
+.home-kitchen-recipe-grid ul b { color: #d2a067; font-size: 12px; white-space: nowrap; }
+.home-kitchen-recipe-grid ol { display: grid; gap: 7px; }
+.home-kitchen-recipe-grid ol button { width: 100%; display: flex; align-items: flex-start; gap: 10px; padding: 10px; color: #eee9e1; text-align: left; border: 1px solid rgba(181, 121, 62, .35); border-radius: 10px; background: #383b36; }
+.home-kitchen-recipe-grid ol button > span { flex: 0 0 auto; width: 24px; height: 24px; display: grid; place-items: center; color: #1b1d1b; border-radius: 50%; background: #d69a51; font-size: 11px; font-weight: 850; }
+.home-kitchen-recipe-grid ol p { margin: 2px 0 0; color: #eee9e1; line-height: 1.45; }
+.home-kitchen-recipe-grid ol li.done { opacity: .62; }
+.home-kitchen-recipe-grid ol li.done p { text-decoration: line-through; }
+.home-kitchen-notes { display: flex; gap: 16px; margin-top: 12px; padding: 12px 14px; color: #d6cfc5; border: 1px solid rgba(181, 121, 62, .35); border-radius: 11px; background: #292c29; }
+.home-kitchen-notes span { display: flex; align-items: center; gap: 6px; color: #daa25c; white-space: nowrap; }
+.home-kitchen-notes p { margin: 0; }
+.home-kitchen-job-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+.home-kitchen-job-actions .danger { color: #f0b7a9; border-color: rgba(198, 91, 67, .62); }
+.home-kitchen-empty { min-height: 110px; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 5px; color: #c9a36e; text-align: center; border: 1px dashed rgba(186, 123, 60, .54); border-radius: 15px; background: #30332f; }
+.home-kitchen-empty strong { color: #f1ece4; }
+.home-kitchen-empty span { color: #c6c0b8; }
+
+html body .app-shell:not(.customer-storefront) .production-operations-page .calendar-day.past-calendar-day {
+  position: relative;
+  cursor: not-allowed !important;
+  opacity: 1 !important;
+  background:
+    repeating-linear-gradient(135deg, rgba(52, 54, 50, .99) 0, rgba(52, 54, 50, .99) 9px, rgba(37, 40, 37, .99) 9px, rgba(37, 40, 37, .99) 18px) !important;
+  box-shadow: none !important;
+}
+
+html body .app-shell:not(.customer-storefront) .production-operations-page .calendar-day.past-calendar-day > :not(.calendar-past-stamp) {
+  opacity: .2 !important;
+}
+
+html body .app-shell:not(.customer-storefront) .production-operations-page .calendar-day.past-calendar-day .calendar-past-stamp {
+  position: absolute;
+  z-index: 4;
+  top: 50%;
+  left: -12%;
+  width: 124%;
+  display: block;
+  padding: 2px 0;
+  color: #d8994d !important;
+  opacity: .88 !important;
+  border-top: 1px solid rgba(216, 153, 77, .75);
+  border-bottom: 1px solid rgba(216, 153, 77, .75);
+  font-size: clamp(9px, .95vw, 15px);
+  font-weight: 900;
+  line-height: 1.1;
+  letter-spacing: .17em;
+  text-align: center;
+  text-shadow: 0 1px 8px #111;
+  transform: translateY(-50%) rotate(-30deg);
+  pointer-events: none;
+}
+
+@media (max-width: 1050px) {
+  .home-kitchen-schedule-grid { grid-template-columns: 1fr 1fr; }
+  .home-kitchen-schedule-grid .primary-button { width: 100%; }
+}
+
+@media (max-width: 760px) {
+  .home-kitchen-page { padding: 76px 12px 80px; }
+  .home-kitchen-hero { min-height: 0; padding: 24px 20px; border-radius: 20px; }
+  .home-kitchen-hero h1 { font-size: 45px; }
+  .home-kitchen-hero p { font-size: 14px; }
+  .home-kitchen-hero > svg { width: 52px; height: 52px; padding: 12px; }
+  .home-kitchen-metrics { grid-template-columns: 1fr 1fr; }
+  .home-kitchen-metrics article { min-height: 76px; padding: 13px; }
+  .home-kitchen-scheduler,
+  .home-kitchen-board { padding: 16px; border-radius: 17px; }
+  .home-kitchen-schedule-grid,
+  .home-kitchen-recipe-grid { grid-template-columns: 1fr; }
+  .home-kitchen-board-heading { align-items: flex-start; flex-direction: column; }
+  .home-kitchen-filters { width: 100%; display: grid; grid-template-columns: repeat(4, 1fr); }
+  .home-kitchen-filters button { padding: 6px 4px; font-size: 10px; }
+  .home-kitchen-job-summary { grid-template-columns: 48px minmax(0, 1fr) 20px; gap: 10px; padding: 10px; }
+  .home-kitchen-job-photo { width: 48px; height: 48px; }
+  .home-kitchen-job-summary > b { grid-column: 2; justify-self: start; }
+  .home-kitchen-job-summary > svg { grid-column: 3; grid-row: 1 / span 2; }
+  .home-kitchen-job-summary strong { font-size: 18px; white-space: normal; }
+  .home-kitchen-notes { align-items: flex-start; flex-direction: column; }
+  .home-kitchen-job-actions > button { flex: 1 1 100%; }
+  html body .app-shell:not(.customer-storefront) .production-operations-page .calendar-day.past-calendar-day .calendar-past-stamp { font-size: 8px; letter-spacing: .09em; }
+}

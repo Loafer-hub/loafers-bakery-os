@@ -56,6 +56,7 @@ import SettingsPage from "./pages/SettingsPage";
 import TodayPage from "./pages/TodayPage";
 import HelpPage from "./pages/HelpPage";
 import CookbookPage from "./pages/CookbookPage";
+import HomeKitchenPage from "./pages/HomeKitchenPage";
 
 // customer-options-v1
 // checkout-flow-v1
@@ -64,6 +65,7 @@ const pages = {
   today: TodayPage,
   orders: OrdersPage,
   production: ProductionPage,
+  "home-kitchen": HomeKitchenPage,
   menu: MenuPage,
   business: MorePage,
   settings: SettingsPage,
@@ -330,6 +332,7 @@ export default function App() {
   const [expenses, setExpenses] = usePersistentState("loafers-expenses-v1", seedExpenses);
   const [bakePlans, setBakePlans] = usePersistentState("loafers-bake-plans-v1", []);
   const [kitchenBakes, setKitchenBakes] = usePersistentState("loafers-kitchen-bakes-v1", []);
+  const [homeKitchenJobs, setHomeKitchenJobs] = usePersistentState("loafers-home-kitchen-v1", []);
   const [batchTraceRecords, setBatchTraceRecords] = usePersistentState("loafers-batch-trace-records-v1", []);
   const [liquidSafetyLogs, setLiquidSafetyLogs] = usePersistentState("loafers-liquid-safety-logs-v1", []);
   const [selectedKitchenBakeId, setSelectedKitchenBakeId] = usePersistentState("loafers-selected-kitchen-bake-v1", "");
@@ -356,6 +359,7 @@ export default function App() {
   const [productionView, setProductionView] = useState("operations");
   const [productionArea, setProductionArea] = useState("calendar");
   const [bakeDeskRecipeSignal, setBakeDeskRecipeSignal] = useState(null);
+  const [homeKitchenFocus, setHomeKitchenFocus] = useState(null);
   const [businessFocus, setBusinessFocus] = useState(null);
   const [quickFeed, setQuickFeed] = useState({
     starterId: "mabel",
@@ -934,6 +938,77 @@ export default function App() {
     navigate("production", { productionView: "operations", productionArea: "calendar", navKey: "production" });
   }
 
+  function scheduleCookbookRecipe(recipe, options = {}) {
+    if (!recipe?.id) return;
+    const today = localDateKey(new Date());
+    const date = options.date && options.date >= today ? options.date : today;
+    const servings = Math.max(1, Number(options.servings || recipe.servings || recipe.yield || 1));
+    const suffix = `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    const planId = `cookbook-plan-${suffix}`;
+    const jobId = `home-kitchen-${suffix}`;
+    const source = options.source || "cookbook";
+    const sourceRecipeId = recipe.sourceRecipeId || recipe.id;
+    const steps = recipe.steps?.length
+      ? recipe.steps
+      : recipe.instructions?.length
+        ? recipe.instructions
+        : ["Review the saved recipe and add the cooking steps you want to track."];
+    const plan = {
+      id: planId,
+      date,
+      recipeId: `cookbook:${sourceRecipeId}`,
+      recipeName: recipe.name,
+      quantity: servings,
+      loaves: servings,
+      unitName: "serving",
+      source: "cookbook",
+      homeKitchenJobId: jobId,
+      cookbookPlanId: options.cookbookPlanId || "",
+      isNew: true,
+      createdAt: new Date().toISOString(),
+    };
+    const job = {
+      id: jobId,
+      planId,
+      source,
+      recipeId: sourceRecipeId,
+      recipeName: recipe.name,
+      scheduledDate: date,
+      servings,
+      photo: recipe.photo || recipe.image || "",
+      notes: recipe.notes || recipe.note || "",
+      temps: recipe.temps || "",
+      ingredients: recipe.ingredients || [],
+      steps,
+      checks: {},
+      status: "planned",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    saveBakePlan(plan);
+    setHomeKitchenJobs((current) => [job, ...current]);
+    setToast(`${recipe.name} added to Production and Home Kitchen`);
+  }
+
+  function saveHomeKitchenJob(job) {
+    setHomeKitchenJobs((current) => current.some((item) => item.id === job.id)
+      ? current.map((item) => item.id === job.id ? job : item)
+      : [job, ...current]);
+    setToast(job.status === "completed" ? "Home Kitchen recipe completed" : "Home Kitchen updated");
+  }
+
+  function deleteHomeKitchenJob(id) {
+    const job = homeKitchenJobs.find((item) => item.id === id);
+    setHomeKitchenJobs((current) => current.filter((item) => item.id !== id));
+    if (job?.planId) setBakePlans((current) => current.filter((plan) => plan.id !== job.planId));
+    setToast("Home Kitchen recipe removed");
+  }
+
+  function openHomeKitchenPlan(plan) {
+    setHomeKitchenFocus({ planId: plan?.id || "", nonce: Date.now() });
+    navigate("home-kitchen", { navKey: "home-kitchen" });
+  }
+
   function deleteKitchenBake(id) {
     setKitchenBakes((current) => current.filter((bake) => bake.id !== id));
     if (selectedKitchenBakeId === id) setSelectedKitchenBakeId("");
@@ -993,6 +1068,7 @@ export default function App() {
     setExpenses(data.expenses);
     setBakePlans(data.bakePlans);
     setKitchenBakes(data.kitchenBakes || []);
+    setHomeKitchenJobs(data.homeKitchenJobs || []);
     setBatchTraceRecords(data.batchTraceRecords || []);
     setLiquidSafetyLogs(data.liquidSafetyLogs || []);
     setStarters(data.starters);
@@ -1021,6 +1097,8 @@ export default function App() {
     recipes,
     bakePlans,
     kitchenBakes,
+    homeKitchenJobs,
+    homeKitchenFocus,
     batchTraceRecords,
     liquidSafetyLogs,
     selectedKitchenBakeId,
@@ -1038,6 +1116,7 @@ export default function App() {
     onDeleteExpense: deleteExpense,
     onDeleteInventoryItem: deleteInventoryItem,
     onDeleteKitchenBake: deleteKitchenBake,
+    onDeleteHomeKitchenJob: deleteHomeKitchenJob,
     onDeleteBatchTraceRecord: deleteBatchTraceRecord,
     onDeleteLiquidSafetyLog: deleteLiquidSafetyLog,
     onDeleteRecipe: deleteRecipe,
@@ -1059,6 +1138,7 @@ export default function App() {
     onSaveBakePlan: saveBakePlan,
     onSaveInventoryItem: saveInventoryItem,
     onSaveKitchenBake: saveKitchenBake,
+    onSaveHomeKitchenJob: saveHomeKitchenJob,
     onSaveBatchTraceRecord: saveBatchTraceRecord,
     onSaveLiquidSafetyLog: saveLiquidSafetyLog,
     onSaveRecipe: saveRecipe,
@@ -1068,6 +1148,8 @@ export default function App() {
     onAddRecipeToCalendar: addRecipeToCalendar,
     onAddRecipeToKitchen: addRecipeToKitchen,
     onOpenRecipeInBakeDesk: openRecipeInBakeDesk,
+    onScheduleCookbookRecipe: scheduleCookbookRecipe,
+    onOpenHomeKitchenPlan: openHomeKitchenPlan,
     businessFocus,
     selectedOrderId,
     productionView,
@@ -1184,6 +1266,7 @@ export default function App() {
             expenses,
             bakePlans,
             kitchenBakes,
+            homeKitchenJobs,
             batchTraceRecords,
             liquidSafetyLogs,
             starters,

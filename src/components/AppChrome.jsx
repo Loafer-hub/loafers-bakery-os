@@ -4,6 +4,7 @@ import {
   CalendarDays,
   ChevronRight,
   ClipboardList,
+  CookingPot,
   Croissant,
   House,
   LineChart,
@@ -19,6 +20,7 @@ const navItems = [
   { id: "today", label: "Today", icon: House },
   { id: "orders", label: "Orders", icon: ClipboardList },
   { id: "production", label: "Production", icon: Croissant },
+  { id: "home-kitchen", label: "Home Kitchen", icon: CookingPot },
   { id: "menu", label: "Menu", icon: Store },
   { id: "business", label: "Manage", icon: ClipboardList },
 ];
@@ -28,6 +30,7 @@ const desktopNavItems = [
   { id: "orders", label: "Orders", icon: ClipboardList, page: "orders", showBadge: true },
   { id: "bake-desk", label: "Bake desk", icon: Croissant, page: "production", productionView: "bake" },
   { id: "production", label: "Production", icon: ClipboardList, page: "production", productionView: "operations", productionArea: "calendar" },
+  { id: "home-kitchen", label: "Home Kitchen", icon: CookingPot, page: "home-kitchen" },
   { id: "menu", label: "Menu", icon: Store, page: "menu" },
   { id: "management", label: "Management", icon: ClipboardList, page: "business", businessFocus: "management" },
   { id: "reports", label: "Reports", icon: LineChart, page: "business", businessFocus: "reports" },
