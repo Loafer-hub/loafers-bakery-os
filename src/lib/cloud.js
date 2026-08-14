@@ -655,6 +655,36 @@ export async function sendAutomaticOrderEmail(bakeryId, orderId, eventType) {
   });
 }
 
+async function riseReviewErrorMessage(error) {
+  const response = error?.context;
+  if (response?.status === 404) return "The analyze-rise Edge Function is not deployed in Supabase yet.";
+  if (response?.clone) {
+    try {
+      const clone = response.clone();
+      const contentType = clone.headers?.get?.("content-type") || "";
+      const payload = contentType.includes("application/json") ? await clone.json() : await clone.text();
+      const message = typeof payload === "string" ? payload : payload?.error || payload?.message;
+      if (message) return String(message);
+    } catch {
+      // Preserve the useful client fallback below.
+    }
+  }
+  return error?.message || "AI Rise Review could not be reached.";
+}
+
+export async function analyzeStarterRise({ bakeryId, sessionName = "", photos = [] }) {
+  if (!bakeryId) throw new Error("Sign into the owner cloud account before running AI Rise Review.");
+  if (!Array.isArray(photos) || photos.length < 2) {
+    throw new Error("Add an Initial photo and at least one later photo before analysis.");
+  }
+  const { data, error } = await requireClient().functions.invoke("analyze-rise", {
+    body: { bakeryId, sessionName, photos },
+  });
+  if (error) throw new Error(await riseReviewErrorMessage(error));
+  if (data?.error) throw new Error(data.error);
+  return data;
+}
+
 export async function listEmailNotificationDeliveries(bakeryId, limit = 20) {
   const { data, error } = await requireClient()
     .from("email_notification_deliveries")

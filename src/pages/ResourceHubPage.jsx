@@ -15,6 +15,7 @@ import {
   PackagePlus,
   Pencil,
   Plus,
+  ScanSearch,
   Save,
   Share2,
   Store,
@@ -26,6 +27,7 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { PageHeading } from "../components/AppChrome";
+import RiseReviewWorkspace from "../components/RiseReviewWorkspace";
 import { usePersistentState } from "../hooks/usePersistentState";
 import {
   RESOURCE_BENCH_STORAGE_KEY,
@@ -210,6 +212,13 @@ export default function ResourceHubPage({
 
   const systemCards = [
     {
+      title: "Rise Review",
+      body: "Compare an Initial dough photo with Fold 1–4 and a final check for an AI-estimated rise percentage.",
+      icon: ScanSearch,
+      action: "Open Rise Review",
+      onClick: () => setResourceView("rise-review"),
+    },
+    {
       title: "Cookbook workspace",
       body: "Keep private recipes, photos, notes, meal plans, and exportable shopping lists in one place.",
       icon: CookingPot,
@@ -349,6 +358,15 @@ export default function ResourceHubPage({
     setBenchItems(nextItems);
     publishCustomerResources(nextItems, { quiet: true });
     if (editingId === itemId) resetDraft();
+  }
+
+  if (resourceView === "rise-review") {
+    return (
+      <RiseReviewWorkspace
+        bakeryId={cloudAccount?.workspace?.bakeryId || ""}
+        onBack={() => setResourceView("hub")}
+      />
+    );
   }
 
   if (resourceView === "bench") {

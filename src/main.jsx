@@ -9,6 +9,7 @@ import "./owner-card-contrast.css";
 import "./mobile-layout.css";
 import "./cookbook.css";
 import "./home-kitchen.css";
+import "./rise-review.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
