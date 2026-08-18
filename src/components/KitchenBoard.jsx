@@ -174,8 +174,6 @@ function KitchenRecipePanel({ compact = false, loaves, recipe, timeline }) {
 
   const ingredients = Array.isArray(recipe.ingredients) ? recipe.ingredients : [];
   const steps = kitchenMethodSteps(recipe, timeline);
-  const visibleIngredients = compact ? ingredients.slice(0, 5) : ingredients;
-  const hiddenCount = Math.max(0, ingredients.length - visibleIngredients.length);
 
   return (
     <aside className={compact ? "kitchen-recipe-panel compact" : "kitchen-recipe-panel"}>
@@ -195,17 +193,16 @@ function KitchenRecipePanel({ compact = false, loaves, recipe, timeline }) {
         <span><small>Primary</small><strong>{timeline.primaryLabel || "Rise"}</strong></span>
       </div>
 
-      {visibleIngredients.length ? (
+      {ingredients.length ? (
         <div className="kitchen-recipe-formula">
           <div><span>Ingredient</span><span>Weight</span><span>{formulaModeFor(recipe) === "batch" ? "Batch %" : "Baker’s %"}</span></div>
-          {visibleIngredients.map((ingredient, index) => (
+          {ingredients.map((ingredient, index) => (
             <div key={`${ingredient.name}-${index}`}>
               <span>{ingredient.name || "Ingredient"}</span>
               <span>{gramsLabel(ingredient.weight)}</span>
               <span>{percentLabel(recipe, ingredient)}</span>
             </div>
           ))}
-          {hiddenCount ? <p>+ {hiddenCount} more ingredient{hiddenCount === 1 ? "" : "s"} in the saved recipe.</p> : null}
         </div>
       ) : (
         <p className="kitchen-recipe-empty">No saved ingredients yet. Add ingredients in Menu → Products / Recipes.</p>
