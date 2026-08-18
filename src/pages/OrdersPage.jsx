@@ -166,7 +166,7 @@ function dateTimeLabel(value) {
 }
 
 function isActiveOrder(order) {
-  return order?.isSample !== true && !isClosedOrder(order);
+  return !isClosedOrder(order);
 }
 
 function workflowLabel(status = "") {
@@ -418,6 +418,14 @@ export default function OrdersPage({
     paymentAmount: "",
     paymentNotes: "",
   });
+
+  function updateForm(patch) {
+    setForm((current) => ({ ...current, ...patch }));
+  }
+
+  function updateDetailForm(patch) {
+    setDetailForm((current) => ({ ...current, ...patch }));
+  }
 
   const filteredOrders = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -691,7 +699,10 @@ export default function OrdersPage({
           <CalendarCheck2 size={18} />
           <span>Pickup today</span>
           <strong>{todaysPickups.length}</strong>
-          <small>{capacityToday} of {dailyCapacity} bake slots</small>
+          <small>
+            {capacityToday} of {dailyCapacity} bake slots
+            {capacityToday > dailyCapacity ? ` · ${capacityToday - dailyCapacity} over capacity` : ""}
+          </small>
         </article>
         <article>
           <Clock3 size={18} />
@@ -858,8 +869,12 @@ export default function OrdersPage({
             </section>
 
             <section className="orders-capacity-card">
-              <span>Today’s bake slots</span>
-              <strong>{Math.min(capacityToday, dailyCapacity)} / {dailyCapacity}</strong>
+              <span>
+                {capacityToday > dailyCapacity
+                  ? `Over capacity by ${capacityToday - dailyCapacity}`
+                  : "Today’s bake slots"}
+              </span>
+              <strong>{capacityToday} / {dailyCapacity}</strong>
               <div className="capacity-track" style={{ "--slot-count": dailyCapacity }} aria-hidden="true">
                 {Array.from({ length: dailyCapacity }, (_, index) => (
                   <i key={index} className={index < capacityToday ? "filled" : ""} />
@@ -878,7 +893,7 @@ export default function OrdersPage({
               <input
                 autoFocus
                 value={form.customer}
-                onChange={(event) => setForm({ ...form, customer: event.target.value })}
+                onChange={(event) => updateForm({ customer: event.target.value })}
                 placeholder="Customer name"
               />
             </label>
@@ -886,8 +901,7 @@ export default function OrdersPage({
               Item
               <select value={form.product} onChange={(event) => {
                 const selectedRecipe = recipes.find((recipe) => recipe.name === event.target.value);
-                setForm({
-                  ...form,
+                updateForm({
                   product: event.target.value,
                   saleOptionId: normalizedSalesOptions(selectedRecipe || {})[0]?.id || "default",
                 });
@@ -898,7 +912,7 @@ export default function OrdersPage({
             <div className="form-grid">
               <label>
                 Package
-                <select value={form.saleOptionId} onChange={(event) => setForm({ ...form, saleOptionId: event.target.value })}>
+                <select value={form.saleOptionId} onChange={(event) => updateForm({ saleOptionId: event.target.value })}>
                   {formSaleOptions.map((option) => <option key={option.id} value={option.id}>{option.label} · {option.units} {pluralUnit(formRecipe?.unitName || "item", option.units)} · ${option.price.toFixed(2)}</option>)}
                 </select>
               </label>
@@ -909,7 +923,7 @@ export default function OrdersPage({
                   min="1"
                   max="24"
                   value={form.packageCount}
-                  onChange={(event) => setForm({ ...form, packageCount: Number(event.target.value) })}
+                  onChange={(event) => updateForm({ packageCount: Number(event.target.value) })}
                 />
               </label>
             </div>
@@ -918,21 +932,21 @@ export default function OrdersPage({
               <strong>${formTotal.toFixed(2)}</strong>
             </div>
             <div className="form-grid">
-              <label>Email<input type="email" value={form.customerEmail} onChange={(event) => setForm({ ...form, customerEmail: event.target.value })} placeholder="Optional" /></label>
-              <label>Phone<input value={form.customerPhone} onChange={(event) => setForm({ ...form, customerPhone: event.target.value })} placeholder="Optional" /></label>
+              <label>Email<input type="email" value={form.customerEmail} onChange={(event) => updateForm({ customerEmail: event.target.value })} placeholder="Optional" /></label>
+              <label>Phone<input value={form.customerPhone} onChange={(event) => updateForm({ customerPhone: event.target.value })} placeholder="Optional" /></label>
             </div>
             <div className="local-notification-options">
-              <label><input type="checkbox" disabled={!rules.emailNotifications || !form.customerEmail.trim()} checked={rules.emailNotifications && form.notifyEmail && Boolean(form.customerEmail.trim())} onChange={(event) => setForm({ ...form, notifyEmail: event.target.checked })} /> Email status updates</label>
-              <label><input type="checkbox" disabled={!rules.smsNotifications || !form.customerPhone.trim()} checked={rules.smsNotifications && form.notifySms && Boolean(form.customerPhone.trim())} onChange={(event) => setForm({ ...form, notifySms: event.target.checked })} /> Text status updates</label>
+              <label><input type="checkbox" disabled={!rules.emailNotifications || !form.customerEmail.trim()} checked={rules.emailNotifications && form.notifyEmail && Boolean(form.customerEmail.trim())} onChange={(event) => updateForm({ notifyEmail: event.target.checked })} /> Email status updates</label>
+              <label><input type="checkbox" disabled={!rules.smsNotifications || !form.customerPhone.trim()} checked={rules.smsNotifications && form.notifySms && Boolean(form.customerPhone.trim())} onChange={(event) => updateForm({ notifySms: event.target.checked })} /> Text status updates</label>
             </div>
             <div className="form-grid">
-              <label>Pickup<input type="datetime-local" value={form.pickupAt} onChange={(event) => {
+              <label>Pickup<input type="datetime-local" value={form.pickupAt} onInput={(event) => {
                 setAddError("");
-                setForm({ ...form, pickupAt: event.target.value });
+                updateForm({ pickupAt: event.target.value });
               }} /></label>
               <label>
                 Workflow status
-                <select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}>
+                <select value={form.status} onChange={(event) => updateForm({ status: event.target.value })}>
                   <option>New</option>
                   <option>Accepted</option>
                   <option>In progress</option>
@@ -948,20 +962,20 @@ export default function OrdersPage({
               <div className="form-grid">
                 <label>
                   Method
-                  <select value={form.paymentMethod} onChange={(event) => setForm({ ...form, paymentMethod: event.target.value })}>
+                  <select value={form.paymentMethod} onChange={(event) => updateForm({ paymentMethod: event.target.value })}>
                     {paymentMethods.map((method) => <option key={method}>{method}</option>)}
                   </select>
                 </label>
                 <label>
                   Payment status
-                  <select value={form.paymentStatus} onChange={(event) => setForm({ ...form, paymentStatus: event.target.value })}>
+                  <select value={form.paymentStatus} onChange={(event) => updateForm({ paymentStatus: event.target.value })}>
                     {paymentStatuses.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}
                   </select>
                 </label>
               </div>
               <div className="form-grid">
-                <label>Amount received<input type="number" min="0" step="0.01" value={form.paymentAmount} onChange={(event) => setForm({ ...form, paymentAmount: event.target.value })} placeholder="0.00" /></label>
-                <label>Payment notes<input value={form.paymentNotes} onChange={(event) => setForm({ ...form, paymentNotes: event.target.value })} placeholder="Txn note, cash due, deposit…" /></label>
+                <label>Amount received<input type="number" min="0" step="0.01" value={form.paymentAmount} onChange={(event) => updateForm({ paymentAmount: event.target.value })} placeholder="0.00" /></label>
+                <label>Payment notes<input value={form.paymentNotes} onChange={(event) => updateForm({ paymentNotes: event.target.value })} placeholder="Txn note, cash due, deposit…" /></label>
               </div>
             </section>
             <div className={`order-capacity-note ${addCapacity.full || addCapacity.feedReserved ? "locked" : ""}`}>
@@ -987,9 +1001,9 @@ export default function OrdersPage({
             </div>
             <label>
               Pickup date and time
-              <input type="datetime-local" value={detailForm.pickupAt} onChange={(event) => {
+              <input type="datetime-local" value={detailForm.pickupAt} onInput={(event) => {
                 setDetailError("");
-                setDetailForm({ ...detailForm, pickupAt: event.target.value });
+                updateDetailForm({ pickupAt: event.target.value });
               }} />
             </label>
             {detailCapacity ? (
@@ -1011,7 +1025,7 @@ export default function OrdersPage({
                     <button
                       className={[active ? "active" : "", completed ? "complete" : ""].filter(Boolean).join(" ")}
                       key={step.value}
-                      onClick={() => setDetailForm({ ...detailForm, status: step.value })}
+                      onClick={() => updateDetailForm({ status: step.value })}
                       type="button"
                     >
                       <span>{completed || active ? <CheckCircle2 size={14} /> : <ShoppingBag size={14} />}</span>
@@ -1025,7 +1039,7 @@ export default function OrdersPage({
                 Workflow status
                 <select
                   value={detailForm.status}
-                  onChange={(event) => setDetailForm({ ...detailForm, status: event.target.value })}
+                  onChange={(event) => updateDetailForm({ status: event.target.value })}
                 >
                   {!workflowValues.has(detailForm.status) ? <option>{detailForm.status}</option> : null}
                   {ORDER_WORKFLOW.map((step) => <option key={step.value}>{step.value}</option>)}
@@ -1042,20 +1056,20 @@ export default function OrdersPage({
               <div className="form-grid">
                 <label>
                   Method
-                  <select value={detailForm.paymentMethod} onChange={(event) => setDetailForm({ ...detailForm, paymentMethod: event.target.value })}>
+                  <select value={detailForm.paymentMethod} onChange={(event) => updateDetailForm({ paymentMethod: event.target.value })}>
                     {paymentMethods.map((method) => <option key={method}>{method}</option>)}
                   </select>
                 </label>
                 <label>
                   Payment status
-                  <select value={detailForm.paymentStatus} onChange={(event) => setDetailForm({ ...detailForm, paymentStatus: event.target.value })}>
+                  <select value={detailForm.paymentStatus} onChange={(event) => updateDetailForm({ paymentStatus: event.target.value })}>
                     {paymentStatuses.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}
                   </select>
                 </label>
               </div>
               <div className="form-grid">
-                <label>Amount received<input type="number" min="0" step="0.01" value={detailForm.paymentAmount} onChange={(event) => setDetailForm({ ...detailForm, paymentAmount: event.target.value })} placeholder="0.00" /></label>
-                <label>Payment notes<input value={detailForm.paymentNotes} onChange={(event) => setDetailForm({ ...detailForm, paymentNotes: event.target.value })} placeholder="Txn note, cash due, deposit…" /></label>
+                <label>Amount received<input type="number" min="0" step="0.01" value={detailForm.paymentAmount} onChange={(event) => updateDetailForm({ paymentAmount: event.target.value })} placeholder="0.00" /></label>
+                <label>Payment notes<input value={detailForm.paymentNotes} onChange={(event) => updateDetailForm({ paymentNotes: event.target.value })} placeholder="Txn note, cash due, deposit…" /></label>
               </div>
             </section>
             {detailError ? <p className="form-error" role="alert">{detailError}</p> : null}
@@ -1063,7 +1077,7 @@ export default function OrdersPage({
               Customer-visible baker note
               <textarea
                 value={detailForm.notes}
-                onChange={(event) => setDetailForm({ ...detailForm, notes: event.target.value })}
+                onChange={(event) => updateDetailForm({ notes: event.target.value })}
                 placeholder="Pickup details, customer-visible comment, payment reminder…"
               />
             </label>
@@ -1071,7 +1085,7 @@ export default function OrdersPage({
               Private internal note
               <textarea
                 value={detailForm.internalNotes}
-                onChange={(event) => setDetailForm({ ...detailForm, internalNotes: event.target.value })}
+                onChange={(event) => updateDetailForm({ internalNotes: event.target.value })}
                 placeholder="Kitchen-only notes, customer preferences, delivery reminders, private context…"
               />
             </label>
@@ -1081,8 +1095,8 @@ export default function OrdersPage({
                 <Send size={18} />
               </div>
               <div className="form-grid">
-                <label>Email<input type="email" value={detailForm.customerEmail} onChange={(event) => setDetailForm({ ...detailForm, customerEmail: event.target.value })} placeholder="Customer email" /></label>
-                <label>Phone<input value={detailForm.customerPhone} onChange={(event) => setDetailForm({ ...detailForm, customerPhone: event.target.value })} placeholder="Customer phone" /></label>
+                <label>Email<input type="email" value={detailForm.customerEmail} onChange={(event) => updateDetailForm({ customerEmail: event.target.value })} placeholder="Customer email" /></label>
+                <label>Phone<input value={detailForm.customerPhone} onChange={(event) => updateDetailForm({ customerPhone: event.target.value })} placeholder="Customer phone" /></label>
               </div>
               <label>
                 Message type
@@ -1092,8 +1106,8 @@ export default function OrdersPage({
                 </select>
               </label>
               <div className="local-notification-options">
-                <label><input type="checkbox" disabled={!rules.emailNotifications || !detailForm.customerEmail.trim()} checked={rules.emailNotifications && detailForm.notifyEmail && Boolean(detailForm.customerEmail.trim())} onChange={(event) => setDetailForm({ ...detailForm, notifyEmail: event.target.checked })} /> Email updates requested</label>
-                <label><input type="checkbox" disabled={!rules.smsNotifications || !detailForm.customerPhone.trim()} checked={rules.smsNotifications && detailForm.notifySms && Boolean(detailForm.customerPhone.trim())} onChange={(event) => setDetailForm({ ...detailForm, notifySms: event.target.checked })} /> Text updates requested</label>
+                <label><input type="checkbox" disabled={!rules.emailNotifications || !detailForm.customerEmail.trim()} checked={rules.emailNotifications && detailForm.notifyEmail && Boolean(detailForm.customerEmail.trim())} onChange={(event) => updateDetailForm({ notifyEmail: event.target.checked })} /> Email updates requested</label>
+                <label><input type="checkbox" disabled={!rules.smsNotifications || !detailForm.customerPhone.trim()} checked={rules.smsNotifications && detailForm.notifySms && Boolean(detailForm.customerPhone.trim())} onChange={(event) => updateDetailForm({ notifySms: event.target.checked })} /> Text updates requested</label>
               </div>
               <div className="notification-action-grid">
                 <a
